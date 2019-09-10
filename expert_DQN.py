@@ -400,10 +400,11 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
-    expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
-                                 feed_dict={main_dqn.input:obs,
-                                            main_dqn.expert_action:acs,
-                                            main_dqn.target_q:expert_q})
+    # expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
+    #                              feed_dict={main_dqn.input:obs,
+    #                                         main_dqn.expert_action:acs,
+    #                                         main_dqn.target_q:expert_q})
+    expert_loss = 0
     return loss,expert_loss
 
 
@@ -558,6 +559,7 @@ def train():
     while frame_number < MAX_FRAMES:
 
         epoch_frame = 0
+        print("Training Model ...")
         while epoch_frame < EVAL_FREQUENCY:
             terminal_life_lost = atari.reset(sess)
             episode_reward_sum = 0
@@ -592,7 +594,7 @@ def train():
             rewards.append(episode_reward_sum)
 
             # Output the progress:
-            if len(rewards) % 10 == 0:
+            if len(rewards) % 100 == 0:
                 if frame_number > REPLAY_MEMORY_START_SIZE and len(loss_list)>0:
                     q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                     logger.record_tabular("frame_number", frame_number)
@@ -606,50 +608,50 @@ def train():
                     logger.dumpkvs()
                 print(len(rewards), frame_number, np.mean(rewards[-100:]))
 
-        terminal = True
+        #Evaluation ...
         gif = True
         frames_for_gif = []
         eval_rewards = []
         evaluate_frame_number = 0
-
-        for _ in range(EVAL_STEPS):
-            if terminal:
-                terminal_life_lost = atari.reset(sess, evaluation=True)
-                episode_reward_sum = 0
-                terminal = False
-
-            # Fire (action 1), when a life was lost or the game just started,
-            # so that the agent does not stand around doing nothing. When playing
-            # with other environments, you might want to change this...
-            action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
-                                                                           atari.state,
-                                                                           MAIN_DQN,
-                                                                           evaluation=True)
-            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
-            evaluate_frame_number += 1
-            episode_reward_sum += reward
-            if gif:
-                frames_for_gif.append(new_frame)
-            if terminal:
-                eval_rewards.append(episode_reward_sum)
-                gif = False  # Save only the first game of the evaluation as a gif
-
+        print("Evaluating Model.... ")
+        while evaluate_frame_number < EVAL_STEPS:
+            terminal_life_lost = atari.reset(sess, evaluation=True)
+            episode_reward_sum = 0
+            for _ in range(MAX_EPISODE_LENGTH):
+                # Fire (action 1), when a life was lost or the game just started,
+                # so that the agent does not stand around doing nothing. When playing
+                # with other environments, you might want to change this...
+                action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
+                                                                               atari.state,
+                                                                               MAIN_DQN,
+                                                                               evaluation=True)
+                processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+                evaluate_frame_number += 1
+                episode_reward_sum += reward
+                if gif:
+                    frames_for_gif.append(new_frame)
+                if terminal:
+                    eval_rewards.append(episode_reward_sum)
+                    gif = False  # Save only the first game of the evaluation as a gif
+                    break
+            if len(eval_rewards) % 10 == 0:
+                print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
+        if not os.path.exists(PATH+"expert_dist_dqn/"):
+            os.makedirs(PATH+"expert_dist_dqn/")
         try:
-            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
+            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH+"expert_dist_dqn/")
         except IndexError:
             print("No evaluation game finished")
-
+        logger.log("Average Evaluation Reward", np.mean(eval_rewards))
+        logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
         # Save the network parameters
-        saver.save(sess, './Models/model-', global_step=frame_number)
-        frames_for_gif = []
-
+        saver.save(sess, './Models/expert_dist_dqn_model-', global_step=len(rewards))
         logger.log("frame number",frame_number)
         logger.log("eval_reward",np.mean(eval_rewards))
         logger.dumpkvs()
 
 def test():
-
     trained_path = "./breakout/"
     save_file = "my_model-15845555.meta"
 

@@ -10,8 +10,8 @@ from tqdm import tqdm
 import imageio
 from skimage.transform import resize
 import logger
+import math
 import time
-
 class Resize:
     """Resizes and converts RGB Atari frames to grayscale"""
 
@@ -43,81 +43,90 @@ class Resize:
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001,
-                 frame_height=84, frame_width=84, agent_history_length=4):
-        """
-        Args:
-            n_actions: Integer, number of possible actions
-            hidden: Integer, Number of filters in the final convolutional layer.
-                    This is different from the DeepMind implementation
-            learning_rate: Float, Learning rate for the Adam optimizer
-            frame_height: Integer, Height of a frame of an Atari game
-            frame_width: Integer, Width of a frame of an Atari game
-            agent_history_length: Integer, Number of frames stacked together to create a state
-        """
-        self.n_actions = n_actions
-        self.hidden = hidden
-        self.learning_rate = learning_rate
-        self.frame_height = frame_height
-        self.frame_width = frame_width
-        self.agent_history_length = agent_history_length
+    class DQN:
+        """Implements a Deep Q Network"""
 
-        self.input = tf.placeholder(shape=[None, self.frame_height,
-                                           self.frame_width, self.agent_history_length],
-                                    dtype=tf.float32)
-        # Normalizing the input
-        self.inputscaled = self.input / 255
+        def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma=0.99,
+                     frame_height=84, frame_width=84, agent_history_length=4):
+            """
+            Args:
+                n_actions: Integer, number of possible actions
+                hidden: Integer, Number of filters in the final convolutional layer.
+                        This is different from the DeepMind implementation
+                learning_rate: Float, Learning rate for the Adam optimizer
+                frame_height: Integer, Height of a frame of an Atari game
+                frame_width: Integer, Width of a frame of an Atari game
+                agent_history_length: Integer, Number of frames stacked together to create a state
+            """
+            self.n_actions = n_actions
+            self.hidden = hidden
+            self.learning_rate = learning_rate
+            self.frame_height = frame_height
+            self.frame_width = frame_width
+            self.agent_history_length = agent_history_length
 
-        # Convolutional layers
-        self.conv1 = tf.layers.conv2d(
-            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-        self.conv2 = tf.layers.conv2d(
-            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-        self.conv3 = tf.layers.conv2d(
-            inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-        self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-        self.d = tf.layers.flatten(self.conv4)
-        self.dense = tf.layers.dense(inputs = self.d,units = 1024,
-                                     kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
+            self.input = tf.placeholder(shape=[None, self.frame_height,
+                                               self.frame_width, self.agent_history_length],
+                                        dtype=tf.float32)
+            # Normalizing the input
+            self.inputscaled = self.input / 255
 
-        # Splitting into value and advantage stream
-        self.valuestream, self.advantagestream = tf.split(self.dense,2,-1)
-        self.valuestream = tf.layers.flatten(self.valuestream)
-        self.advantagestream = tf.layers.flatten(self.advantagestream)
-        self.advantage = tf.layers.dense(
-            inputs=self.advantagestream, units=self.n_actions,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
-        self.value = tf.layers.dense(
-            inputs=self.valuestream, units=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+            # Convolutional layers
+            self.conv1 = tf.layers.conv2d(
+                inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            self.conv2 = tf.layers.conv2d(
+                inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            self.conv3 = tf.layers.conv2d(
+                inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            self.conv4 = tf.layers.conv2d(
+                inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            self.d = tf.layers.flatten(self.conv4)
+            self.dense = tf.layers.dense(inputs=self.d, units=hidden, activation=tf.tanh,
+                                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+            self.q_values = tf.layers.dense(
+                inputs=self.dense, units=n_actions, activation=tf.identity,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
 
-        # Combining value and advantage into Q-values as described above
-        self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
-        self.best_action = tf.argmax(self.q_values, 1)
+            # Combining value and advantage into Q-values as described above
+            self.action_prob = tf.nn.softmax(self.q_values)
+            self.best_action = tf.argmax(self.action_prob, 1)
 
-        # The next lines perform the parameter update. This will be explained in detail later.
+            # The next lines perform the parameter update. This will be explained in detail later.
 
-        # targetQ according to Bellman equation:
-        # Q = r + gamma*max Q', calculated in the function learn()
-        self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
-        # Action that was performed
-        self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-        # Q value of the action that was performed
-        self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
-                               axis=1)
-        # Parameter updates
-        self.loss = tf.reduce_mean(tf.losses.huber_loss(labels=self.target_q, predictions=self.Q))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.update = self.optimizer.minimize(self.loss)
+            # targetQ according to Bellman equation:
+            # Q = r + gamma*max Q', calculated in the function learn()
+            self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
+            # Action that was performed
+            self.action = tf.placeholder(shape=[None], dtype=tf.int32)
+            self.expert_action = tf.placeholder(shape=[None], dtype=tf.int32)
+            # Q value of the action that was performed
+            self.Q = tf.reduce_sum(
+                tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+                axis=1)
+
+            # Parameter updates
+            self.loss = tf.reduce_mean(math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)))
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            self.update = self.optimizer.minimize(self.loss)
+
+            self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
+                                                  tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
+                                      axis=1)
+            self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
+                                                    tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
+                                        axis=1)
+            self.expert_loss = -tf.log(self.prob + 0.001)
+            self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
+            self.expert_update = self.expert_optimizer.minimize(self.expert_loss)
+
 
 class ActionGetter:
     """Determines an action according to an epsilon greedy strategy with annealing epsilon"""
@@ -488,11 +497,11 @@ def train():
     loss_list = []
 
     while frame_number < MAX_FRAMES:
-        print("Training Model ...")
-        epoch_frame = 0
         start_time = time.time()
+        epoch_frame = 0
+        print("Training Model ...")
         while epoch_frame < EVAL_FREQUENCY:
-            atari.reset(sess)
+            terminal_life_lost = atari.reset(sess)
             episode_reward_sum = 0
             for _ in range(MAX_EPISODE_LENGTH):
                 # (4★)
@@ -564,18 +573,18 @@ def train():
             if len(eval_rewards) % 10 == 0:
                 print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
-        if not os.path.exists(PATH+"vanilla_dqn/"):
-            os.makedirs(PATH+"vanilla_dqn/")
+        if not os.path.exists(PATH+"dist_dqn/"):
+            os.makedirs(PATH+"dist_dqn/")
         try:
-            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH+"vanilla_dqn/")
+            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH+"dist_dqn/")
         except IndexError:
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
-
         # Save the network parameters
-        saver.save(sess, './Models/vanilla_dqn_model-', global_step=frame_number)
+        saver.save(sess, './Models/dist_dqn_model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
+        logger.log("eval_reward",np.mean(eval_rewards))
         logger.dumpkvs()
 
 def test():
