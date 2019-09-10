@@ -552,8 +552,6 @@ def train(args):
 
             # Output the progress:
             if len(rewards) % 10 == 0:
-                if frame_number > REPLAY_MEMORY_START_SIZE:
-                    loss_list = []
                 q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
