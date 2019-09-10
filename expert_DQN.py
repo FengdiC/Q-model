@@ -530,7 +530,6 @@ with tf.variable_scope('targetDQN'):
     TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
 
 init = tf.global_variables_initializer()
-saver = tf.train.Saver(max_to_keep=20)
 MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 
@@ -547,9 +546,9 @@ def train(args):
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
 
+    saver = tf.train.Saver(max_to_keep=10)
     sess.run(init)
     if args.checkpoint_index >= 0:
-        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ")
 
@@ -616,7 +615,8 @@ def train(args):
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
-                logger.dumpkvs()
+                print("Average Loss: ", np.mean(loss_list[-100:]))
+                print("Average Expert Loss: ", np.mean(expert_loss_list[-100:]))
 
         #Evaluation ...
         gif = True

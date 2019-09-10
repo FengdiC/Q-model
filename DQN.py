@@ -459,10 +459,8 @@ with tf.variable_scope('targetDQN'):
     TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
 
 init = tf.global_variables_initializer()
-saver = tf.train.Saver(max_to_keep=10)
 MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
-
 
 def train(args):
     config = tf.ConfigProto()
@@ -475,12 +473,13 @@ def train(args):
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
 
+    saver = tf.train.Saver(max_to_keep=10)
     sess.run(init)
     if args.checkpoint_index >= 0:
-        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ")
     logger.configure(args.log_dir)
+
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
     frame_number = 0
     rewards = []
@@ -539,7 +538,7 @@ def train(args):
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
-                logger.dumpkvs()
+                print("Average Loss: ", np.mean(loss_list[-100:]))
 
         #Evaluation ...
         gif = True
@@ -576,7 +575,6 @@ def train(args):
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
-
         # Save the network parameters
         saver.save(sess, args.checkpoint_dir + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
@@ -629,10 +627,24 @@ def test():
         rets =0
 
     np.savez('deterministic.dqn.breakout.npz', obs=obs, acs=acs, ep_rets=ep_rets)
-
     print("The total reward is {}".format(episode_reward_sum))
     print("Creating gif...")
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
+
+def sample(args):
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
+
+    action_getter = ActionGetter(atari.env.action_space.n,
+                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                 max_frames=MAX_FRAMES)
+
+    sess.run(init)
+    if args.checkpoint_index >= 0:
+        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
+        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ")
 
 import argparse
 def argsparser():
