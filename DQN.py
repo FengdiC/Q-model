@@ -141,6 +141,8 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
+        eps_final = min(eps_initial, eps_final)
+        eps_final_frame = min(eps_final, eps_final_frame)
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
@@ -438,6 +440,7 @@ def argsparser():
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
+    parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     return parser.parse_args()
 
 args = argsparser()
@@ -491,14 +494,15 @@ def train(args):
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES)
+                                 max_frames=MAX_FRAMES,
+                                 eps_initial=args.initial_exploration)
 
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
     sess.run(init)
     if args.checkpoint_index >= 0:
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
-        print("Loaded Model ... ")
+        print("Loaded Model ... ", args.checkpoint_dir + "model--" + str(args.checkpoint_index))
     logger.configure(args.log_dir)
 
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
