@@ -486,39 +486,62 @@ class Atari:
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
 
-tf.reset_default_graph()
+import argparse
+def argsparser():
+    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
+    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/dist_dqn/')
+    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/dist_dqn/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/dist_dqn/')
+    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
+    parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
+    parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
+    parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
+    parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
+    parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
+    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=3000000)
+    parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
+    parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
+    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
+    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
+    parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
+    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
+    return parser.parse_args()
 
+args = argsparser()
+tf.reset_default_graph()
 # Control parameters
-MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 200000          # Number of frames the agent sees between evaluations
-EVAL_STEPS = 10000               # Number of frames for one evaluation
-NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
+MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
+EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
+EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
+NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
                                  # DeepMind code, it is clearly measured in the number
                                  # of actions the agent choses
-DISCOUNT_FACTOR = 0.99           # gamma in the Bellman equation
-REPLAY_MEMORY_START_SIZE = 50000 # Number of completely random actions,
+DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
+REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
                                  # before the agent starts learning
-MAX_FRAMES = 30000000            # Total number of frames the agent sees
-MEMORY_SIZE = 1000000            # Number of transitions stored in the replay memory
-NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
+MAX_FRAMES = args.max_frames            # Total number of frames the agent sees
+MEMORY_SIZE = args.replay_mem_size            # Number of transitions stored in the replay memory
+NO_OP_STEPS = args.no_op_steps                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                  # evaluation episode
-UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
-HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
+UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
+HIDDEN = args.hidden                    # Number of filters in the final convolutional layer. The output
                                  # has the shape (1,1,1024) which is split into two streams. Both
                                  # the advantage stream and value stream have the shape
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.0000625         # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = args.lr         # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
-BS = 32
-
-PATH = "./GIFs/"                 # Gifs and checkpoints will be saved here
-os.makedirs(PATH, exist_ok=True)
-
-atari = Atari("BreakoutDeterministic-v4", NO_OP_STEPS)
+BS = args.batch_size
+atari = Atari(args.env_id, NO_OP_STEPS)
 
 print("The environment has the following {} actions: {}".format(atari.env.action_space.n,
                                                                 atari.env.unwrapped.get_action_meanings()))
@@ -616,7 +639,8 @@ def train(args):
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
                 print("Average Loss: ", np.mean(loss_list[-100:]))
-                print("Average Expert Loss: ", np.mean(expert_loss_list[-100:]))
+                if frame_number > REPLAY_MEMORY_START_SIZE:
+                    print("Average Loss: ", np.mean(loss_list[-100:]))
 
         #Evaluation ...
         gif = True
@@ -713,32 +737,6 @@ def test(args):
     print("Creating gif...")
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
 
-import argparse
-def argsparser():
-    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/dist_dqn/')
-    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/dist_dqn/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/dist_dqn/')
-    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
-    # parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    # parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
-    # parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
-    # parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
-    # parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
-    # parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=3000000)
-    # parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
-    # parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
-    # parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
-    # parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
-    # parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
-    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.99)
-    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.0000625)
-    return parser.parse_args()
-
-args = argsparser()
 tf.random.set_random_seed(args.seed)
 if args.task == "train":
     train(args)
