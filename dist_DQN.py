@@ -423,7 +423,8 @@ import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
+    parser.add_argument('--expert_dir', type=str, default='dist_dqn_data/')
+    parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/dist_dqn/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--log_dir', help='the directory to save log file', default='logs/dist_dqn/')
@@ -493,7 +494,6 @@ TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
     my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = ActionGetter(atari.env.action_space.n,
@@ -501,6 +501,7 @@ def train(args):
                                  max_frames=MAX_FRAMES)
 
     saver = tf.train.Saver(max_to_keep=10)
+    sess = tf.Session(config=config)
     sess.run(init)
     if args.checkpoint_index >= 0:
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))

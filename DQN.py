@@ -416,7 +416,8 @@ import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_path', type=str, default='data/expert_data.pkl')
+    parser.add_argument('--expert_dir', type=str, default='dqn_data/')
+    parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/vanilla_dqn/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--log_dir', help='the directory to save log file', default='logs/vanilla_dqn/')
@@ -477,6 +478,7 @@ with tf.variable_scope('mainDQN'):
 with tf.variable_scope('targetDQN'):
     TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
 
+
 init = tf.global_variables_initializer()
 MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
@@ -484,7 +486,6 @@ TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
 
     my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
@@ -493,6 +494,7 @@ def train(args):
                                  max_frames=MAX_FRAMES)
 
     saver = tf.train.Saver(max_to_keep=10)
+    sess = tf.Session(config=config)
     sess.run(init)
     if args.checkpoint_index >= 0:
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
@@ -652,24 +654,28 @@ def test():
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
 
 def sample(args):
+    if not os.path.exists(args.checkpoint_dir):
+        os.makedirs(args.checkpoint_dir)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
-
+    if not os.path.exists(args.expert_dir):
+        os.makedirs(args.expert_dir)
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
     my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS)
     sess.run(init)
     if args.checkpoint_index >= 0:
-        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ")
     gif = True
     frames_for_gif = []
-    rewards = 0
+    reward_list = []
     for _ in tqdm(range(args.num_sampled)):
-        terminal_live_lost = True
+        terminal_live_lost = atari.reset(sess, evaluation=True)
+        episode_reward_sum = 0
         for _ in range(MAX_EPISODE_LENGTH):
             action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
@@ -679,18 +685,19 @@ def sample(args):
                                             frame=processed_new_frame[:, :, 0],
                                             reward=reward,
                                             terminal=terminal_live_lost)
+            episode_reward_sum += reward
             if gif:
                 frames_for_gif.append(new_frame)
-                rewards += reward
             if terminal == True:
                 gif = False
+                reward_list.append(episode_reward_sum)
                 break
     try:
-        generate_gif(-1, frames_for_gif, rewards, args.gif_dir)
+        generate_gif(-1, frames_for_gif, reward_list[0], args.gif_dir)
     except IndexError:
         print("No evaluation game finished")
-
-    pickle.dump(my_replay_memory, open(args.expert_path, "wb"))
+    print("Average Reward: ", np.mean(reward_list))
+    pickle.dump(my_replay_memory, open(args.expert_dir + args.expert_file + "_" + str(args.num_sampled), "wb"))
 
 tf.random.set_random_seed(args.seed)
 if args.task == "train":
@@ -698,4 +705,4 @@ if args.task == "train":
 elif args.task == "evaluate":
     test(args)
 else:
-    print("TBD")
+    sample(args)
