@@ -11,6 +11,7 @@ import imageio
 from skimage.transform import resize
 import logger
 import time
+import pickle
 
 class Resize:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -349,10 +350,7 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
     for idx, frame_idx in enumerate(frames_for_gif):
         frames_for_gif[idx] = resize(frame_idx, (420, 320, 3),
                                      preserve_range=True, order=0).astype(np.uint8)
-
-    imageio.mimsave(f'{path}{"ATARI_frame_{0}_reward_{1}.gif".format(frame_number, reward)}',
-                    frames_for_gif, duration=1 / 30)
-
+    imageio.mimsave(f'{path}{"ATARI_frame_{0}_reward_{1}.gif".format(frame_number, reward)}',frames_for_gif, duration=1 / 30)
 
 class Atari:
     """Wrapper for the environment provided by gym"""
@@ -639,23 +637,50 @@ def sample(args):
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
-
+    my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS)
     sess.run(init)
     if args.checkpoint_index >= 0:
         saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ")
+    gif = True
+    frames_for_gif = []
+    rewards = 0
+    for _ in tqdm(range(args.num_sampled)):
+        terminal_live_lost = True
+        for _ in range(MAX_EPISODE_LENGTH):
+            action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+                                                                           MAIN_DQN,
+                                                                           evaluation=True)
+            processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
+            my_replay_memory.add_experience(action=action,
+                                            frame=processed_new_frame[:, :, 0],
+                                            reward=reward,
+                                            terminal=terminal_live_lost)
+            if gif:
+                frames_for_gif.append(new_frame)
+                rewards += reward
+            if terminal == True:
+                gif = False
+                break
+    try:
+        generate_gif(-1, frames_for_gif, rewards, args.gif_dir)
+    except IndexError:
+        print("No evaluation game finished")
+
+    pickle.dump(my_replay_memory, open(args.expert_path, "wb"))
 
 import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
+    parser.add_argument('--expert_path', type=str, default='data/expert_data.pkl')
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/vanilla_dqn/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--log_dir', help='the directory to save log file', default='logs/vanilla_dqn/')
     parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/vanilla_dqn/')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
+    parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     # parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
     # parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
     # parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
