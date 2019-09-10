@@ -464,7 +464,7 @@ MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 
 
-def train():
+def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
@@ -476,16 +476,20 @@ def train():
                                  max_frames=MAX_FRAMES)
 
     sess.run(init)
-    # trained_path = "./Models/"
-    # save_file = "model--5606247.meta"
-    # saver = tf.train.import_meta_graph(trained_path + save_file)
-    # saver.restore(sess, tf.train.latest_checkpoint(trained_path))
-
-    logger.configure("./log/")
+    if args.checkpoint_index >= 0:
+        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
+        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ")
+    logger.configure(args.log_dir)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
     frame_number = 0
     rewards = []
     loss_list = []
+
+    if not os.path.exists(args.gif_dir):
+        os.makedirs(args.gif_dir)
+    if not os.path.exists(args.checkpoint_dir):
+        os.makedirs(args.checkpoint_dir)
 
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
@@ -523,7 +527,7 @@ def train():
             rewards.append(episode_reward_sum)
 
             # Output the progress:
-            if len(rewards) % 100 == 0:
+            if len(rewards) % 10 == 0:
                 if frame_number > REPLAY_MEMORY_START_SIZE:
                     loss_list = []
                 q_vals = sess.run(TARGET_DQN.q_values, feed_dict={TARGET_DQN.input: fixed_state})
@@ -532,7 +536,9 @@ def train():
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
-                print(len(rewards), frame_number, np.mean(rewards[-100:]))
+                print("Completion: ", str(len(rewards))+"/"+str(epoch_frame))
+                print("Current Frame: ",frame_number)
+                print("Average Reward: ", np.mean(rewards[-100:]))
                 logger.dumpkvs()
 
         #Evaluation ...
@@ -564,35 +570,29 @@ def train():
             if len(eval_rewards) % 10 == 0:
                 print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
-        if not os.path.exists(PATH+"vanilla_dqn/"):
-            os.makedirs(PATH+"vanilla_dqn/")
         try:
-            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH+"vanilla_dqn/")
+            generate_gif(frame_number, frames_for_gif, eval_rewards[0], args.gif_dir)
         except IndexError:
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
 
         # Save the network parameters
-        saver.save(sess, './Models/vanilla_dqn_model-', global_step=frame_number)
+        saver.save(sess, args.checkpoint_dir + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
         logger.dumpkvs()
 
 def test():
-
-    trained_path = "./Models/"
-    save_file = "model--5606247.meta"
-
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
-
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    saver = tf.train.import_meta_graph(trained_path + save_file)
-    saver.restore(sess, tf.train.latest_checkpoint(trained_path))
-    # saver.restore(sess,"./Models/model--5606247")
+    if args.checkpoint_index >= 0:
+        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
+        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ")
     frames_for_gif = []
     terminal_live_lost = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
@@ -633,4 +633,37 @@ def test():
     print("The total reward is {}".format(episode_reward_sum))
     print("Creating gif...")
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
-train()
+
+import argparse
+def argsparser():
+    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
+    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/vanilla_dqn/')
+    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/vanilla_dqn/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/vanilla_dqn/')
+    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
+    # parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
+    # parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
+    # parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
+    # parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
+    # parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
+    # parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=3000000)
+    # parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
+    # parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
+    # parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
+    # parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    # parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
+    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.99)
+    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.0000625)
+    return parser.parse_args()
+
+args = argsparser()
+tf.random.set_random_seed(args.seed)
+if args.task == "train":
+    train(args)
+elif args.task == "evaluate":
+    test(args)
+else:
+    print("TBD")

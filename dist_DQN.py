@@ -42,90 +42,86 @@ class Resize:
 
 class DQN:
     """Implements a Deep Q Network"""
+    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma=0.99,
+                 frame_height=84, frame_width=84, agent_history_length=4):
+        """
+        Args:
+            n_actions: Integer, number of possible actions
+            hidden: Integer, Number of filters in the final convolutional layer.
+                    This is different from the DeepMind implementation
+            learning_rate: Float, Learning rate for the Adam optimizer
+            frame_height: Integer, Height of a frame of an Atari game
+            frame_width: Integer, Width of a frame of an Atari game
+            agent_history_length: Integer, Number of frames stacked together to create a state
+        """
+        self.n_actions = n_actions
+        self.hidden = hidden
+        self.learning_rate = learning_rate
+        self.frame_height = frame_height
+        self.frame_width = frame_width
+        self.agent_history_length = agent_history_length
 
-    class DQN:
-        """Implements a Deep Q Network"""
+        self.input = tf.placeholder(shape=[None, self.frame_height,
+                                           self.frame_width, self.agent_history_length],
+                                    dtype=tf.float32)
+        # Normalizing the input
+        self.inputscaled = self.input / 255
 
-        def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma=0.99,
-                     frame_height=84, frame_width=84, agent_history_length=4):
-            """
-            Args:
-                n_actions: Integer, number of possible actions
-                hidden: Integer, Number of filters in the final convolutional layer.
-                        This is different from the DeepMind implementation
-                learning_rate: Float, Learning rate for the Adam optimizer
-                frame_height: Integer, Height of a frame of an Atari game
-                frame_width: Integer, Width of a frame of an Atari game
-                agent_history_length: Integer, Number of frames stacked together to create a state
-            """
-            self.n_actions = n_actions
-            self.hidden = hidden
-            self.learning_rate = learning_rate
-            self.frame_height = frame_height
-            self.frame_width = frame_width
-            self.agent_history_length = agent_history_length
+        # Convolutional layers
+        self.conv1 = tf.layers.conv2d(
+            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+        self.conv2 = tf.layers.conv2d(
+            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+        self.conv3 = tf.layers.conv2d(
+            inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+        self.conv4 = tf.layers.conv2d(
+            inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+        self.d = tf.layers.flatten(self.conv4)
+        self.dense = tf.layers.dense(inputs=self.d, units=hidden, activation=tf.tanh,
+                                     kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+        self.q_values = tf.layers.dense(
+            inputs=self.dense, units=n_actions, activation=tf.identity,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
 
-            self.input = tf.placeholder(shape=[None, self.frame_height,
-                                               self.frame_width, self.agent_history_length],
-                                        dtype=tf.float32)
-            # Normalizing the input
-            self.inputscaled = self.input / 255
+        # Combining value and advantage into Q-values as described above
+        self.action_prob = tf.nn.softmax(self.q_values)
+        self.best_action = tf.argmax(self.action_prob, 1)
 
-            # Convolutional layers
-            self.conv1 = tf.layers.conv2d(
-                inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-            self.conv2 = tf.layers.conv2d(
-                inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-            self.conv3 = tf.layers.conv2d(
-                inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-            self.conv4 = tf.layers.conv2d(
-                inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-            self.d = tf.layers.flatten(self.conv4)
-            self.dense = tf.layers.dense(inputs=self.d, units=hidden, activation=tf.tanh,
-                                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
-            self.q_values = tf.layers.dense(
-                inputs=self.dense, units=n_actions, activation=tf.identity,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+        # The next lines perform the parameter update. This will be explained in detail later.
 
-            # Combining value and advantage into Q-values as described above
-            self.action_prob = tf.nn.softmax(self.q_values)
-            self.best_action = tf.argmax(self.action_prob, 1)
+        # targetQ according to Bellman equation:
+        # Q = r + gamma*max Q', calculated in the function learn()
+        self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
+        # Action that was performed
+        self.action = tf.placeholder(shape=[None], dtype=tf.int32)
+        self.expert_action = tf.placeholder(shape=[None], dtype=tf.int32)
+        # Q value of the action that was performed
+        self.Q = tf.reduce_sum(
+            tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+            axis=1)
 
-            # The next lines perform the parameter update. This will be explained in detail later.
+        # Parameter updates
+        self.loss = tf.reduce_mean(math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)))
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.update = self.optimizer.minimize(self.loss)
 
-            # targetQ according to Bellman equation:
-            # Q = r + gamma*max Q', calculated in the function learn()
-            self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
-            # Action that was performed
-            self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-            self.expert_action = tf.placeholder(shape=[None], dtype=tf.int32)
-            # Q value of the action that was performed
-            self.Q = tf.reduce_sum(
-                tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
-                axis=1)
-
-            # Parameter updates
-            self.loss = tf.reduce_mean(math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)))
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.update = self.optimizer.minimize(self.loss)
-
-            self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
-                                                  tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
-                                      axis=1)
-            self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
-                                                    tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
-                                        axis=1)
-            self.expert_loss = -tf.log(self.prob + 0.001)
-            self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
-            self.expert_update = self.expert_optimizer.minimize(self.expert_loss)
+        self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
+                                              tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
+                                  axis=1)
+        self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
+                                                tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
+                                    axis=1)
+        self.expert_loss = -tf.log(self.prob + 0.001)
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
+        self.expert_update = self.expert_optimizer.minimize(self.expert_loss)
 
 
 class ActionGetter:
@@ -473,7 +469,7 @@ MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 
 
-def train():
+def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
@@ -485,23 +481,28 @@ def train():
                                  max_frames=MAX_FRAMES)
 
     sess.run(init)
-    # trained_path = "./Models/"
-    # save_file = "model--5606247.meta"
-    # saver = tf.train.import_meta_graph(trained_path + save_file)
-    # saver.restore(sess, tf.train.latest_checkpoint(trained_path))
+    if args.checkpoint_index >= 0:
+        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
+        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ")
 
-    logger.configure("./log/")
+    logger.configure(args.log_dir)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
     frame_number = 0
     rewards = []
     loss_list = []
 
+    if not os.path.exists(args.gif_dir):
+        os.makedirs(args.gif_dir)
+    if not os.path.exists(args.checkpoint_dir):
+        os.makedirs(args.checkpoint_dir)
+
     while frame_number < MAX_FRAMES:
-        start_time = time.time()
-        epoch_frame = 0
         print("Training Model ...")
+        epoch_frame = 0
+        start_time = time.time()
         while epoch_frame < EVAL_FREQUENCY:
-            terminal_life_lost = atari.reset(sess)
+            atari.reset(sess)
             episode_reward_sum = 0
             for _ in range(MAX_EPISODE_LENGTH):
                 # (4★)
@@ -532,7 +533,7 @@ def train():
             rewards.append(episode_reward_sum)
 
             # Output the progress:
-            if len(rewards) % 100 == 0:
+            if len(rewards) % 10 == 0:
                 if frame_number > REPLAY_MEMORY_START_SIZE:
                     loss_list = []
                 q_vals = sess.run(TARGET_DQN.q_values, feed_dict={TARGET_DQN.input: fixed_state})
@@ -541,7 +542,9 @@ def train():
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
-                print(len(rewards), frame_number, np.mean(rewards[-100:]))
+                print("Completion: ", str(len(rewards))+"/"+str(epoch_frame))
+                print("Current Frame: ",frame_number)
+                print("Average Reward: ", np.mean(rewards[-100:]))
                 logger.dumpkvs()
 
         #Evaluation ...
@@ -573,25 +576,19 @@ def train():
             if len(eval_rewards) % 10 == 0:
                 print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
-        if not os.path.exists(PATH+"dist_dqn/"):
-            os.makedirs(PATH+"dist_dqn/")
         try:
-            generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH+"dist_dqn/")
+            generate_gif(frame_number, frames_for_gif, eval_rewards[0], args.gif_dir)
         except IndexError:
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
+
         # Save the network parameters
-        saver.save(sess, './Models/dist_dqn_model-', global_step=frame_number)
+        saver.save(sess, args.checkpoint_dir + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
-        logger.log("eval_reward",np.mean(eval_rewards))
         logger.dumpkvs()
 
-def test():
-
-    trained_path = "./Models/"
-    save_file = "model--5606247.meta"
-
+def test(args):
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
@@ -599,9 +596,11 @@ def test():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    saver = tf.train.import_meta_graph(trained_path + save_file)
-    saver.restore(sess, tf.train.latest_checkpoint(trained_path))
-    # saver.restore(sess,"./Models/model--5606247")
+    sess.run(init)
+    if args.checkpoint_index >= 0:
+        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
+        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ")
     frames_for_gif = []
     terminal_live_lost = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
@@ -642,4 +641,37 @@ def test():
     print("The total reward is {}".format(episode_reward_sum))
     print("Creating gif...")
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
-train()
+
+import argparse
+def argsparser():
+    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
+    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--expert_path', type=str, default='data/expert_data.npy')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/dist_dqn/')
+    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/dist_dqn/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/dist_dqn/')
+    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
+    # parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
+    # parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
+    # parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
+    # parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
+    # parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
+    # parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=3000000)
+    # parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
+    # parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
+    # parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
+    # parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    # parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
+    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.99)
+    # parser.add_argument('--max_eps_len', type=float, help='Max Episode Length', default=0.0000625)
+    return parser.parse_args()
+
+args = argsparser()
+tf.random.set_random_seed(args.seed)
+if args.task == "train":
+    train(args)
+elif args.task == "evaluate":
+    test(args)
+else:
+    print("TBD")
