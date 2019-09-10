@@ -440,7 +440,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001          # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.0000625         # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32
 
@@ -530,13 +530,13 @@ def train(args):
             if len(rewards) % 10 == 0:
                 if frame_number > REPLAY_MEMORY_START_SIZE:
                     loss_list = []
-                q_vals = sess.run(TARGET_DQN.q_values, feed_dict={TARGET_DQN.input: fixed_state})
+                q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
-                print("Completion: ", str(len(rewards))+"/"+str(epoch_frame))
+                print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
                 logger.dumpkvs()
