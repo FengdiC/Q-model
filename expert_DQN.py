@@ -163,7 +163,7 @@ class DQN:
                                axis=1)
 
         # Parameter updates
-        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)))
+        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)) - math.gamma(1+gamma))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
 
@@ -404,11 +404,10 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
-    # expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
-    #                              feed_dict={main_dqn.input:obs,
-    #                                         main_dqn.expert_action:acs,
-    #                                         main_dqn.target_q:expert_q})
-    expert_loss = 0
+    expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
+                                 feed_dict={main_dqn.input:obs,
+                                            main_dqn.expert_action:acs,
+                                            main_dqn.target_q:expert_q})
     return loss,expert_loss
 
 
@@ -495,10 +494,10 @@ def argsparser():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--expert_dir', type=str, default='expert_dist_dqn_data/')
     parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/dist_dqn/')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/expert_dist_dqn/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/dist_dqn/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/dist_dqn/')
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/expert_dist_dqn/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/expert_dist_dqn/')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
@@ -519,6 +518,8 @@ def argsparser():
     return parser.parse_args()
 
 args = argsparser()
+tf.random.set_random_seed(args.seed)
+np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
@@ -547,6 +548,7 @@ LEARNING_RATE = args.lr         # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = args.batch_size
 atari = Atari(args.env_id, NO_OP_STEPS)
+atari.env.seed(args.seed)
 
 print("The environment has the following {} actions: {}".format(atari.env.action_space.n,
                                                                 atari.env.unwrapped.get_action_meanings()))
@@ -588,12 +590,13 @@ def train(args):
     rewards = []
     loss_list = []
     expert_loss_list = []
+    episode_length_list = []
 
     if not os.path.exists(args.gif_dir):
         os.makedirs(args.gif_dir)
     if not os.path.exists(args.checkpoint_dir):
         os.makedirs(args.checkpoint_dir)
-
+    epoch = 0
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
         epoch_frame = 0
@@ -601,6 +604,7 @@ def train(args):
         while epoch_frame < EVAL_FREQUENCY:
             atari.reset(sess)
             episode_reward_sum = 0
+            episode_length = 0
             for _ in range(MAX_EPISODE_LENGTH):
                 # (4★)
                 action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
@@ -610,6 +614,7 @@ def train(args):
                 frame_number += 1
                 epoch_frame += 1
                 episode_reward_sum += reward
+                episode_length += 1
 
                 # (7★) Store transition in the replay memory
                 my_replay_memory.add_experience(action=action,
@@ -629,6 +634,7 @@ def train(args):
                     terminal = False
                     break
             rewards.append(episode_reward_sum)
+            episode_length_list.append(episode_length)
 
             # Output the progress:
             if len(rewards) % 10 == 0:
@@ -638,14 +644,15 @@ def train(args):
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 logger.record_tabular("td loss", np.mean(loss_list))
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
+                logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
-                print("Average Loss: ", np.mean(loss_list[-100:]))
+                print("TD Loss: ", np.mean(loss_list[-100:]))
                 if frame_number > REPLAY_MEMORY_START_SIZE:
-                    print("Average Loss: ", np.mean(expert_loss_list[-100:]))
+                    print("Average Expert Loss: ", np.mean(expert_loss_list[-100:]))
 
         #Evaluation ...
         gif = True
@@ -686,6 +693,8 @@ def train(args):
         # Save the network parameters
         saver.save(sess, args.checkpoint_dir + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
+        print("Epoch: ", epoch, "Total Frames: ", frame_number)
+        epoch += 1
         logger.dumpkvs()
 
 def test(args):
@@ -742,7 +751,6 @@ def test(args):
     print("Creating gif...")
     generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
 
-tf.random.set_random_seed(args.seed)
 if args.task == "train":
     train(args)
 elif args.task == "evaluate":

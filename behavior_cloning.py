@@ -105,18 +105,11 @@ class DQN:
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.best_action = tf.argmax(self.q_values, 1)
 
-        # The next lines perform the parameter update. This will be explained in detail later.
 
-        # targetQ according to Bellman equation:
-        # Q = r + gamma*max Q', calculated in the function learn()
-        self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
-        # Action that was performed
-        self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-        # Q value of the action that was performed
-        self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
-                               axis=1)
-        # Parameter updates
-        self.loss = tf.reduce_mean(tf.losses.huber_loss(labels=self.target_q, predictions=self.Q))
+        self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
+        self.weights = tf.placeholder(shape=[None], dtype =tf.float32)
+
+        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
 
@@ -217,7 +210,6 @@ class ReplayMemory:
         self.new_states = np.empty((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
                                     ), dtype=np.uint8)
         self.indices = np.empty(self.batch_size, dtype=np.int32)
-        self.reward_per_mini_batch = None
 
     def add_experience(self, action, frame, reward,  terminal):
         """
@@ -269,24 +261,10 @@ class ReplayMemory:
         for i, idx in enumerate(self.indices):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
-        if self.reward_per_mini_batch is None:
-            return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
-                self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
-        else:
-            return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
-                self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices], self.reward_per_mini_batch[self.indices]
 
-    def set_terminal_rewards(self):
-        self.reward_per_mini_batch = np.zeros((self.count))
-        prev_index = 0
-        reward_per_eps = 0
-        for i in range(self.count):
-            reward_per_eps += self.rewards[i]
-            if self.terminal_flags[i]:
-                self.reward_per_mini_batch[prev_index:i] = reward_per_eps
-                self.reward_per_mini_batch[i] = reward_per_eps
-                prev_index = i+1
-                reward_per_eps = 0
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
+            self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
+
 
 class TargetNetworkUpdater:
     """Copies the parameters of the main DQN to the target DQN"""
@@ -320,7 +298,7 @@ class TargetNetworkUpdater:
 
 
 
-def learn(session, replay_memory, main_dqn, target_dqn, batch_size, gamma):
+def learn(session, dataset, main_dqn, target_dqn, batch_size, gamma):
     """
     Args:
         session: A tensorflow sesson object
@@ -336,23 +314,12 @@ def learn(session, replay_memory, main_dqn, target_dqn, batch_size, gamma):
     Then a parameter update is performed on the main DQN.
     """
     # Draw a minibatch from the replay memory
-    states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
-    # The main network estimates which action is best (in the next
-    # state s', new_states is passed!)
-    # for every transition in the minibatch
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
-    # The target network estimates the Q-values (in the next state s', new_states is passed!)
-    # for every transition in the minibatch
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
-    double_q = q_vals[range(batch_size), arg_q_max]
-    # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
-    # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q * (1-terminal_flags))
-    # Gradient descend step to update the parameters of the main network
+    #max_val = np.max(dataset.reward_per_mini_batch)
+    states, actions, _, _, _ = dataset.get_minibatch()
+    #weights = np.copy(weights)/max_val
     loss, _ = session.run([main_dqn.loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
-                                     main_dqn.target_q:target_q,
-                                     main_dqn.action:actions})
+                                     main_dqn.expert_action:actions})
     return loss
 
 
@@ -394,9 +361,10 @@ class Atari:
         terminal_life_lost = True  # Set to true so that the agent starts
         # with a 'FIRE' action when evaluating
         if evaluation:
-            no_ops = np.random.randint(1, self.no_op_steps)
+            no_ops = random.randint(1, self.no_op_steps)
             for _ in range(no_ops):
                 frame, _, _, _ = self.env.step(1)  # Action 'Fire'
+
         processed_frame = self.frame_processor.process(sess, frame)  # (★★★)
         self.state = np.repeat(processed_frame, self.agent_history_length, axis=2)
 
@@ -431,16 +399,47 @@ class Atari:
 
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
+def set_terminal_rewards(replay_mem):
+    replay_mem.reward_per_mini_batch = np.zeros((replay_mem.count))
+    prev_index = 0
+    reward_per_eps = 0
+    for i in range(replay_mem.count):
+        reward_per_eps += replay_mem.rewards[i]
+        if replay_mem.terminal_flags[i]:
+            replay_mem.reward_per_mini_batch[prev_index:i] = reward_per_eps
+            replay_mem.reward_per_mini_batch[i] = reward_per_eps
+            prev_index = i+1
+            reward_per_eps = 0
+
+
+def get_minibatch(self):
+    """
+    Returns a minibatch of self.batch_size = 32 transitions
+    """
+    if self.count < self.agent_history_length:
+        raise ValueError('Not enough memories to get a minibatch')
+
+    self._get_valid_indices()
+
+    for i, idx in enumerate(self.indices):
+        self.states[i] = self._get_state(idx - 1)
+        self.new_states[i] = self._get_state(idx)
+
+    return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
+        self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
+
+
+
 import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--expert_dir', type=str, default='dqn_data/')
     parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/vanilla_dqn/')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/bc/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/vanilla_dqn/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/vanilla_dqn/')
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/bc/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/bc/')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
@@ -462,8 +461,9 @@ def argsparser():
 
 args = argsparser()
 tf.random.set_random_seed(args.seed)
-tf.reset_default_graph()
 np.random.seed(args.seed)
+
+tf.reset_default_graph()
 # Control parameters
 MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
 EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
@@ -501,7 +501,6 @@ with tf.variable_scope('mainDQN'):
 with tf.variable_scope('targetDQN'):
     TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
 
-
 init = tf.global_variables_initializer()
 MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
 TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
@@ -509,9 +508,7 @@ TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-
-    my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
-    network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
+    dataset = pickle.load(open(args.expert_dir + args.expert_file, "rb"))
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES,
@@ -523,13 +520,13 @@ def train(args):
     if args.checkpoint_index >= 0:
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ", args.checkpoint_dir + "model--" + str(args.checkpoint_index))
-    logger.configure(args.log_dir)
+    print("Average Reward Expert: ", np.sum(dataset.rewards)/np.sum(dataset.terminal_flags) * 5)
 
+    logger.configure(args.log_dir)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
     frame_number = 0
-    rewards = []
     loss_list = []
-    episode_length_list = []
+
     if not os.path.exists(args.gif_dir):
         os.makedirs(args.gif_dir)
     if not os.path.exists(args.checkpoint_dir):
@@ -539,54 +536,18 @@ def train(args):
         print("Training Model ...")
         epoch_frame = 0
         start_time = time.time()
-        while epoch_frame < EVAL_FREQUENCY:
-            atari.reset(sess)
-            episode_reward_sum = 0
-            episode_length = 0
-            for _ in range(MAX_EPISODE_LENGTH):
-                # (4★)
-                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
-                #print("Action: ",action)
-                # (5★)
-                processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-                frame_number += 1
-                epoch_frame += 1
-                episode_length += 1
-                episode_reward_sum += reward
-
-                # (7★) Store transition in the replay memory
-                my_replay_memory.add_experience(action=action,
-                                                frame=processed_new_frame[:, :, 0],
-                                                reward=reward,
-                                                terminal=terminal_life_lost)
-
-                if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
-                    loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                 BS, gamma=DISCOUNT_FACTOR)  # (8★)
-                    loss_list.append(loss)
-                if frame_number % NETW_UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
-                    network_updater.update_networks(sess)  # (9★)
-
-                if terminal:
-                    break
-            rewards.append(episode_reward_sum)
-            episode_length_list.append(episode_length)
+        for j in tqdm(range(EVAL_FREQUENCY//BS)):
+            loss = learn(sess, dataset, MAIN_DQN, TARGET_DQN, BS, gamma=DISCOUNT_FACTOR)  # (8★)
+            loss_list.append(loss)
             # Output the progress:
-            if len(rewards) % 10 == 0:
-                q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
-                # logger.log("Runing frame number {0}".format(frame_number))
-                logger.record_tabular("frame_number",frame_number)
-                logger.record_tabular("training_reward",np.mean(rewards[-100:]))
-                logger.record_tabular("TD Loss",np.mean(loss_list[-100:]))
-                logger.record_tabular("Episode Length",np.mean(episode_length_list[-100:]))
-
-                for i in range(atari.env.action_space.n):
-                    logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
-                print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
-                print("Current Frame: ",frame_number)
-                print("Average Reward: ", np.mean(rewards[-100:]))
-                if frame_number > REPLAY_MEMORY_START_SIZE:
-                    print("TD Loss: ", np.mean(loss_list[-100:]))
+        q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
+        # logger.log("Runing frame number {0}".format(frame_number))
+        logger.record_tabular("frame_number",frame_number)
+        logger.record_tabular("td loss", np.mean(loss_list))
+        for i in range(atari.env.action_space.n):
+            logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
+        print("Current Frame: ",frame_number)
+        print("TD Loss: ", np.mean(loss_list[-100:]))
 
         #Evaluation ...
         gif = True
@@ -618,68 +579,18 @@ def train(args):
                 print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
         try:
-            generate_gif(frame_number, frames_for_gif, eval_rewards[0], args.gif_dir)
+            generate_gif(epoch, frames_for_gif, eval_rewards[0], args.gif_dir)
         except IndexError:
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
+
         # Save the network parameters
         saver.save(sess, args.checkpoint_dir + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
         print("Epoch: ", epoch, "Total Frames: ", frame_number)
         epoch += 1
         logger.dumpkvs()
-
-def test():
-    action_getter = ActionGetter(atari.env.action_space.n,
-                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES)
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
-    if args.checkpoint_index >= 0:
-        saver = tf.train.import_meta_graph(args.checkpoint_dir + "model--" + str(args.checkpoint_index) + ".meta")
-        saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
-        print("Loaded Model ... ")
-    frames_for_gif = []
-    terminal_live_lost = atari.reset(sess, evaluation=True)
-    episode_reward_sum = 0
-    obs = np.zeros((10,500,84,84,4))
-    acs = np.zeros((10,500,1))
-    ep_rets = np.zeros(10)
-    rets = 0
-    gamma = 0.99
-    while True:
-        atari.env.render()
-        action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
-                                                                       MAIN_DQN,
-                                                                       evaluation=True)
-        processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
-        episode_reward_sum += reward
-        frames_for_gif.append(new_frame)
-        if terminal == True:
-            break
-
-    atari.env.close()
-    for i in range(10):
-        terminal_live_lost = atari.reset(sess, evaluation=True)
-        for j in range(500):
-            obs[i, j] = atari.state
-            action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
-                                                                           MAIN_DQN,
-                                                                           evaluation=True)
-            acs[i,j] = action
-            processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
-            rets = reward + gamma * rets
-            if terminal:
-                print("The game ends in 500 steps")
-        ep_rets[i] = rets
-        rets =0
-
-    np.savez('deterministic.dqn.breakout.npz', obs=obs, acs=acs, ep_rets=ep_rets)
-    print("The total reward is {}".format(episode_reward_sum))
-    print("Creating gif...")
-    generate_gif(0, frames_for_gif, episode_reward_sum, PATH)
 
 def sample(args):
     if not os.path.exists(args.checkpoint_dir):
@@ -692,20 +603,18 @@ def sample(args):
         os.makedirs(args.expert_dir)
     action_getter = ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES,
-                                 eps_initial=args.initial_exploration)
+                                 max_frames=MAX_FRAMES)
     my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS)
     sess.run(init)
     if args.checkpoint_index >= 0:
         saver.restore(sess, args.checkpoint_dir + "model--" + str(args.checkpoint_index))
         print("Loaded Model ... ")
-    gif = 3
+    gif = True
+    frames_for_gif = []
     reward_list = []
-    frames = 0
     for _ in tqdm(range(args.num_sampled)):
         terminal_live_lost = atari.reset(sess, evaluation=True)
         episode_reward_sum = 0
-        frames_for_gif = []
         for _ in range(MAX_EPISODE_LENGTH):
             action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
@@ -716,30 +625,20 @@ def sample(args):
                                             reward=reward,
                                             terminal=terminal_live_lost)
             episode_reward_sum += reward
-            frames += 1
-            if terminal_live_lost:
-                print(episode_reward_sum, frames)
-            if gif > 0:
+            if gif:
                 frames_for_gif.append(new_frame)
             if terminal == True:
-                try:
-                    generate_gif(-gif, frames_for_gif, reward_list[-1], args.gif_dir)
-                except IndexError:
-                    print(len(frames_for_gif))
-                    print("No evaluation game finished")
-                gif -= 1
+                gif = False
                 reward_list.append(episode_reward_sum)
-                print(len(frames_for_gif))
                 break
-
+    try:
+        generate_gif(-1, frames_for_gif, reward_list[0], args.gif_dir)
+    except IndexError:
+        print("No evaluation game finished")
     print("Average Reward: ", np.mean(reward_list))
-    my_replay_memory.set_terminal_rewards()
-    print(np.min(my_replay_memory.reward_per_mini_batch), np.max(my_replay_memory.reward_per_mini_batch))
     pickle.dump(my_replay_memory, open(args.expert_dir + args.expert_file + "_" + str(args.num_sampled), "wb"))
 
 if args.task == "train":
     train(args)
-elif args.task == "evaluate":
-    test(args)
 else:
     sample(args)
