@@ -80,6 +80,17 @@ class ActionGetter:
                     self.max_frames - self.eps_annealing_frames - self.replay_memory_start_size)
         self.intercept_2 = self.eps_final_frame - self.slope_2 * self.max_frames
 
+    def get_eps(self, frame_number):
+        if evaluation:
+            eps = self.eps_evaluation
+        elif frame_number < self.replay_memory_start_size:
+            eps = self.eps_initial
+        elif frame_number >= self.replay_memory_start_size and frame_number < self.replay_memory_start_size + self.eps_annealing_frames:
+            eps = self.slope * frame_number + self.intercept
+        elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
+            eps = self.slope_2 * frame_number + self.intercept_2
+        return eps
+
     def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
         """
         Args:

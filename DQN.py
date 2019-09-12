@@ -141,7 +141,7 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=200000)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=100000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
@@ -280,6 +280,7 @@ def train(args):
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 logger.record_tabular("TD Loss",np.mean(loss_list[-100:]))
                 logger.record_tabular("Episode Length",np.mean(episode_length_list[-100:]))
+                logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number)))
 
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
