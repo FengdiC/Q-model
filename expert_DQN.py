@@ -298,7 +298,7 @@ def train(args):
                 logger.record_tabular("td loss", np.mean(loss_list))
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
                 logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
-                logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number)))
+                logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number))
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))

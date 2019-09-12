@@ -81,9 +81,7 @@ class ActionGetter:
         self.intercept_2 = self.eps_final_frame - self.slope_2 * self.max_frames
 
     def get_eps(self, frame_number):
-        if evaluation:
-            eps = self.eps_evaluation
-        elif frame_number < self.replay_memory_start_size:
+        if frame_number < self.replay_memory_start_size:
             eps = self.eps_initial
         elif frame_number >= self.replay_memory_start_size and frame_number < self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope * frame_number + self.intercept
