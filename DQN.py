@@ -145,7 +145,7 @@ def argsparser():
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
-    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=3000000)
+    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
     parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
@@ -324,7 +324,7 @@ def train(args):
         except IndexError:
             print("No evaluation game finished")
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
-        logger.log("Average Sequence Length", evaluate_frame_number/len(eval_rewards))
+        logger.log("Average Sequence Length", evaluate_frame_number/max(1, len(eval_rewards)))
         # Save the network parameters
         saver.save(sess, args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)

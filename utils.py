@@ -382,7 +382,7 @@ def sample(args, DQN, save=True):
         for _ in range(MAX_EPISODE_LENGTH):
             action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
-                                                                           evaluation=False)
+                                                                           evaluation=True)
             processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
             my_replay_memory.add_experience(action=action,
                                             frame=processed_new_frame[:, :, 0],
