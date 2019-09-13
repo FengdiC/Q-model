@@ -159,6 +159,7 @@ def argsparser():
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
+    parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
     return parser.parse_args()
@@ -250,7 +251,10 @@ def train(args):
             episode_length = 0
             for _ in range(MAX_EPISODE_LENGTH):
                 # (4★)
-                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
+                if args.stochastic_exploration == "True":
+                    action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+                else:
+                    action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
                 #print("Action: ",action)
                 # (5★)
                 processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
@@ -307,10 +311,18 @@ def train(args):
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
-                                                                               atari.state,
-                                                                               MAIN_DQN,
-                                                                               evaluation=True)
+                if terminal_life_lost:
+                    action = 1
+                elif args.stochastic_exploration == "True":
+                    action = action_getter.get_stochastic_action(sess,
+                                                            atari.state,
+                                                            MAIN_DQN,
+                                                            evaluation=True)
+                else:
+                    action = action_getter.get_action(sess, frame_number,
+                                                            atari.state,
+                                                            MAIN_DQN,
+                                                            evaluation=True)
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward

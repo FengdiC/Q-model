@@ -79,7 +79,6 @@ class DQN:
 
 
         self.expert_weight = tf.placeholder(shape=[None,], dtype=tf.float32)
-
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
         # Q value of the action that was performed
         self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
@@ -93,10 +92,11 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
+        self.expert_loss = -tf.log(self.prob+0.001)# * self.expert_weight
+
         self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.expert_loss = -tf.log(self.prob+0.001)# * self.expert_weight
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.25)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
 
@@ -116,7 +116,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     Then a parameter update is performed on the main DQN.
     """
     # Draw a minibatch from the replay memory
-    weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
+    #weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
     states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
     dataset.batch_size = batch_size
     obs,acs, _, _, _ = dataset.get_minibatch()
@@ -142,8 +142,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:obs,
                                             main_dqn.expert_action:acs,
-                                            main_dqn.target_q:expert_q,
-                                            main_dqn.expert_weight:weight})
+                                            main_dqn.target_q:expert_q})
     return loss,expert_loss
 
 import argparse

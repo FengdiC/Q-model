@@ -89,6 +89,20 @@ class ActionGetter:
             eps = self.slope_2 * frame_number + self.intercept_2
         return eps
 
+
+    def get_stochastic_action(self, session, state, main_dqn, evaluation=False):
+        if evaluation:
+            return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        else:
+            action_prob = session.run(main_dqn.action_prob, feed_dict={main_dqn.input: [state]})[0]
+            rand = np.random.uniform(0, 1)
+            accumulated_val = 0
+            for i in range(action_prob.shape[0]):
+                accumulated_val += action_prob[i]
+                if rand < accumulated_val:
+                    return i
+
+
     def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
         """
         Args:

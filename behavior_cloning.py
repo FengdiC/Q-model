@@ -12,6 +12,7 @@ from skimage.transform import resize
 import logger
 import time
 import pickle
+import utils
 
 class DQN:
     """Implements a Deep Q Network"""
@@ -76,12 +77,16 @@ class DQN:
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.best_action = tf.argmax(self.q_values, 1)
-
+        self.action_prob = tf.nn.softmax(self.q_values)
 
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
-        self.weights = tf.placeholder(shape=[None], dtype =tf.float32)
+        self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
+                                              tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
+                                         axis=1)
+        self.loss = -tf.log(self.prob+0.00100)# * self.expert_weight
 
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+
+        #self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
 
@@ -189,7 +194,7 @@ TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    dataset = pickle.load(open(args.expert_dir + args.expert_file, "rb"))
+    dataset = pickle.load(open(args.expert_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/" + args.expert_file, "rb"))
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES,
