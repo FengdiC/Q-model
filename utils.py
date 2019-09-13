@@ -14,6 +14,10 @@ import math
 import time
 import pickle
 
+class expert_trajectory_dataset:
+    def __init__(self, max_trajectories=20):
+        print("TBD")
+
 class Resize:
     """Resizes and converts RGB Atari frames to grayscale"""
 

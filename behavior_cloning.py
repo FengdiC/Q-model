@@ -84,7 +84,7 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001)*self.expert_weights)# * self.expert_weight
+        self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weights + (0.25 * self.prob ** 2))# + a l2 reg to prevent overtraining too much
         #self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
@@ -225,12 +225,12 @@ def train(args):
             loss = learn(sess, dataset, MAIN_DQN, TARGET_DQN, BS, gamma=DISCOUNT_FACTOR)  # (8★)
             loss_list.append(loss)
             # Output the progress:
-        q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
         # logger.log("Runing frame number {0}".format(frame_number))
         logger.record_tabular("frame_number",frame_number)
         logger.record_tabular("td loss", np.mean(loss_list[-100:]))
+        q_vals = sess.run(MAIN_DQN.action_prob, feed_dict={MAIN_DQN.input: fixed_state})
         for i in range(atari.env.action_space.n):
-            logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
+            logger.record_tabular("q_val action {0}".format(i), q_vals[0, i])
         print("Current Frame: ",frame_number)
         print("TD Loss: ", np.mean(loss_list[-100:]))
 

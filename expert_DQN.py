@@ -42,32 +42,53 @@ class DQN:
         self.inputscaled = self.input / 255
 
         # Convolutional layers
-        self.conv1 = tf.layers.conv2d(
-            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-        self.conv2 = tf.layers.conv2d(
-            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-        self.conv3 = tf.layers.conv2d(
-            inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-        self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-        self.d = tf.layers.flatten(self.conv4)
-        self.dense = tf.layers.dense(inputs = self.d,units = hidden,activation=tf.tanh,
-                                     kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
-        self.q_values = tf.layers.dense(
-            inputs=self.dense, units=n_actions,activation=tf.identity,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+        with tf.variable_scope("Qvalue"):
+            self.conv1 = tf.layers.conv2d(
+                inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            self.conv2 = tf.layers.conv2d(
+                inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            self.conv3 = tf.layers.conv2d(
+                inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            self.conv4 = tf.layers.conv2d(
+                inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            self.d = tf.layers.flatten(self.conv4)
+            self.dense = tf.layers.dense(inputs = self.d,units = hidden,activation=tf.tanh,
+                                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+            self.q_values = tf.layers.dense(
+                inputs=self.dense, units=n_actions,activation=tf.identity,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
 
-        self.action_preference = tf.layers.dense(
-            inputs=self.dense, units=n_actions,activation=tf.identity,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='action_preference')
+        with tf.variable_scope("ExpertPref"):
+            self.expert_conv1 = tf.layers.conv2d(
+                inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            self.expert_conv2 = tf.layers.conv2d(
+                inputs=self.expert_conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            self.expert_conv3 = tf.layers.conv2d(
+                inputs=self.expert_conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            self.expert_conv4 = tf.layers.conv2d(
+                inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            self.expert_d = tf.layers.flatten(self.expert_conv4)
+            self.expert_dense = tf.layers.dense(inputs = self.expert_d,units = hidden,activation=tf.tanh,
+                                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+            self.action_preference = tf.layers.dense(
+                inputs=self.expert_dense, units=n_actions,activation=tf.identity,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='action_preference')
 
         # Combining value and advantage into Q-values as described above
         self.action_prob_q = tf.nn.softmax(self.q_values)
@@ -79,7 +100,7 @@ class DQN:
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
         # Action that was performed
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-        self.expert_weight = tf.placeholder(shape=[None,], dtype=tf.float32)
+        self.expert_weights = tf.placeholder(shape=[None,], dtype=tf.float32)
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
         # Q value of the action that was performed
         self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
@@ -89,7 +110,7 @@ class DQN:
         q_value_vars = []
         expert_vars = []
         for v in t_vars:
-            if 'action_preference' in v.name:
+            if 'ExpertPref' in v.name:
                 expert_vars.append(v)
             else:
                 q_value_vars.append(v)
@@ -103,13 +124,15 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weight)# * self.expert_weight
-
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
+        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weights)# + a l2 reg to prevent overtraining too much
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
 
-        self.action_prob = tf.nn.softmax(self.action_prob_q * self.action_prob_expert + 0.000001)
+        self.action_prob = tf.nn.softmax(self.q_values + self.action_prob_expert + 0.0001)
         self.best_action = tf.argmax(self.action_prob, 1)
+        #
+        # self.all_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        # self.total_update =self.all_optimizer.minimize(self.expert_loss * 0.05 + self.loss, var_list=t_vars)
 
 def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
     """
@@ -146,16 +169,15 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q * (1-terminal_flags))
     # Gradient descend step to update the parameters of the main network
-    for i in range(3):
-        loss, _ = session.run([main_dqn.loss, main_dqn.update],
-                              feed_dict={main_dqn.input:states,
-                                         main_dqn.target_q:target_q,
-                                         main_dqn.action:actions})
+    loss, _ = session.run([main_dqn.loss, main_dqn.update],
+                          feed_dict={main_dqn.input:states,
+                                     main_dqn.target_q:target_q,
+                                     main_dqn.action:actions})
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:obs,
                                             main_dqn.expert_action:acs,
                                             main_dqn.target_q:expert_q,
-                                            main_dqn.expert_weight:weights})
+                                            main_dqn.expert_weights:weights})
     return loss,expert_loss
 
 import argparse
@@ -183,6 +205,7 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
@@ -309,15 +332,26 @@ def train(args):
 
             # Output the progress:
             if len(rewards) % 10 == 0:
-                q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
                 logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
                 logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number))
+                q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
+
+                q_vals = sess.run(MAIN_DQN.action_prob_q, feed_dict={MAIN_DQN.input: fixed_state})
+                for i in range(atari.env.action_space.n):
+                    print("Q Prob: ", i, q_vals[0,i])
+                q_vals = sess.run(MAIN_DQN.action_prob_expert, feed_dict={MAIN_DQN.input: fixed_state})
+                for i in range(atari.env.action_space.n):
+                    print("Expert Prob: ", i, q_vals[0,i])
+                q_vals = sess.run(MAIN_DQN.action_prob, feed_dict={MAIN_DQN.input: fixed_state})
+                for i in range(atari.env.action_space.n):
+                    print("Total Prob: ", i, q_vals[0,i])
+
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 print("Average Reward: ", np.mean(rewards[-100:]))
