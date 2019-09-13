@@ -92,13 +92,14 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.expert_loss = -tf.log(self.prob+0.001)# * self.expert_weight
+        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weight)# * self.expert_weight
 
         self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.25)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
+
 
 def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, expert_weight, policy_weight):
     """
@@ -117,7 +118,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     """
     # Draw a minibatch from the replay memory
     #weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
-    states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
+    states, actions, rewards, new_states, terminal_flags, weights = utils.get_minibatch(replay_memory)
     dataset.batch_size = batch_size
     obs,acs, _, _, _ = dataset.get_minibatch()
     # The main network estimates which action is best (in the next
@@ -142,7 +143,8 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:obs,
                                             main_dqn.expert_action:acs,
-                                            main_dqn.target_q:expert_q})
+                                            main_dqn.target_q:expert_q,
+                                            expert_weight:weights})
     return loss,expert_loss
 
 import argparse
@@ -226,6 +228,7 @@ def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     dataset = pickle.load(open(args.expert_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/" + args.expert_file, "rb"))
+    utils.generate_weights(dataset)
 
 
     my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
@@ -300,7 +303,7 @@ def train(args):
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
-                logger.record_tabular("td loss", np.mean(loss_list))
+                print("TD Loss: ", np.mean(loss_list[-100:]))
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
                 logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
                 logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number))

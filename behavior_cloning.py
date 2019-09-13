@@ -80,12 +80,11 @@ class DQN:
         self.action_prob = tf.nn.softmax(self.q_values)
 
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
+        self.expert_weights = tf.placeholder(shape=[None], dtype =tf.float32)
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.loss = -tf.log(self.prob+0.00100)# * self.expert_weight
-
-
+        self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001)*self.expert_weights)# * self.expert_weight
         #self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
@@ -108,11 +107,12 @@ def learn(session, dataset, main_dqn, target_dqn, batch_size, gamma):
     """
     # Draw a minibatch from the replay memory
     #max_val = np.max(dataset.reward_per_mini_batch)
-    states, actions, _, _, _ = dataset.get_minibatch()
+    states, actions, _, _, _, weights = utils.get_minibatch(dataset)
     #weights = np.copy(weights)/max_val
     loss, _ = session.run([main_dqn.loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
-                                     main_dqn.expert_action:actions})
+                                     main_dqn.expert_action:actions,
+                                     main_dqn.expert_weights:weights})
     return loss
 
 import argparse
@@ -199,7 +199,7 @@ def train(args):
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES,
                                  eps_initial=args.initial_exploration)
-
+    utils.generate_weights(dataset)
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
     sess.run(init)
@@ -228,7 +228,7 @@ def train(args):
         q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
         # logger.log("Runing frame number {0}".format(frame_number))
         logger.record_tabular("frame_number",frame_number)
-        logger.record_tabular("td loss", np.mean(loss_list))
+        logger.record_tabular("td loss", np.mean(loss_list[-100:]))
         for i in range(atari.env.action_space.n):
             logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
         print("Current Frame: ",frame_number)

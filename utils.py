@@ -326,6 +326,41 @@ class Atari:
 
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
+def generate_weights(replay_buff):
+    replay_buff.reward_weight = np.zeros((replay_buff.count,))
+    max_val = -1
+    min_val = 10000000
+    prev_index = -1
+    accumulated_reward = 0
+    for i in range(replay_buff.count):
+        accumulated_reward += replay_buff.rewards[i]
+        if replay_buff.terminal_flags[i]:
+            replay_buff.reward_weight[prev_index+1:i] = accumulated_reward
+            if max_val < accumulated_reward:
+                max_val = accumulated_reward
+            if min_val > accumulated_reward:
+                min_val = accumulated_reward
+            accumulated_reward = 0
+            prev_index = i
+    replay_buff.reward_weight = (replay_buff.reward_weight - min_val)/(max_val - min_val)
+    replay_buff.reward_weight = (np.exp(replay_buff.reward_weight) - 1)/(np.exp(1) - 1) * 0.99 + 0.01
+
+def get_minibatch(self):
+    """
+    Returns a minibatch of self.batch_size = 32 transitions
+    """
+    if self.count < self.agent_history_length:
+        raise ValueError('Not enough memories to get a minibatch')
+
+    self._get_valid_indices()
+
+    for i, idx in enumerate(self.indices):
+        self.states[i] = self._get_state(idx - 1)
+        self.new_states[i] = self._get_state(idx)
+
+    return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
+        self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices], self.reward_weight[self.indices]
+
 def sample(args, DQN, save=True):
     tf.random.set_random_seed(args.seed)
     tf.reset_default_graph()
@@ -389,6 +424,7 @@ def sample(args, DQN, save=True):
     gif = 3
     reward_list = []
     frames = 0
+
     for _ in tqdm(range(args.num_sampled)):
         terminal_live_lost = atari.reset(sess, evaluation=True)
         episode_reward_sum = 0
