@@ -65,10 +65,13 @@ class DQN:
             inputs=self.dense, units=n_actions,activation=tf.identity,
             kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
 
-        # Combining value and advantage into Q-values as described above
-        self.action_prob = tf.nn.softmax(self.q_values)
-        self.best_action = tf.argmax(self.action_prob, 1)
+        self.action_preference = tf.layers.dense(
+            inputs=self.dense, units=n_actions,activation=tf.identity,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='action_preference')
 
+        # Combining value and advantage into Q-values as described above
+        self.action_prob_q = tf.nn.softmax(self.q_values)
+        self.action_prob_expert = tf.nn.softmax(self.action_preference)
         # The next lines perform the parameter update. This will be explained in detail later.
 
         # targetQ according to Bellman equation:
@@ -76,30 +79,37 @@ class DQN:
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
         # Action that was performed
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-
-
         self.expert_weight = tf.placeholder(shape=[None,], dtype=tf.float32)
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
         # Q value of the action that was performed
         self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
 
+        t_vars = tf.trainable_variables()
+        q_value_vars = []
+        expert_vars = []
+        for v in t_vars:
+            if 'action_preference' in v.name:
+                expert_vars.append(v)
+            else:
+                q_value_vars.append(v)
+
         # Parameter updates
         self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)) - math.gamma(1+gamma))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.update = self.optimizer.minimize(self.loss)
+        self.update = self.optimizer.minimize(self.loss, var_list=q_value_vars)
 
-        self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
+
+        self.prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
         self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weight)# * self.expert_weight
 
-        self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
-                                                tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
-                               axis=1)
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.5)
-        self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
+        self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
 
+        self.action_prob = tf.nn.softmax(self.action_prob_q * self.action_prob_expert + 0.000001)
+        self.best_action = tf.argmax(self.action_prob, 1)
 
 def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
     """
@@ -136,10 +146,11 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q * (1-terminal_flags))
     # Gradient descend step to update the parameters of the main network
-    loss, _ = session.run([main_dqn.loss, main_dqn.update],
-                          feed_dict={main_dqn.input:states,
-                                     main_dqn.target_q:target_q,
-                                     main_dqn.action:actions})
+    for i in range(3):
+        loss, _ = session.run([main_dqn.loss, main_dqn.update],
+                              feed_dict={main_dqn.input:states,
+                                         main_dqn.target_q:target_q,
+                                         main_dqn.action:actions})
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:obs,
                                             main_dqn.expert_action:acs,
@@ -302,7 +313,6 @@ def train(args):
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
-                print("TD Loss: ", np.mean(loss_list[-100:]))
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
                 logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
                 logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number))
