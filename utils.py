@@ -345,21 +345,21 @@ def generate_weights(replay_buff):
     replay_buff.reward_weight = (replay_buff.reward_weight - min_val)/(max_val - min_val)
     replay_buff.reward_weight = (np.exp(replay_buff.reward_weight) - 1)/(np.exp(1) - 1) * 0.99 + 0.01
 
-def get_minibatch(self):
+def get_minibatch(replay_buff):
     """
     Returns a minibatch of self.batch_size = 32 transitions
     """
-    if self.count < self.agent_history_length:
+    if replay_buff.count < replay_buff.agent_history_length:
         raise ValueError('Not enough memories to get a minibatch')
 
-    self._get_valid_indices()
+    replay_buff._get_valid_indices()
 
-    for i, idx in enumerate(self.indices):
-        self.states[i] = self._get_state(idx - 1)
-        self.new_states[i] = self._get_state(idx)
+    for i, idx in enumerate(replay_buff.indices):
+        replay_buff.states[i] = replay_buff._get_state(idx - 1)
+        replay_buff.new_states[i] = replay_buff._get_state(idx)
 
-    return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
-        self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices], self.reward_weight[self.indices]
+    return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
+        replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
 def sample(args, DQN, save=True):
     tf.random.set_random_seed(args.seed)

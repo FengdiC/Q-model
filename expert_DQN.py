@@ -97,11 +97,11 @@ class DQN:
         self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.25)
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.5)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
 
 
-def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, expert_weight, policy_weight):
+def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
     """
     Args:
         session: A tensorflow sesson object
@@ -118,7 +118,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     """
     # Draw a minibatch from the replay memory
     #weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
-    states, actions, rewards, new_states, terminal_flags, weights = utils.get_minibatch(replay_memory)
+    states, actions, rewards, new_states, terminal_flags, weights = utils.get_minibatch(dataset)
     dataset.batch_size = batch_size
     obs,acs, _, _, _ = dataset.get_minibatch()
     # The main network estimates which action is best (in the next
@@ -144,7 +144,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                  feed_dict={main_dqn.input:obs,
                                             main_dqn.expert_action:acs,
                                             main_dqn.target_q:expert_q,
-                                            expert_weight:weights})
+                                            main_dqn.expert_weight:weights})
     return loss,expert_loss
 
 import argparse
@@ -230,7 +230,6 @@ def train(args):
     dataset = pickle.load(open(args.expert_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/" + args.expert_file, "rb"))
     utils.generate_weights(dataset)
 
-
     my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
@@ -285,7 +284,7 @@ def train(args):
 
                 if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                     loss,expert_loss = learn(sess, dataset,my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                 BS, DISCOUNT_FACTOR, np.sum(dataset.rewards)/args.num_sampled + np.zeros((1,)), np.mean(rewards[-100:])+ np.zeros((1,)))  # (8★)
+                                 BS, DISCOUNT_FACTOR)  # (8★)
                     loss_list.append(loss)
                     expert_loss_list.append(expert_loss)
                 if frame_number % NETW_UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
