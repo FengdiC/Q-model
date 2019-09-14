@@ -17,7 +17,7 @@ class DQN:
     """Implements a Deep Q Network"""
 
     def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma =0.99,
-                 frame_height=84, frame_width=84, agent_history_length=4):
+                         frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -93,6 +93,7 @@ class DQN:
         # Combining value and advantage into Q-values as described above
         self.action_prob_q = tf.nn.softmax(self.q_values)
         self.action_prob_expert = tf.nn.softmax(self.action_preference)
+
         # The next lines perform the parameter update. This will be explained in detail later.
 
         # targetQ according to Bellman equation:
@@ -106,6 +107,8 @@ class DQN:
         self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
 
+        self.expert_pref_q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)), axis=1)
+
         t_vars = tf.trainable_variables()
         q_value_vars = []
         expert_vars = []
@@ -116,7 +119,7 @@ class DQN:
                 q_value_vars.append(v)
 
         # Parameter updates
-        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)) - math.gamma(1+gamma))
+        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q + 0.1 * self.expert_pref_q)) - math.gamma(1+gamma))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss, var_list=q_value_vars)
 
@@ -124,11 +127,11 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weights)# + a l2 reg to prevent overtraining too much
+        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001) * self.expert_weights)redbbc# + a l2 reg to prevent overtraining too much
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
 
-        self.action_prob = tf.nn.softmax(self.q_values + self.action_prob_expert + 0.0001)
+        self.action_prob = self.action_prob_q
         self.best_action = tf.argmax(self.action_prob, 1)
         #
         # self.all_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
