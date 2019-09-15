@@ -347,7 +347,6 @@ def generate_weights(replay_buff):
             accumulated_reward = 0
             prev_index = i
     replay_buff.reward_weight = (replay_buff.reward_weight - min_val)/(max_val - min_val)
-    replay_buff.reward_weight = (np.exp(replay_buff.reward_weight) - 1)/(np.exp(1) - 1) * 0.99 + 0.01
 
 def get_minibatch(replay_buff):
     """
