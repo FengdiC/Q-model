@@ -75,7 +75,7 @@ class DQN:
 
         _, self.generated_action_preference = self.build_graph(self.generated_input, hidden, n_actions, reuse=True)
         self.action_prob_generated = tf.nn.softmax(self.generated_action_preference)
-        self.generated_data_loss = tf.reduce_mean(self.action_prob_generated * tf.log(self.action_prob_generated  +0.00001))# + a l2 reg to prevent overtraining too much
+        self.generated_data_loss = 0.25 * tf.reduce_mean(self.action_prob_generated * tf.log(self.action_prob_generated  +0.00001))# + a l2 reg to prevent overtraining too much
         self.expert_loss = self.expert_data_loss + self.generated_data_loss
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
