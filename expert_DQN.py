@@ -154,7 +154,6 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     """
     # Draw a minibatch from the replay memory
     #weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
-    dataset.batch_size = batch_size * 4
     expert_states, expert_actions, expert_rewards, expert_new_states, expert_terminal_flags, weights = utils.get_minibatch(dataset)  #Expert trajectories
     generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags = replay_memory.get_minibatch() #Generated trajectories
 

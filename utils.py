@@ -415,7 +415,7 @@ def sample(args, DQN, save=True):
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES,
                                  eps_initial=args.initial_exploration)
-    my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS)
+    my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS * 2)
     sess.run(init)
     if not os.path.exists(args.checkpoint_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/"):
         os.makedirs(args.checkpoint_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/")
