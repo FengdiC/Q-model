@@ -248,6 +248,9 @@ def argsparser():
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
+    parser.add_argument('--load_model_dir', type=str, default='models/')
+    parser.add_argument('--load_expert_data', type=str, default='data/')
+
     return parser.parse_args()
 
 args = argsparser()
@@ -300,7 +303,7 @@ TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    dataset = pickle.load(open(args.expert_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/" + args.expert_file, "rb"))
+    dataset = pickle.load(open(args.expert_dir + args.load_expert_data + args.expert_file, "rb"))
     utils.generate_weights(dataset)
 
     my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
@@ -315,15 +318,21 @@ def train(args):
     sess.run(init)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
 
-    if args.checkpoint_index >= 0:
-        saver.restore(sess, args.checkpoint_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/" + "model--" + str(args.checkpoint_index))
-        print("Loaded Model ... ", args.checkpoint_dir +  args.env_id + "seed_" + str(args.seed) + "/" + "model--" + str(args.checkpoint_index))
-    logger.configure(args.log_dir +  args.env_id + "/" + "seed_" + str(args.seed) + "/")
-    if not os.path.exists(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/"):
-        os.makedirs(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/")
-    if not os.path.exists(args.checkpoint_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/"):
-        os.makedirs(args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/")
 
+    if args.checkpoint_index >= 0:
+        saver.restore(sess, args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+    else:
+        print("Model not found ...", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+    logger.configure(args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+
+    eval_rewards = [0]
     frame_number = 0
     rewards = []
     loss_list = []
@@ -369,7 +378,7 @@ def train(args):
             episode_length_list.append(episode_length)
             
             # Output the progress:
-            if len(rewards) % 10 == 0:
+            if len(rewards) % 25 == 0:
                 # logger.log("Runing frame number {0}".format(frame_number))
                 test_q_values(sess, atari, action_getter, MAIN_DQN.input, MAIN_DQN.action_prob_expert)
                 logger.record_tabular("frame_number",frame_number)
@@ -377,10 +386,10 @@ def train(args):
                 logger.record_tabular("expert update loss", np.mean(expert_loss_list))
                 logger.record_tabular("episode length",np.mean(episode_length_list[-100:]))
                 logger.record_tabular("Current Exploration", action_getter.get_eps(frame_number))
+                logger.record_tabular("evaluation_reward", np.mean(eval_rewards))
                 q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
                 for i in range(atari.env.action_space.n):
                     logger.record_tabular("q_val action {0}".format(i),q_vals[0,i])
-
                 q_vals = sess.run(MAIN_DQN.action_prob_q, feed_dict={MAIN_DQN.input: fixed_state})
                 for i in range(atari.env.action_space.n):
                     print("Q Prob: ", i, q_vals[0,i])
@@ -397,7 +406,6 @@ def train(args):
                 print("TD Loss: ", np.mean(loss_list[-100:]))
                 if frame_number > REPLAY_MEMORY_START_SIZE:
                     print("Average Expert Loss: ", np.mean(expert_loss_list[-100:]))
-
         #Evaluation ...
         gif = True
         frames_for_gif = []
@@ -427,14 +435,11 @@ def train(args):
             if len(eval_rewards) % 10 == 0:
                 print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
         print("Evaluation score:\n", np.mean(eval_rewards))
-        try:
-            utils.generate_gif(frame_number, frames_for_gif, eval_rewards[0], args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/")
-        except IndexError:
-            print("No evaluation game finished")
+
+
         logger.log("Average Evaluation Reward", np.mean(eval_rewards))
         logger.log("Average Sequence Length", evaluate_frame_number/max(1, len(eval_rewards)))
         # Save the network parameters
-        saver.save(sess, args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + 'model-', global_step=frame_number)
         print("Runtime: ", time.time() - start_time)
         print("Epoch: ", epoch, "Total Frames: ", frame_number)
         epoch += 1

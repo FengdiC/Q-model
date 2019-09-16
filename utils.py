@@ -13,6 +13,8 @@ import logger
 import math
 import time
 import pickle
+from numpy import genfromtxt
+import csv
 
 class expert_trajectory_dataset:
     def __init__(self, max_trajectories=20):
@@ -221,6 +223,50 @@ class ReplayMemory:
             self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
 
 
+#Note path to csv
+def log_data(path, image_path):
+    convert_dict = {}
+    result_dict = {}
+    data = {}
+    try:
+        with open(path + 'progress.csv') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for line in csv_reader:
+                if len(result_dict) == 0:
+                    for i in range(len(line)):
+                        result_dict[i] = line[i]
+                        convert_dict[line[i]] = i
+                        data[i] = []
+                else:
+                    for i in range(len(line)):
+                        data[i].append(float(line[i]))
+
+        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["training_reward"]])
+        plt.title("Frame num vs training Rewards")
+        plt.xlabel("Frame number")
+        plt.ylabel("Training Rewards");
+        plt.savefig(image_path + 'training_reward.png')
+        plt.close()
+
+        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["td loss"]])
+        plt.title("Frame num vs tdloss")
+        plt.xlabel("Frame number")
+        plt.ylabel("Tdloss");
+        plt.savefig(image_path + 'td_loss.png')
+        plt.close()
+
+        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["Episode Length"]])
+        plt.title("Frame num vs Episode Length")
+        plt.xlabel("Frame number")
+        plt.ylabel("Episode Length");
+        plt.savefig(image_path + 'ep_len_loss.png')
+        plt.close()
+    except:
+        print("Figure generation FAILED?")
+
+
+
+
 class TargetNetworkUpdater:
     """Copies the parameters of the main DQN to the target DQN"""
 
@@ -417,17 +463,23 @@ def sample(args, DQN, save=True):
                                  eps_initial=args.initial_exploration)
     my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS * 2)
     sess.run(init)
-    if not os.path.exists(args.checkpoint_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/"):
-        os.makedirs(args.checkpoint_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/")
-    if not os.path.exists(args.expert_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/"):
-        os.makedirs(args.expert_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/")
     if args.checkpoint_index >= 0:
-        saver.restore(sess, args.checkpoint_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "model--" + str(args.checkpoint_index))
-        print("Loaded Model ... ")
+        saver.restore(sess, args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+        print("Loaded Model ... ", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+    else:
+        print("Model not found ...", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+    logger.configure(args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.checkpoint_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.checkpoint_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/")
+    if not os.path.exists(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
+        os.makedirs(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
     gif = 3
     reward_list = []
     frames = 0
-
+    log_data(args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/",
+                   args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/"+ "num_traj_" + str(args.num_sampled) + "/")
     for _ in tqdm(range(args.num_sampled)):
         terminal_live_lost = atari.reset(sess, evaluation=True)
         episode_reward_sum = 0
@@ -450,7 +502,7 @@ def sample(args, DQN, save=True):
             if terminal == True:
                 if gif > 0:
                     try:
-                        generate_gif(-gif, frames_for_gif, reward_list[-1], args.gif_dir + args.env_id + "/"+ "seed_" + str(args.seed) + "/")
+                        generate_gif(-gif, frames_for_gif, reward_list[-1], args.gif_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/")
                     except IndexError:
                         print(len(frames_for_gif))
                         print("No evaluation game finished")
@@ -460,4 +512,4 @@ def sample(args, DQN, save=True):
                 break
     print("Average Reward: ", np.mean(reward_list))
     if save:
-        pickle.dump(my_replay_memory, open(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
+        pickle.dump(my_replay_memory, open(args.expert_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
