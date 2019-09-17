@@ -1,5 +1,20 @@
 #!/bin/bash
+env_id=$1
+checkpoint_index=$2
+seed=$3
+if [ -z "$env_id$" ]
+then
+	env_id="BreakoutDeterministic-v4"
+fi
+if [ -z "$checkpoint_index" ]
+then
+	checkpoint_index=-1
+fi 
+if [ -z "$seed" ]
+then
+	seed=0
+fi
 module load cuda cudnn
 source ../tensorflow/bin/activate
-python3 DQN.py --checkpoint_index=3007417 --initial_exploration=0.05
+python3 DQN.py --env_id=$env_id --checkpoint_index=$checkpoint_index --seed=$seed #--checkpoint_index=3008226 --initial_exploration=0.05
 
