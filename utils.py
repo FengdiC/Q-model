@@ -506,14 +506,24 @@ def sample(args, DQN, name, save=True):
     file_add = ""
     for i in range(len(important_coef_name)):
         file_add += important_coef_name[i] + "_" + str(important_coef_var[i]) + "_"
-    if args.checkpoint_file_path != "None":
-        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
-        print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
-    elif args.checkpoint_index >= 0:
-        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
-        print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
-    else:
-        print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+    try:
+        if args.checkpoint_file_path != "None":
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+            print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+        elif args.checkpoint_index >= 0:
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+            print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+        else:
+            print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+    except:
+                if args.checkpoint_file_path != "None":
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model--" + str(args.checkpoint_index))
+            print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model--" + str(args.checkpoint_index))
+        elif args.checkpoint_index >= 0:
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
+            print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
+        else:
+            print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
 
     logger.configure(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/")
     if not os.path.exists(args.gif_dir + "/" + name + "/" + args.env_id + "/"):
@@ -625,15 +635,24 @@ def train(args, DQN, learn, name, expert=False):
             dataset = pickle.load(open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "rb"))
             print("2. Loaded Data ... ", args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled))
         generate_weights(dataset)
-
-    if args.checkpoint_file_path != "None":
-        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
-        print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
-    elif args.checkpoint_index >= 0:
-        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
-        print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
-    else:
-        print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+    try:
+        if args.checkpoint_file_path != "None":
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+            print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+        elif args.checkpoint_index >= 0:
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+            print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+        else:
+            print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+    except:
+                if args.checkpoint_file_path != "None":
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model--" + str(args.checkpoint_index))
+            print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model--" + str(args.checkpoint_index))
+        elif args.checkpoint_index >= 0:
+            saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
+            print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
+        else:
+            print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model--" + str(args.checkpoint_index))
 
     logger.configure(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/")
     if not os.path.exists(args.gif_dir + "/" + name + "/" + args.env_id + "/"):
