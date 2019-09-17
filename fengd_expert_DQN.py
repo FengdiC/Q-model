@@ -95,6 +95,7 @@ class DQN:
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
+        #self.expert_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.25)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
 
