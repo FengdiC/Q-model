@@ -16,9 +16,40 @@ import pickle
 from numpy import genfromtxt
 import csv
 
-class expert_trajectory_dataset:
-    def __init__(self, max_trajectories=20):
-        print("TBD")
+import argparse
+def argsparser():
+    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
+    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--expert_dir', type=str, default='data/')
+    parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
+    parser.add_argument('--expert_file_path', type=str, default='None')
+
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/')
+    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
+    parser.add_argument('--checkpoint_file_path', type=str, default='None')
+
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/')
+    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
+    parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
+    parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=100000)
+    parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
+    parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
+    parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
+    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
+    parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
+    parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
+    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
+    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
+    parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
+    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
+    parser.add_argument('--stochastic_exploration', type=str, default="False")
+    parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
+    parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
+    return parser.parse_args()
 
 class Resize:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -228,41 +259,48 @@ def log_data(path, image_path):
     convert_dict = {}
     result_dict = {}
     data = {}
-    try:
-        with open(path + 'progress.csv') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
-            for line in csv_reader:
-                if len(result_dict) == 0:
-                    for i in range(len(line)):
-                        result_dict[i] = line[i]
-                        convert_dict[line[i]] = i
-                        data[i] = []
-                else:
-                    for i in range(len(line)):
-                        data[i].append(float(line[i]))
+    #try:
+    with open(path + 'progress.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for line in csv_reader:
+            if len(result_dict) == 0:
+                for i in range(len(line)):
+                    result_dict[i] = line[i]
+                    convert_dict[line[i]] = i
+                    data[i] = []
+            else:
+                for i in range(len(line)):
+                    data[i].append(float(line[i]))
+    plt.plot(data[convert_dict["frame_number"]], data[convert_dict["training_reward"]])
+    plt.title("Frame num vs training Rewards")
+    plt.xlabel("Frame number")
+    plt.ylabel("Training Rewards");
+    plt.savefig(image_path + 'training_reward.png')
+    plt.close()
 
-        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["training_reward"]])
-        plt.title("Frame num vs training Rewards")
+    plt.plot(data[convert_dict["frame_number"]], data[convert_dict["td_loss"]])
+    plt.title("Frame num vs tdloss")
+    plt.xlabel("Frame number")
+    plt.ylabel("Tdloss");
+    plt.savefig(image_path + 'td_loss.png')
+    plt.close()
+
+    if "expert_loss" in convert_dict:
+        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["expert_loss"]])
+        plt.title("Frame num vs expert loss")
         plt.xlabel("Frame number")
-        plt.ylabel("Training Rewards");
-        plt.savefig(image_path + 'training_reward.png')
+        plt.ylabel("expert loss");
+        plt.savefig(image_path + 'expert_loss.png')
         plt.close()
 
-        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["td loss"]])
-        plt.title("Frame num vs tdloss")
-        plt.xlabel("Frame number")
-        plt.ylabel("Tdloss");
-        plt.savefig(image_path + 'td_loss.png')
-        plt.close()
-
-        plt.plot(data[convert_dict["frame_number"]], data[convert_dict["Episode Length"]])
-        plt.title("Frame num vs Episode Length")
-        plt.xlabel("Frame number")
-        plt.ylabel("Episode Length");
-        plt.savefig(image_path + 'ep_len_loss.png')
-        plt.close()
-    except:
-        print("Figure generation FAILED?")
+    plt.plot(data[convert_dict["frame_number"]], data[convert_dict["episode_length"]])
+    plt.title("Frame num vs Episode Length")
+    plt.xlabel("Frame number")
+    plt.ylabel("Episode Length");
+    plt.savefig(image_path + 'ep_len_loss.png')
+    plt.close()
+    # except:
+    #     print("Figure generation FAILED?")
 
 
 
@@ -410,7 +448,7 @@ def get_minibatch(replay_buff):
     return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
         replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
-def sample(args, DQN, save=True):
+def sample(args, DQN, name, save=True):
     tf.random.set_random_seed(args.seed)
     tf.reset_default_graph()
     np.random.seed(args.seed)
@@ -463,23 +501,30 @@ def sample(args, DQN, save=True):
                                  eps_initial=args.initial_exploration)
     my_replay_memory = ReplayMemory(size=args.num_sampled * MAX_EPISODE_LENGTH, batch_size=BS * 2)
     sess.run(init)
-    if args.checkpoint_index >= 0:
-        saver.restore(sess, args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
-        print("Loaded Model ... ", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
+    important_coef_name = ["num_traj", "seed", "lr"]
+    important_coef_var = [args.num_sampled, args.seed, args.lr]
+    file_add = ""
+    for i in range(len(important_coef_name)):
+        file_add += important_coef_name[i] + "_" + str(important_coef_var[i]) + "_"
+    if args.checkpoint_file_path != "None":
+        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+        print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+    elif args.checkpoint_index >= 0:
+        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+        print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
     else:
-        print("Model not found ...", args.checkpoint_dir + args.load_model_dir + "model--" + str(args.checkpoint_index))
-    logger.configure(args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
-    if not os.path.exists(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
-        os.makedirs(args.gif_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
-    if not os.path.exists(args.checkpoint_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/"):
-        os.makedirs(args.checkpoint_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/")
-    if not os.path.exists(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/"):
-        os.makedirs(args.expert_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/")
+        print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+
+    logger.configure(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/")
+    if not os.path.exists(args.gif_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.gif_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists(args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists(args.expert_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.expert_dir + "/" + name + "/" + args.env_id + "/")
     gif = 3
     reward_list = []
     frames = 0
-    log_data(args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/" + "num_traj_" + str(args.num_sampled) + "/",
-                   args.log_dir + args.env_id + "/" + "seed_" + str(args.seed) + "/"+ "num_traj_" + str(args.num_sampled) + "/")
     for _ in tqdm(range(args.num_sampled)):
         terminal_live_lost = atari.reset(sess, evaluation=True)
         episode_reward_sum = 0
@@ -502,7 +547,7 @@ def sample(args, DQN, save=True):
             if terminal == True:
                 if gif > 0:
                     try:
-                        generate_gif(-gif, frames_for_gif, reward_list[-1], args.gif_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/")
+                        generate_gif(-gif, frames_for_gif, reward_list[-1], args.gif_dir + "/" + name + "/" + args.env_id + "/" + file_add)
                     except IndexError:
                         print(len(frames_for_gif))
                         print("No evaluation game finished")
@@ -512,4 +557,218 @@ def sample(args, DQN, save=True):
                 break
     print("Average Reward: ", np.mean(reward_list))
     if save:
-        pickle.dump(my_replay_memory, open(args.expert_dir + args.env_id + "/seed_" + str(args.seed) + "/num_traj_" + str(args.num_sampled) + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
+        pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
+
+def train(args, DQN, learn, name, expert=False):
+    MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
+    EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
+    EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
+    NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
+                                    # According to Mnih et al. 2015 this is measured in the number of
+                                    # parameter updates (every four actions), however, in the
+                                    # DeepMind code, it is clearly measured in the number
+                                    # of actions the agent choses
+    DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
+    REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
+                                    # before the agent starts learning
+    MAX_FRAMES = args.max_frames            # Total number of frames the agent sees
+    MEMORY_SIZE = args.replay_mem_size            # Number of transitions stored in the replay memory
+    NO_OP_STEPS = args.no_op_steps                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
+                                    # evaluation episode
+    UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
+    HIDDEN = args.hidden                    # Number of filters in the final convolutional layer. The output
+                                    # has the shape (1,1,1024) which is split into two streams. Both
+                                    # the advantage stream and value stream have the shape
+                                    # (1,1,512). This is slightly different from the original
+                                    # implementation but tests I did with the environment Pong
+                                    # have shown that this way the score increases more quickly
+    LEARNING_RATE = args.lr         # Set to 0.00025 in Pong for quicker results.
+                                    # Hessel et al. 2017 used 0.0000625
+    BS = args.batch_size
+
+    atari = Atari(args.env_id, args.stochastic, NO_OP_STEPS)
+    atari.env.seed(args.seed)
+    # main DQN and target DQN networks:
+    with tf.variable_scope('mainDQN'):
+        MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
+    with tf.variable_scope('targetDQN'):
+        TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+
+    init = tf.global_variables_initializer()
+    MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
+    TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+    
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
+    network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
+    action_getter = ActionGetter(atari.env.action_space.n,
+                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                 max_frames=MAX_FRAMES,
+                                 eps_initial=args.initial_exploration)
+    saver = tf.train.Saver(max_to_keep=10)
+    sess = tf.Session(config=config)
+    sess.run(init)
+    fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
+
+    important_coef_name = ["num_traj", "seed", "lr"]
+    important_coef_var = [args.num_sampled, args.seed, args.lr]
+    file_add = ""
+    for i in range(len(important_coef_name)):
+        file_add += important_coef_name[i] + "_" + str(important_coef_var[i]) + "_"
+    if expert:
+        if args.expert_file_path != "None":
+            dataset = pickle.load(open(args.expert_dir + args.expert_file_path + args.expert_file + "_" + str(args.num_sampled), "rb"))
+            print("1. Loaded Data ... ", args.expert_dir + args.expert_file_path + args.expert_file + "_" + str(args.num_sampled))
+        else:
+            dataset = pickle.load(open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "rb"))
+            print("2. Loaded Data ... ", args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled))
+        generate_weights(dataset)
+
+    if args.checkpoint_file_path != "None":
+        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+        print("1. Loaded Model ... ", args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"  + args.checkpoint_file_path + "_model-" + str(args.checkpoint_index))
+    elif args.checkpoint_index >= 0:
+        saver.restore(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+        print("2. Loaded Model ... ",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+    else:
+        print("3. Model not found ...",  args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model-" + str(args.checkpoint_index))
+
+    logger.configure(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/")
+    if not os.path.exists(args.gif_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.gif_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists(args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists(args.expert_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs(args.expert_dir + "/" + name + "/" + args.env_id + "/")
+    eval_rewards = [0]
+    frame_number = 0
+    rewards = []
+    loss_list = []
+    expert_loss_list = []
+    episode_length_list = []
+    epoch = 0
+    while frame_number < MAX_FRAMES:
+        print("Training Model ...")
+        epoch_frame = 0
+        start_time = time.time()
+        while epoch_frame < EVAL_FREQUENCY:
+            atari.reset(sess)
+            episode_reward_sum = 0
+            episode_length = 0
+            for _ in range(MAX_EPISODE_LENGTH):
+                # (4★)
+                if args.stochastic_exploration == "True":
+                    action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+                else:
+                    action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
+                #print("Action: ",action)
+                # (5★)
+                processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+                frame_number += 1
+                epoch_frame += 1
+                episode_reward_sum += reward
+                episode_length += 1
+
+                # (7★) Store transition in the replay memory
+                my_replay_memory.add_experience(action=action,
+                                                frame=processed_new_frame[:, :, 0],
+                                                reward=reward,
+                                                terminal=terminal_life_lost)
+
+                if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
+                    if expert:
+                        loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
+                                    BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                        expert_loss_list.append(expert_loss)
+                    else:
+                        loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
+                                    BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                    loss_list.append(loss)
+                if frame_number % NETW_UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
+                    network_updater.update_networks(sess)  # (9★)
+
+                if terminal:
+                    terminal = False
+                    break
+            rewards.append(episode_reward_sum)
+            episode_length_list.append(episode_length)
+
+            # Output the progress:
+            if len(rewards) % 20 == 0:
+                # logger.log("Runing frame number {0}".format(frame_number))
+                logger.record_tabular("frame_number",frame_number)
+                logger.record_tabular("training_reward",np.mean(rewards[-100:]))
+                if frame_number < REPLAY_MEMORY_START_SIZE:
+                    logger.record_tabular("td_loss",0)
+                else:
+                    logger.record_tabular("td_loss",np.mean(loss_list[-100:]))
+                logger.record_tabular("episode_length",np.mean(episode_length_list[-100:]))
+                logger.record_tabular("current_exploration", action_getter.get_eps(frame_number))
+                logger.record_tabular("evaluation_reward", np.mean(eval_rewards))
+                q_vals = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: fixed_state})
+                for i in range(atari.env.action_space.n):
+                    logger.record_tabular("q_val_action {0}".format(i),q_vals[0,i])
+                action_probs = sess.run(MAIN_DQN.action_prob, feed_dict={MAIN_DQN.input: fixed_state})
+                for i in range(atari.env.action_space.n):
+                    logger.record_tabular("action_prob {0}".format(i),action_probs[0,i])
+                if expert:
+                    if frame_number < REPLAY_MEMORY_START_SIZE:
+                        logger.record_tabular("expert_loss", 0)
+                    else:
+                        logger.record_tabular("expert_loss", np.mean(expert_loss_list[-100:]))
+                print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
+                print("Current Frame: ",frame_number)
+                logger.dumpkvs()
+        #Evaluation ...
+        gif = True
+        frames_for_gif = []
+        eval_rewards = []
+        evaluate_frame_number = 0
+        print("Evaluating Model.... ")
+        while evaluate_frame_number < EVAL_STEPS:
+            terminal_life_lost = atari.reset(sess, evaluation=True)
+            episode_reward_sum = 0
+            for _ in range(MAX_EPISODE_LENGTH):
+                # Fire (action 1), when a life was lost or the game just started,
+                # so that the agent does not stand around doing nothing. When playing
+                # with other environments, you might want to change this...
+                if terminal_life_lost:
+                    action = 1
+                elif args.stochastic_exploration == "True":
+                    action = action_getter.get_stochastic_action(sess,
+                                                            atari.state,
+                                                            MAIN_DQN,
+                                                            evaluation=True)
+                else:
+                    action = action_getter.get_action(sess, frame_number,
+                                                            atari.state,
+                                                            MAIN_DQN,
+                                                            evaluation=True)
+                processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+                evaluate_frame_number += 1
+                episode_reward_sum += reward
+                if gif:
+                    frames_for_gif.append(new_frame)
+                if terminal:
+                    eval_rewards.append(episode_reward_sum)
+                    gif = False  # Save only the first game of the evaluation as a gif
+                    break
+            if len(eval_rewards) % 10 == 0:
+                print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
+        print("Evaluation score:\n", np.mean(eval_rewards))
+        try:
+            generate_gif(frame_number, frames_for_gif, eval_rewards[0],
+                              args.gif_dir + "/" + name + "/" + args.env_id + "/" + file_add)
+        except IndexError:
+            print("No evaluation game finished")
+        saver.save(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model",
+                global_step=frame_number)
+
+        log_data(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/",
+                       args.log_dir + "/" +  name + "/" + args.env_id + "/" + file_add + "/")
+        # Save the network parameters
+        print("Runtime: ", time.time() - start_time)
+        print("Epoch: ", epoch, "Total Frames: ", frame_number)
+        epoch += 1
