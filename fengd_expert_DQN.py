@@ -94,10 +94,9 @@ class DQN:
         self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.expert_loss = -tf.log(self.prob+0.001)
+        self.expert_loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.25)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss)
-
 
 def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
     """
@@ -116,7 +115,9 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     """
     # Draw a minibatch from the replay memory
     states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
-    obs,acs, _, _, _, _ = utils.get_minibatch(dataset)
+    obs,acs, _, _, _ = dataset.get_minibatch()
+    obs = obs[:states.shape[0]]
+    acs = acs[:states.shape[0]]
     # The main network estimates which action is best (in the next
     # state s', new_states is passed!)
     # for every transition in the minibatch
@@ -127,7 +128,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     expert_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input: obs})
     expert_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:obs})
     double_q = q_vals[range(batch_size), arg_q_max]
-    #expert_q = expert_q_vals[range(batch_size * 2),expert_arg_q_max]
+    expert_q = expert_q_vals[range(batch_size),expert_arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q * (1-terminal_flags))
@@ -138,39 +139,9 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                      main_dqn.action:actions})
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:obs,
-                                            main_dqn.expert_action:acs})
+                                            main_dqn.expert_action:acs,
+                                            main_dqn.target_q:expert_q})
     return loss,expert_loss
-
-def test_q_values(sess, env, action_getter, input, output, threshold_test=0.9):
-    # Test number of states with greater than 90% confidence
-    my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
-    env.reset(sess)
-    accumulated_rewards = 0
-    terminal_life_lost = True
-    for i in range(20000):
-        action = 1 if terminal_life_lost else action_getter.get_action(sess, 1000,
-                                                                       atari.state,
-                                                                       MAIN_DQN,
-                                                                       evaluation=True)  # print("Action: ",action)
-        # (5★)
-        processed_new_frame, reward, terminal, terminal_life_lost, _ = env.step(sess, action)
-        my_replay_memory.add_experience(action=action,
-                                        frame=processed_new_frame[:, :, 0],
-                                        reward=reward,
-                                        terminal=terminal_life_lost)
-        accumulated_rewards += reward
-        if terminal:
-            break
-    env.reset(sess)
-    count = 0
-    for i in range(my_replay_memory.count):
-        states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
-        values = sess.run(output, feed_dict={input: states})
-        if np.max(values) >= threshold_test:
-            count += 1
-    print("Number of states: ", my_replay_memory.count)
-    print("Number of certain actions: ", count)
-
 
 import argparse
 
@@ -198,7 +169,7 @@ def argsparser():
     parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
-    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.00001)
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
