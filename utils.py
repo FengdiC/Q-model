@@ -785,8 +785,8 @@ def train(args, DQN, learn, name, expert=False):
         saver.save(sess, args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + file_add + "model",
                 global_step=frame_number)
 
-        log_data(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/",
-                       args.log_dir + "/" +  name + "/" + args.env_id + "/" + file_add + "/")
+        # log_data(args.log_dir + "/" + name + "/" + args.env_id + "/" + file_add + "/",
+        #                args.log_dir + "/" +  name + "/" + args.env_id + "/" + file_add + "/")
         # Save the network parameters
         print("Runtime: ", time.time() - start_time)
         print("Epoch: ", epoch, "Total Frames: ", frame_number)
