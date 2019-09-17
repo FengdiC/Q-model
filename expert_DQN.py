@@ -67,7 +67,7 @@ class DQN:
         self.expert_prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.expert_data_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
+        self.expert_data_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001) * self.expert_weights)# + a l2 reg to prevent overtraining too much
         self.generated_input = tf.placeholder(shape=[None, self.frame_height,
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
