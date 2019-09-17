@@ -1,0 +1,1 @@
+Logging to logs//dist_dqn/QbertDeterministic-v4/num_traj_30_seed_0_lr_6.25e-05_/

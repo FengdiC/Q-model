@@ -1,0 +1,61 @@
+Logging to logs/vanilla_dqn/
+Average Evaluation Reward 29.454545454545453
+Average Sequence Length 977.8181818181819
+------------------------------
+| Episode Length  | 873      |
+| frame_number    | 1.9e+05  |
+| q_val action 0  | 2.81     |
+| q_val action 1  | 2.79     |
+| q_val action 2  | 2.76     |
+| q_val action 3  | 2.83     |
+| TD Loss         | 0.0216   |
+| training_reward | 23.2     |
+------------------------------
+Average Evaluation Reward 27.272727272727273
+Average Sequence Length 975.8181818181819
+------------------------------
+| Episode Length  | 1.04e+03 |
+| frame_number    | 3.95e+05 |
+| q_val action 0  | 2.83     |
+| q_val action 1  | 2.85     |
+| q_val action 2  | 2.83     |
+| q_val action 3  | 2.84     |
+| TD Loss         | 0.0225   |
+| training_reward | 27.9     |
+------------------------------
+Average Evaluation Reward 38.2
+Average Sequence Length 1115.9
+------------------------------
+| Episode Length  | 1.09e+03 |
+| frame_number    | 5.96e+05 |
+| q_val action 0  | 2.75     |
+| q_val action 1  | 2.76     |
+| q_val action 2  | 2.72     |
+| q_val action 3  | 2.75     |
+| TD Loss         | 0.023    |
+| training_reward | 31.5     |
+------------------------------
+Average Evaluation Reward 30.181818181818183
+Average Sequence Length 980.0909090909091
+------------------------------
+| Episode Length  | 1.04e+03 |
+| frame_number    | 8.02e+05 |
+| q_val action 0  | 2.76     |
+| q_val action 1  | 2.78     |
+| q_val action 2  | 2.74     |
+| q_val action 3  | 2.77     |
+| TD Loss         | 0.0208   |
+| training_reward | 28.9     |
+------------------------------
+Average Evaluation Reward 28.727272727272727
+Average Sequence Length 1009.8181818181819
+------------------------------
+| Episode Length  | 1.01e+03 |
+| frame_number    | 9.98e+05 |
+| q_val action 0  | 2.83     |
+| q_val action 1  | 2.84     |
+| q_val action 2  | 2.78     |
+| q_val action 3  | 2.83     |
+| TD Loss         | 0.0275   |
+| training_reward | 26.8     |
+------------------------------

@@ -1,0 +1,2215 @@
+Logging to logs/dist_dqn/AsterixDeterministic-v4/seed_0/
+Average Evaluation Reward 163.63636363636363
+Average Sequence Length 456.3636363636364
+----------------------------------
+| Current Exploration | 0.957    |
+| Episode Length      | 302      |
+| frame_number        | 9.82e+04 |
+| q_val action 0      | 0.662    |
+| q_val action 1      | 0.861    |
+| q_val action 2      | 0.575    |
+| q_val action 3      | 0.574    |
+| q_val action 4      | 0.373    |
+| q_val action 5      | 0.809    |
+| q_val action 6      | 0.769    |
+| q_val action 7      | 0.467    |
+| q_val action 8      | 0.469    |
+| td loss             | 4.96     |
+| training_reward     | 272      |
+----------------------------------
+Average Evaluation Reward 143.90243902439025
+Average Sequence Length 248.17073170731706
+----------------------------------
+| Current Exploration | 0.867    |
+| Episode Length      | 324      |
+| frame_number        | 1.98e+05 |
+| q_val action 0      | 4.89     |
+| q_val action 1      | 6.25     |
+| q_val action 2      | 4.8      |
+| q_val action 3      | 4.39     |
+| q_val action 4      | 4.4      |
+| q_val action 5      | 4.71     |
+| q_val action 6      | 4.4      |
+| q_val action 7      | 4.8      |
+| q_val action 8      | 3.86     |
+| td loss             | 9.62     |
+| training_reward     | 304      |
+----------------------------------
+Average Evaluation Reward 351.61290322580646
+Average Sequence Length 329.9032258064516
+----------------------------------
+| Current Exploration | 0.775    |
+| Episode Length      | 313      |
+| frame_number        | 3e+05    |
+| q_val action 0      | 23.2     |
+| q_val action 1      | 23.5     |
+| q_val action 2      | 23.7     |
+| q_val action 3      | 22.6     |
+| q_val action 4      | 23.6     |
+| q_val action 5      | 24.2     |
+| q_val action 6      | 22.8     |
+| q_val action 7      | 23.6     |
+| q_val action 8      | 22.7     |
+| td loss             | 4.36     |
+| training_reward     | 294      |
+----------------------------------
+Average Evaluation Reward 294.11764705882354
+Average Sequence Length 296.55882352941177
+----------------------------------
+| Current Exploration | 0.686    |
+| Episode Length      | 311      |
+| frame_number        | 3.98e+05 |
+| q_val action 0      | 36.5     |
+| q_val action 1      | 35.9     |
+| q_val action 2      | 36       |
+| q_val action 3      | 36.6     |
+| q_val action 4      | 36.5     |
+| q_val action 5      | 36.8     |
+| q_val action 6      | 36.2     |
+| q_val action 7      | 36.3     |
+| q_val action 8      | 35.7     |
+| td loss             | 3.53     |
+| training_reward     | 291      |
+----------------------------------
+Average Evaluation Reward 340.4761904761905
+Average Sequence Length 480.85714285714283
+----------------------------------
+| Current Exploration | 0.597    |
+| Episode Length      | 307      |
+| frame_number        | 4.98e+05 |
+| q_val action 0      | 36.5     |
+| q_val action 1      | 36.6     |
+| q_val action 2      | 37       |
+| q_val action 3      | 37       |
+| q_val action 4      | 36.7     |
+| q_val action 5      | 36.3     |
+| q_val action 6      | 36.8     |
+| q_val action 7      | 36.3     |
+| q_val action 8      | 36.3     |
+| td loss             | 3.16     |
+| training_reward     | 272      |
+----------------------------------
+Average Evaluation Reward 340.5405405405405
+Average Sequence Length 272.6216216216216
+----------------------------------
+| Current Exploration | 0.504    |
+| Episode Length      | 314      |
+| frame_number        | 6.01e+05 |
+| q_val action 0      | 49.1     |
+| q_val action 1      | 49.2     |
+| q_val action 2      | 49.9     |
+| q_val action 3      | 49.9     |
+| q_val action 4      | 49.8     |
+| q_val action 5      | 49.6     |
+| q_val action 6      | 49.4     |
+| q_val action 7      | 49.8     |
+| q_val action 8      | 48.6     |
+| td loss             | 4.31     |
+| training_reward     | 336      |
+----------------------------------
+Average Evaluation Reward 144.73684210526315
+Average Sequence Length 267.8421052631579
+----------------------------------
+| Current Exploration | 0.416    |
+| Episode Length      | 307      |
+| frame_number        | 6.99e+05 |
+| q_val action 0      | 51.5     |
+| q_val action 1      | 51.3     |
+| q_val action 2      | 52.7     |
+| q_val action 3      | 52       |
+| q_val action 4      | 51.9     |
+| q_val action 5      | 52.4     |
+| q_val action 6      | 51.1     |
+| q_val action 7      | 52       |
+| q_val action 8      | 52       |
+| td loss             | 10.6     |
+| training_reward     | 302      |
+----------------------------------
+Average Evaluation Reward 268.1818181818182
+Average Sequence Length 231.63636363636363
+----------------------------------
+| Current Exploration | 0.324    |
+| Episode Length      | 288      |
+| frame_number        | 8.01e+05 |
+| q_val action 0      | 65.9     |
+| q_val action 1      | 68.4     |
+| q_val action 2      | 66.3     |
+| q_val action 3      | 66.5     |
+| q_val action 4      | 67.9     |
+| q_val action 5      | 67.5     |
+| q_val action 6      | 68.1     |
+| q_val action 7      | 67.6     |
+| q_val action 8      | 67.4     |
+| td loss             | 10.3     |
+| training_reward     | 314      |
+----------------------------------
+Average Evaluation Reward 248.78048780487805
+Average Sequence Length 248.26829268292684
+----------------------------------
+| Current Exploration | 0.234    |
+| Episode Length      | 321      |
+| frame_number        | 9.01e+05 |
+| q_val action 0      | 60.8     |
+| q_val action 1      | 60.4     |
+| q_val action 2      | 60.9     |
+| q_val action 3      | 61.5     |
+| q_val action 4      | 61.2     |
+| q_val action 5      | 61.7     |
+| q_val action 6      | 60.8     |
+| q_val action 7      | 60.6     |
+| q_val action 8      | 60.9     |
+| td loss             | 8.55     |
+| training_reward     | 339      |
+----------------------------------
+Average Evaluation Reward 316.2162162162162
+Average Sequence Length 272.0810810810811
+----------------------------------
+| Current Exploration | 0.143    |
+| Episode Length      | 330      |
+| frame_number        | 1e+06    |
+| q_val action 0      | 57.8     |
+| q_val action 1      | 58.7     |
+| q_val action 2      | 57.7     |
+| q_val action 3      | 59.2     |
+| q_val action 4      | 58.5     |
+| q_val action 5      | 58.5     |
+| q_val action 6      | 59.4     |
+| q_val action 7      | 57.8     |
+| q_val action 8      | 58.7     |
+| td loss             | 7.39     |
+| training_reward     | 372      |
+----------------------------------
+Average Evaluation Reward 363.5135135135135
+Average Sequence Length 279.2432432432432
+----------------------------------
+| Current Exploration | 0.0999   |
+| Episode Length      | 312      |
+| frame_number        | 1.1e+06  |
+| q_val action 0      | 53.7     |
+| q_val action 1      | 54.7     |
+| q_val action 2      | 54.7     |
+| q_val action 3      | 54.9     |
+| q_val action 4      | 54.3     |
+| q_val action 5      | 54.3     |
+| q_val action 6      | 54.9     |
+| q_val action 7      | 54.4     |
+| q_val action 8      | 53.9     |
+| td loss             | 10.8     |
+| training_reward     | 376      |
+----------------------------------
+Average Evaluation Reward 540.0
+Average Sequence Length 412.84
+----------------------------------
+| Current Exploration | 0.0997   |
+| Episode Length      | 315      |
+| frame_number        | 1.2e+06  |
+| q_val action 0      | 76.6     |
+| q_val action 1      | 77.8     |
+| q_val action 2      | 77.6     |
+| q_val action 3      | 78.4     |
+| q_val action 4      | 77.6     |
+| q_val action 5      | 77.2     |
+| q_val action 6      | 78.3     |
+| q_val action 7      | 77.7     |
+| q_val action 8      | 76.9     |
+| td loss             | 23       |
+| training_reward     | 428      |
+----------------------------------
+Average Evaluation Reward 435.7142857142857
+Average Sequence Length 382.10714285714283
+----------------------------------
+| Current Exploration | 0.0995   |
+| Episode Length      | 346      |
+| frame_number        | 1.3e+06  |
+| q_val action 0      | 106      |
+| q_val action 1      | 107      |
+| q_val action 2      | 106      |
+| q_val action 3      | 108      |
+| q_val action 4      | 106      |
+| q_val action 5      | 106      |
+| q_val action 6      | 107      |
+| q_val action 7      | 106      |
+| q_val action 8      | 106      |
+| td loss             | 21.3     |
+| training_reward     | 416      |
+----------------------------------
+Average Evaluation Reward 386.3636363636364
+Average Sequence Length 306.5151515151515
+----------------------------------
+| Current Exploration | 0.0994   |
+| Episode Length      | 349      |
+| frame_number        | 1.4e+06  |
+| q_val action 0      | 100      |
+| q_val action 1      | 100      |
+| q_val action 2      | 100      |
+| q_val action 3      | 101      |
+| q_val action 4      | 101      |
+| q_val action 5      | 99.6     |
+| q_val action 6      | 102      |
+| q_val action 7      | 100      |
+| q_val action 8      | 101      |
+| td loss             | 26.1     |
+| training_reward     | 429      |
+----------------------------------
+Average Evaluation Reward 469.04761904761904
+Average Sequence Length 477.95238095238096
+----------------------------------
+| Current Exploration | 0.0992   |
+| Episode Length      | 381      |
+| frame_number        | 1.5e+06  |
+| q_val action 0      | 107      |
+| q_val action 1      | 108      |
+| q_val action 2      | 107      |
+| q_val action 3      | 111      |
+| q_val action 4      | 109      |
+| q_val action 5      | 109      |
+| q_val action 6      | 112      |
+| q_val action 7      | 110      |
+| q_val action 8      | 110      |
+| td loss             | 25.3     |
+| training_reward     | 452      |
+----------------------------------
+Average Evaluation Reward 418.05555555555554
+Average Sequence Length 283.8333333333333
+----------------------------------
+| Current Exploration | 0.099    |
+| Episode Length      | 372      |
+| frame_number        | 1.6e+06  |
+| q_val action 0      | 64.5     |
+| q_val action 1      | 63.7     |
+| q_val action 2      | 65.1     |
+| q_val action 3      | 65.5     |
+| q_val action 4      | 66.3     |
+| q_val action 5      | 64.3     |
+| q_val action 6      | 64.5     |
+| q_val action 7      | 66.1     |
+| q_val action 8      | 65.9     |
+| td loss             | 62.2     |
+| training_reward     | 540      |
+----------------------------------
+Average Evaluation Reward 468.1818181818182
+Average Sequence Length 458.09090909090907
+----------------------------------
+| Current Exploration | 0.0988   |
+| Episode Length      | 402      |
+| frame_number        | 1.7e+06  |
+| q_val action 0      | 101      |
+| q_val action 1      | 102      |
+| q_val action 2      | 100      |
+| q_val action 3      | 104      |
+| q_val action 4      | 103      |
+| q_val action 5      | 100      |
+| q_val action 6      | 104      |
+| q_val action 7      | 100      |
+| q_val action 8      | 104      |
+| td loss             | 17.8     |
+| training_reward     | 532      |
+----------------------------------
+Average Evaluation Reward 327.94117647058823
+Average Sequence Length 295.94117647058823
+----------------------------------
+| Current Exploration | 0.0986   |
+| Episode Length      | 411      |
+| frame_number        | 1.8e+06  |
+| q_val action 0      | 81.6     |
+| q_val action 1      | 81       |
+| q_val action 2      | 81.7     |
+| q_val action 3      | 82.1     |
+| q_val action 4      | 82       |
+| q_val action 5      | 80.6     |
+| q_val action 6      | 82.8     |
+| q_val action 7      | 82.1     |
+| q_val action 8      | 82.9     |
+| td loss             | 13.8     |
+| training_reward     | 570      |
+----------------------------------
+Average Evaluation Reward 548.1481481481482
+Average Sequence Length 377.2962962962963
+----------------------------------
+| Current Exploration | 0.0984   |
+| Episode Length      | 416      |
+| frame_number        | 1.9e+06  |
+| q_val action 0      | 99.7     |
+| q_val action 1      | 99       |
+| q_val action 2      | 100      |
+| q_val action 3      | 98.5     |
+| q_val action 4      | 99.3     |
+| q_val action 5      | 97.4     |
+| q_val action 6      | 98.4     |
+| q_val action 7      | 98.8     |
+| q_val action 8      | 98.9     |
+| td loss             | 12.4     |
+| training_reward     | 551      |
+----------------------------------
+Average Evaluation Reward 388.0
+Average Sequence Length 411.32
+----------------------------------
+| Current Exploration | 0.0982   |
+| Episode Length      | 455      |
+| frame_number        | 2e+06    |
+| q_val action 0      | 66.8     |
+| q_val action 1      | 65.4     |
+| q_val action 2      | 65.3     |
+| q_val action 3      | 66.4     |
+| q_val action 4      | 67       |
+| q_val action 5      | 63.9     |
+| q_val action 6      | 68.9     |
+| q_val action 7      | 65       |
+| q_val action 8      | 67.9     |
+| td loss             | 31       |
+| training_reward     | 600      |
+----------------------------------
+Average Evaluation Reward 441.42857142857144
+Average Sequence Length 287.45714285714286
+----------------------------------
+| Current Exploration | 0.0981   |
+| Episode Length      | 373      |
+| frame_number        | 2.1e+06  |
+| q_val action 0      | 146      |
+| q_val action 1      | 144      |
+| q_val action 2      | 146      |
+| q_val action 3      | 145      |
+| q_val action 4      | 146      |
+| q_val action 5      | 145      |
+| q_val action 6      | 145      |
+| q_val action 7      | 147      |
+| q_val action 8      | 144      |
+| td loss             | 35.2     |
+| training_reward     | 573      |
+----------------------------------
+Average Evaluation Reward 489.2857142857143
+Average Sequence Length 367.9642857142857
+----------------------------------
+| Current Exploration | 0.0979   |
+| Episode Length      | 381      |
+| frame_number        | 2.2e+06  |
+| q_val action 0      | 136      |
+| q_val action 1      | 133      |
+| q_val action 2      | 136      |
+| q_val action 3      | 136      |
+| q_val action 4      | 137      |
+| q_val action 5      | 134      |
+| q_val action 6      | 135      |
+| q_val action 7      | 135      |
+| q_val action 8      | 133      |
+| td loss             | 34.4     |
+| training_reward     | 525      |
+----------------------------------
+Average Evaluation Reward 395.94594594594594
+Average Sequence Length 273.64864864864865
+----------------------------------
+| Current Exploration | 0.0977   |
+| Episode Length      | 372      |
+| frame_number        | 2.3e+06  |
+| q_val action 0      | 152      |
+| q_val action 1      | 152      |
+| q_val action 2      | 155      |
+| q_val action 3      | 150      |
+| q_val action 4      | 156      |
+| q_val action 5      | 153      |
+| q_val action 6      | 153      |
+| q_val action 7      | 154      |
+| q_val action 8      | 152      |
+| td loss             | 69.8     |
+| training_reward     | 630      |
+----------------------------------
+Average Evaluation Reward 401.47058823529414
+Average Sequence Length 300.8529411764706
+----------------------------------
+| Current Exploration | 0.0975   |
+| Episode Length      | 391      |
+| frame_number        | 2.4e+06  |
+| q_val action 0      | 125      |
+| q_val action 1      | 124      |
+| q_val action 2      | 127      |
+| q_val action 3      | 125      |
+| q_val action 4      | 126      |
+| q_val action 5      | 125      |
+| q_val action 6      | 126      |
+| q_val action 7      | 125      |
+| q_val action 8      | 125      |
+| td loss             | 86.5     |
+| training_reward     | 590      |
+----------------------------------
+Average Evaluation Reward 361.1111111111111
+Average Sequence Length 282.3333333333333
+----------------------------------
+| Current Exploration | 0.0973   |
+| Episode Length      | 410      |
+| frame_number        | 2.5e+06  |
+| q_val action 0      | 93.2     |
+| q_val action 1      | 91.2     |
+| q_val action 2      | 92.1     |
+| q_val action 3      | 91.5     |
+| q_val action 4      | 92.3     |
+| q_val action 5      | 91.3     |
+| q_val action 6      | 93.8     |
+| q_val action 7      | 92.4     |
+| q_val action 8      | 90.9     |
+| td loss             | 171      |
+| training_reward     | 702      |
+----------------------------------
+Average Evaluation Reward 489.70588235294116
+Average Sequence Length 303.0
+----------------------------------
+| Current Exploration | 0.0971   |
+| Episode Length      | 387      |
+| frame_number        | 2.6e+06  |
+| q_val action 0      | 82.3     |
+| q_val action 1      | 82.7     |
+| q_val action 2      | 82.4     |
+| q_val action 3      | 82.7     |
+| q_val action 4      | 82.4     |
+| q_val action 5      | 83.4     |
+| q_val action 6      | 82.2     |
+| q_val action 7      | 82.7     |
+| q_val action 8      | 82.4     |
+| td loss             | 89.6     |
+| training_reward     | 602      |
+----------------------------------
+Average Evaluation Reward 429.3103448275862
+Average Sequence Length 345.0
+----------------------------------
+| Current Exploration | 0.097    |
+| Episode Length      | 433      |
+| frame_number        | 2.7e+06  |
+| q_val action 0      | 112      |
+| q_val action 1      | 114      |
+| q_val action 2      | 113      |
+| q_val action 3      | 112      |
+| q_val action 4      | 112      |
+| q_val action 5      | 112      |
+| q_val action 6      | 114      |
+| q_val action 7      | 111      |
+| q_val action 8      | 112      |
+| td loss             | 77.2     |
+| training_reward     | 740      |
+----------------------------------
+Average Evaluation Reward 436.4864864864865
+Average Sequence Length 274.56756756756755
+----------------------------------
+| Current Exploration | 0.0968   |
+| Episode Length      | 418      |
+| frame_number        | 2.8e+06  |
+| q_val action 0      | 86.4     |
+| q_val action 1      | 86.4     |
+| q_val action 2      | 87.8     |
+| q_val action 3      | 88.2     |
+| q_val action 4      | 87.3     |
+| q_val action 5      | 86.8     |
+| q_val action 6      | 89       |
+| q_val action 7      | 87.2     |
+| q_val action 8      | 88.5     |
+| td loss             | 163      |
+| training_reward     | 621      |
+----------------------------------
+Average Evaluation Reward 454.4117647058824
+Average Sequence Length 307.38235294117646
+----------------------------------
+| Current Exploration | 0.0966   |
+| Episode Length      | 410      |
+| frame_number        | 2.9e+06  |
+| q_val action 0      | 113      |
+| q_val action 1      | 113      |
+| q_val action 2      | 113      |
+| q_val action 3      | 112      |
+| q_val action 4      | 112      |
+| q_val action 5      | 112      |
+| q_val action 6      | 113      |
+| q_val action 7      | 112      |
+| q_val action 8      | 112      |
+| td loss             | 227      |
+| training_reward     | 684      |
+----------------------------------
+Average Evaluation Reward 501.7857142857143
+Average Sequence Length 360.0357142857143
+----------------------------------
+| Current Exploration | 0.0964   |
+| Episode Length      | 410      |
+| frame_number        | 3e+06    |
+| q_val action 0      | 149      |
+| q_val action 1      | 146      |
+| q_val action 2      | 147      |
+| q_val action 3      | 147      |
+| q_val action 4      | 147      |
+| q_val action 5      | 148      |
+| q_val action 6      | 149      |
+| q_val action 7      | 149      |
+| q_val action 8      | 148      |
+| td loss             | 696      |
+| training_reward     | 702      |
+----------------------------------
+Average Evaluation Reward 401.42857142857144
+Average Sequence Length 290.65714285714284
+----------------------------------
+| Current Exploration | 0.0962   |
+| Episode Length      | 431      |
+| frame_number        | 3.1e+06  |
+| q_val action 0      | 137      |
+| q_val action 1      | 135      |
+| q_val action 2      | 137      |
+| q_val action 3      | 136      |
+| q_val action 4      | 138      |
+| q_val action 5      | 137      |
+| q_val action 6      | 138      |
+| q_val action 7      | 137      |
+| q_val action 8      | 136      |
+| td loss             | 271      |
+| training_reward     | 749      |
+----------------------------------
+Average Evaluation Reward 425.0
+Average Sequence Length 393.53846153846155
+----------------------------------
+| Current Exploration | 0.096    |
+| Episode Length      | 424      |
+| frame_number        | 3.2e+06  |
+| q_val action 0      | 76.9     |
+| q_val action 1      | 76.9     |
+| q_val action 2      | 77       |
+| q_val action 3      | 77.8     |
+| q_val action 4      | 76.1     |
+| q_val action 5      | 75.8     |
+| q_val action 6      | 79.7     |
+| q_val action 7      | 75.7     |
+| q_val action 8      | 77.1     |
+| td loss             | 150      |
+| training_reward     | 708      |
+----------------------------------
+Average Evaluation Reward 516.1290322580645
+Average Sequence Length 324.93548387096774
+----------------------------------
+| Current Exploration | 0.0959   |
+| Episode Length      | 414      |
+| frame_number        | 3.3e+06  |
+| q_val action 0      | 110      |
+| q_val action 1      | 109      |
+| q_val action 2      | 108      |
+| q_val action 3      | 111      |
+| q_val action 4      | 108      |
+| q_val action 5      | 108      |
+| q_val action 6      | 113      |
+| q_val action 7      | 108      |
+| q_val action 8      | 109      |
+| td loss             | 452      |
+| training_reward     | 762      |
+----------------------------------
+Average Evaluation Reward 408.97435897435895
+Average Sequence Length 260.05128205128204
+----------------------------------
+| Current Exploration | 0.0957   |
+| Episode Length      | 402      |
+| frame_number        | 3.4e+06  |
+| q_val action 0      | 92.5     |
+| q_val action 1      | 92.6     |
+| q_val action 2      | 90.9     |
+| q_val action 3      | 92.7     |
+| q_val action 4      | 92.4     |
+| q_val action 5      | 90.8     |
+| q_val action 6      | 95.2     |
+| q_val action 7      | 91.8     |
+| q_val action 8      | 91.8     |
+| td loss             | 251      |
+| training_reward     | 792      |
+----------------------------------
+Average Evaluation Reward 361.1111111111111
+Average Sequence Length 280.0833333333333
+----------------------------------
+| Current Exploration | 0.0955   |
+| Episode Length      | 447      |
+| frame_number        | 3.5e+06  |
+| q_val action 0      | 79.8     |
+| q_val action 1      | 79.6     |
+| q_val action 2      | 77       |
+| q_val action 3      | 80       |
+| q_val action 4      | 79.5     |
+| q_val action 5      | 78.7     |
+| q_val action 6      | 81.3     |
+| q_val action 7      | 79.6     |
+| q_val action 8      | 78.8     |
+| td loss             | 138      |
+| training_reward     | 812      |
+----------------------------------
+Average Evaluation Reward 438.8888888888889
+Average Sequence Length 279.0833333333333
+----------------------------------
+| Current Exploration | 0.0953   |
+| Episode Length      | 477      |
+| frame_number        | 3.61e+06 |
+| q_val action 0      | 111      |
+| q_val action 1      | 112      |
+| q_val action 2      | 108      |
+| q_val action 3      | 110      |
+| q_val action 4      | 109      |
+| q_val action 5      | 109      |
+| q_val action 6      | 114      |
+| q_val action 7      | 110      |
+| q_val action 8      | 110      |
+| td loss             | 210      |
+| training_reward     | 813      |
+----------------------------------
+Average Evaluation Reward 423.3333333333333
+Average Sequence Length 343.43333333333334
+----------------------------------
+| Current Exploration | 0.0951   |
+| Episode Length      | 504      |
+| frame_number        | 3.7e+06  |
+| q_val action 0      | 156      |
+| q_val action 1      | 156      |
+| q_val action 2      | 153      |
+| q_val action 3      | 155      |
+| q_val action 4      | 155      |
+| q_val action 5      | 153      |
+| q_val action 6      | 159      |
+| q_val action 7      | 155      |
+| q_val action 8      | 152      |
+| td loss             | 151      |
+| training_reward     | 760      |
+----------------------------------
+Average Evaluation Reward 420.3703703703704
+Average Sequence Length 375.51851851851853
+----------------------------------
+| Current Exploration | 0.0949   |
+| Episode Length      | 435      |
+| frame_number        | 3.8e+06  |
+| q_val action 0      | 137      |
+| q_val action 1      | 137      |
+| q_val action 2      | 134      |
+| q_val action 3      | 136      |
+| q_val action 4      | 136      |
+| q_val action 5      | 135      |
+| q_val action 6      | 141      |
+| q_val action 7      | 137      |
+| q_val action 8      | 136      |
+| td loss             | 5.44e+03 |
+| training_reward     | 701      |
+----------------------------------
+Average Evaluation Reward 393.1034482758621
+Average Sequence Length 352.2068965517241
+----------------------------------
+| Current Exploration | 0.0947   |
+| Episode Length      | 447      |
+| frame_number        | 3.91e+06 |
+| q_val action 0      | 123      |
+| q_val action 1      | 122      |
+| q_val action 2      | 120      |
+| q_val action 3      | 122      |
+| q_val action 4      | 123      |
+| q_val action 5      | 120      |
+| q_val action 6      | 126      |
+| q_val action 7      | 123      |
+| q_val action 8      | 123      |
+| td loss             | 1.57e+03 |
+| training_reward     | 768      |
+----------------------------------
+Average Evaluation Reward 338.8888888888889
+Average Sequence Length 388.962962962963
+----------------------------------
+| Current Exploration | 0.0946   |
+| Episode Length      | 522      |
+| frame_number        | 4.01e+06 |
+| q_val action 0      | 108      |
+| q_val action 1      | 106      |
+| q_val action 2      | 103      |
+| q_val action 3      | 109      |
+| q_val action 4      | 106      |
+| q_val action 5      | 103      |
+| q_val action 6      | 111      |
+| q_val action 7      | 104      |
+| q_val action 8      | 109      |
+| td loss             | 403      |
+| training_reward     | 885      |
+----------------------------------
+Average Evaluation Reward 252.56410256410257
+Average Sequence Length 261.2564102564103
+----------------------------------
+| Current Exploration | 0.0944   |
+| Episode Length      | 453      |
+| frame_number        | 4.11e+06 |
+| q_val action 0      | 111      |
+| q_val action 1      | 112      |
+| q_val action 2      | 108      |
+| q_val action 3      | 114      |
+| q_val action 4      | 112      |
+| q_val action 5      | 109      |
+| q_val action 6      | 118      |
+| q_val action 7      | 110      |
+| q_val action 8      | 114      |
+| td loss             | 202      |
+| training_reward     | 826      |
+----------------------------------
+Average Evaluation Reward 312.9032258064516
+Average Sequence Length 326.2258064516129
+----------------------------------
+| Current Exploration | 0.0942   |
+| Episode Length      | 422      |
+| frame_number        | 4.2e+06  |
+| q_val action 0      | 101      |
+| q_val action 1      | 100      |
+| q_val action 2      | 97.8     |
+| q_val action 3      | 104      |
+| q_val action 4      | 101      |
+| q_val action 5      | 98.2     |
+| q_val action 6      | 108      |
+| q_val action 7      | 98.8     |
+| q_val action 8      | 104      |
+| td loss             | 340      |
+| training_reward     | 736      |
+----------------------------------
+Average Evaluation Reward 375.0
+Average Sequence Length 271.3421052631579
+----------------------------------
+| Current Exploration | 0.094    |
+| Episode Length      | 445      |
+| frame_number        | 4.3e+06  |
+| q_val action 0      | 141      |
+| q_val action 1      | 140      |
+| q_val action 2      | 138      |
+| q_val action 3      | 140      |
+| q_val action 4      | 139      |
+| q_val action 5      | 137      |
+| q_val action 6      | 147      |
+| q_val action 7      | 139      |
+| q_val action 8      | 137      |
+| td loss             | 364      |
+| training_reward     | 694      |
+----------------------------------
+Average Evaluation Reward 360.81081081081084
+Average Sequence Length 274.7567567567568
+----------------------------------
+| Current Exploration | 0.0938   |
+| Episode Length      | 432      |
+| frame_number        | 4.41e+06 |
+| q_val action 0      | 112      |
+| q_val action 1      | 111      |
+| q_val action 2      | 110      |
+| q_val action 3      | 115      |
+| q_val action 4      | 112      |
+| q_val action 5      | 110      |
+| q_val action 6      | 119      |
+| q_val action 7      | 109      |
+| q_val action 8      | 112      |
+| td loss             | 159      |
+| training_reward     | 819      |
+----------------------------------
+Average Evaluation Reward 328.125
+Average Sequence Length 313.09375
+----------------------------------
+| Current Exploration | 0.0936   |
+| Episode Length      | 419      |
+| frame_number        | 4.51e+06 |
+| q_val action 0      | 103      |
+| q_val action 1      | 101      |
+| q_val action 2      | 100      |
+| q_val action 3      | 107      |
+| q_val action 4      | 104      |
+| q_val action 5      | 98.9     |
+| q_val action 6      | 109      |
+| q_val action 7      | 99       |
+| q_val action 8      | 105      |
+| td loss             | 214      |
+| training_reward     | 694      |
+----------------------------------
+Average Evaluation Reward 308.06451612903226
+Average Sequence Length 325.48387096774195
+----------------------------------
+| Current Exploration | 0.0935   |
+| Episode Length      | 461      |
+| frame_number        | 4.61e+06 |
+| q_val action 0      | 78.9     |
+| q_val action 1      | 79.1     |
+| q_val action 2      | 78.2     |
+| q_val action 3      | 81.5     |
+| q_val action 4      | 79.3     |
+| q_val action 5      | 78.2     |
+| q_val action 6      | 84.8     |
+| q_val action 7      | 76.5     |
+| q_val action 8      | 80.9     |
+| td loss             | 119      |
+| training_reward     | 731      |
+----------------------------------
+Average Evaluation Reward 432.14285714285717
+Average Sequence Length 361.82142857142856
+----------------------------------
+| Current Exploration | 0.0933   |
+| Episode Length      | 476      |
+| frame_number        | 4.71e+06 |
+| q_val action 0      | 113      |
+| q_val action 1      | 111      |
+| q_val action 2      | 111      |
+| q_val action 3      | 117      |
+| q_val action 4      | 113      |
+| q_val action 5      | 109      |
+| q_val action 6      | 121      |
+| q_val action 7      | 108      |
+| q_val action 8      | 112      |
+| td loss             | 270      |
+| training_reward     | 746      |
+----------------------------------
+Average Evaluation Reward 370.27027027027026
+Average Sequence Length 270.4594594594595
+----------------------------------
+| Current Exploration | 0.0931   |
+| Episode Length      | 427      |
+| frame_number        | 4.81e+06 |
+| q_val action 0      | 116      |
+| q_val action 1      | 116      |
+| q_val action 2      | 114      |
+| q_val action 3      | 120      |
+| q_val action 4      | 115      |
+| q_val action 5      | 113      |
+| q_val action 6      | 124      |
+| q_val action 7      | 110      |
+| q_val action 8      | 118      |
+| td loss             | 3.58e+03 |
+| training_reward     | 746      |
+----------------------------------
+Average Evaluation Reward 310.29411764705884
+Average Sequence Length 303.05882352941177
+----------------------------------
+| Current Exploration | 0.0929   |
+| Episode Length      | 465      |
+| frame_number        | 4.91e+06 |
+| q_val action 0      | 141      |
+| q_val action 1      | 141      |
+| q_val action 2      | 140      |
+| q_val action 3      | 145      |
+| q_val action 4      | 143      |
+| q_val action 5      | 139      |
+| q_val action 6      | 148      |
+| q_val action 7      | 137      |
+| q_val action 8      | 143      |
+| td loss             | 228      |
+| training_reward     | 796      |
+----------------------------------
+Average Evaluation Reward 389.70588235294116
+Average Sequence Length 294.88235294117646
+----------------------------------
+| Current Exploration | 0.0927   |
+| Episode Length      | 433      |
+| frame_number        | 5.01e+06 |
+| q_val action 0      | 104      |
+| q_val action 1      | 104      |
+| q_val action 2      | 102      |
+| q_val action 3      | 106      |
+| q_val action 4      | 104      |
+| q_val action 5      | 103      |
+| q_val action 6      | 110      |
+| q_val action 7      | 103      |
+| q_val action 8      | 105      |
+| td loss             | 196      |
+| training_reward     | 759      |
+----------------------------------
+Average Evaluation Reward 322.22222222222223
+Average Sequence Length 279.6111111111111
+----------------------------------
+| Current Exploration | 0.0925   |
+| Episode Length      | 448      |
+| frame_number        | 5.11e+06 |
+| q_val action 0      | 98.7     |
+| q_val action 1      | 99.7     |
+| q_val action 2      | 97.2     |
+| q_val action 3      | 102      |
+| q_val action 4      | 98.5     |
+| q_val action 5      | 97.4     |
+| q_val action 6      | 105      |
+| q_val action 7      | 96.1     |
+| q_val action 8      | 101      |
+| td loss             | 91.6     |
+| training_reward     | 852      |
+----------------------------------
+Average Evaluation Reward 456.4516129032258
+Average Sequence Length 327.61290322580646
+----------------------------------
+| Current Exploration | 0.0924   |
+| Episode Length      | 426      |
+| frame_number        | 5.21e+06 |
+| q_val action 0      | 83.7     |
+| q_val action 1      | 84.3     |
+| q_val action 2      | 82.2     |
+| q_val action 3      | 84.1     |
+| q_val action 4      | 83.2     |
+| q_val action 5      | 82.5     |
+| q_val action 6      | 88.3     |
+| q_val action 7      | 81.7     |
+| q_val action 8      | 83.3     |
+| td loss             | 140      |
+| training_reward     | 822      |
+----------------------------------
+Average Evaluation Reward 387.8787878787879
+Average Sequence Length 304.6969696969697
+----------------------------------
+| Current Exploration | 0.0922   |
+| Episode Length      | 455      |
+| frame_number        | 5.31e+06 |
+| q_val action 0      | 97.7     |
+| q_val action 1      | 97.1     |
+| q_val action 2      | 94.1     |
+| q_val action 3      | 97.9     |
+| q_val action 4      | 96       |
+| q_val action 5      | 95.5     |
+| q_val action 6      | 104      |
+| q_val action 7      | 94.8     |
+| q_val action 8      | 97.6     |
+| td loss             | 369      |
+| training_reward     | 838      |
+----------------------------------
+Average Evaluation Reward 445.3125
+Average Sequence Length 314.59375
+----------------------------------
+| Current Exploration | 0.092    |
+| Episode Length      | 450      |
+| frame_number        | 5.41e+06 |
+| q_val action 0      | 64.6     |
+| q_val action 1      | 65.5     |
+| q_val action 2      | 63.7     |
+| q_val action 3      | 65.9     |
+| q_val action 4      | 65.9     |
+| q_val action 5      | 64.5     |
+| q_val action 6      | 69.1     |
+| q_val action 7      | 64.8     |
+| q_val action 8      | 65.6     |
+| td loss             | 238      |
+| training_reward     | 895      |
+----------------------------------
+Average Evaluation Reward 451.7857142857143
+Average Sequence Length 359.89285714285717
+----------------------------------
+| Current Exploration | 0.0918   |
+| Episode Length      | 484      |
+| frame_number        | 5.51e+06 |
+| q_val action 0      | 89       |
+| q_val action 1      | 89.2     |
+| q_val action 2      | 87.8     |
+| q_val action 3      | 90.2     |
+| q_val action 4      | 89.2     |
+| q_val action 5      | 87.9     |
+| q_val action 6      | 93.6     |
+| q_val action 7      | 88.9     |
+| q_val action 8      | 89.4     |
+| td loss             | 856      |
+| training_reward     | 934      |
+----------------------------------
+Average Evaluation Reward 333.8235294117647
+Average Sequence Length 296.44117647058823
+----------------------------------
+| Current Exploration | 0.0916   |
+| Episode Length      | 446      |
+| frame_number        | 5.61e+06 |
+| q_val action 0      | 93.9     |
+| q_val action 1      | 93.1     |
+| q_val action 2      | 91.2     |
+| q_val action 3      | 94.3     |
+| q_val action 4      | 94.4     |
+| q_val action 5      | 92.8     |
+| q_val action 6      | 99.5     |
+| q_val action 7      | 92.4     |
+| q_val action 8      | 93.3     |
+| td loss             | 1.13e+03 |
+| training_reward     | 846      |
+----------------------------------
+Average Evaluation Reward 367.1875
+Average Sequence Length 313.59375
+----------------------------------
+| Current Exploration | 0.0914   |
+| Episode Length      | 427      |
+| frame_number        | 5.71e+06 |
+| q_val action 0      | 75.8     |
+| q_val action 1      | 74.8     |
+| q_val action 2      | 73.2     |
+| q_val action 3      | 76.2     |
+| q_val action 4      | 75.5     |
+| q_val action 5      | 74.5     |
+| q_val action 6      | 79.6     |
+| q_val action 7      | 73.8     |
+| q_val action 8      | 75.3     |
+| td loss             | 499      |
+| training_reward     | 810      |
+----------------------------------
+Average Evaluation Reward 403.44827586206895
+Average Sequence Length 353.1034482758621
+----------------------------------
+| Current Exploration | 0.0912   |
+| Episode Length      | 465      |
+| frame_number        | 5.81e+06 |
+| q_val action 0      | 84.3     |
+| q_val action 1      | 83       |
+| q_val action 2      | 81.7     |
+| q_val action 3      | 85       |
+| q_val action 4      | 83.7     |
+| q_val action 5      | 82.7     |
+| q_val action 6      | 88.4     |
+| q_val action 7      | 81.7     |
+| q_val action 8      | 83.6     |
+| td loss             | 409      |
+| training_reward     | 884      |
+----------------------------------
+Average Evaluation Reward 325.0
+Average Sequence Length 280.4166666666667
+----------------------------------
+| Current Exploration | 0.0911   |
+| Episode Length      | 492      |
+| frame_number        | 5.91e+06 |
+| q_val action 0      | 92.5     |
+| q_val action 1      | 91.5     |
+| q_val action 2      | 89.1     |
+| q_val action 3      | 93.1     |
+| q_val action 4      | 91.6     |
+| q_val action 5      | 91.1     |
+| q_val action 6      | 98       |
+| q_val action 7      | 88.9     |
+| q_val action 8      | 93.1     |
+| td loss             | 1.18e+03 |
+| training_reward     | 792      |
+----------------------------------
+Average Evaluation Reward 407.3529411764706
+Average Sequence Length 305.94117647058823
+----------------------------------
+| Current Exploration | 0.0909   |
+| Episode Length      | 476      |
+| frame_number        | 6.01e+06 |
+| q_val action 0      | 89.3     |
+| q_val action 1      | 89.9     |
+| q_val action 2      | 87.3     |
+| q_val action 3      | 89.5     |
+| q_val action 4      | 88.2     |
+| q_val action 5      | 87.9     |
+| q_val action 6      | 93       |
+| q_val action 7      | 87.9     |
+| q_val action 8      | 88.6     |
+| td loss             | 473      |
+| training_reward     | 821      |
+----------------------------------
+Average Evaluation Reward 475.0
+Average Sequence Length 317.1875
+----------------------------------
+| Current Exploration | 0.0907   |
+| Episode Length      | 423      |
+| frame_number        | 6.11e+06 |
+| q_val action 0      | 139      |
+| q_val action 1      | 138      |
+| q_val action 2      | 135      |
+| q_val action 3      | 138      |
+| q_val action 4      | 138      |
+| q_val action 5      | 136      |
+| q_val action 6      | 144      |
+| q_val action 7      | 137      |
+| q_val action 8      | 136      |
+| td loss             | 366      |
+| training_reward     | 722      |
+----------------------------------
+Average Evaluation Reward 520.0
+Average Sequence Length 335.9
+----------------------------------
+| Current Exploration | 0.0905   |
+| Episode Length      | 435      |
+| frame_number        | 6.21e+06 |
+| q_val action 0      | 131      |
+| q_val action 1      | 132      |
+| q_val action 2      | 129      |
+| q_val action 3      | 130      |
+| q_val action 4      | 132      |
+| q_val action 5      | 130      |
+| q_val action 6      | 135      |
+| q_val action 7      | 131      |
+| q_val action 8      | 129      |
+| td loss             | 160      |
+| training_reward     | 834      |
+----------------------------------
+Average Evaluation Reward 483.3333333333333
+Average Sequence Length 306.93939393939394
+----------------------------------
+| Current Exploration | 0.0903   |
+| Episode Length      | 452      |
+| frame_number        | 6.31e+06 |
+| q_val action 0      | 100      |
+| q_val action 1      | 100      |
+| q_val action 2      | 98.1     |
+| q_val action 3      | 100      |
+| q_val action 4      | 99.3     |
+| q_val action 5      | 99.6     |
+| q_val action 6      | 105      |
+| q_val action 7      | 98.4     |
+| q_val action 8      | 99.8     |
+| td loss             | 226      |
+| training_reward     | 912      |
+----------------------------------
+Average Evaluation Reward 440.625
+Average Sequence Length 317.9375
+----------------------------------
+| Current Exploration | 0.0901   |
+| Episode Length      | 438      |
+| frame_number        | 6.41e+06 |
+| q_val action 0      | 115      |
+| q_val action 1      | 115      |
+| q_val action 2      | 111      |
+| q_val action 3      | 113      |
+| q_val action 4      | 114      |
+| q_val action 5      | 113      |
+| q_val action 6      | 118      |
+| q_val action 7      | 113      |
+| q_val action 8      | 113      |
+| td loss             | 2.27e+03 |
+| training_reward     | 864      |
+----------------------------------
+Average Evaluation Reward 424.19354838709677
+Average Sequence Length 332.48387096774195
+----------------------------------
+| Current Exploration | 0.09     |
+| Episode Length      | 457      |
+| frame_number        | 6.51e+06 |
+| q_val action 0      | 86.2     |
+| q_val action 1      | 85.5     |
+| q_val action 2      | 82.8     |
+| q_val action 3      | 86.6     |
+| q_val action 4      | 85.1     |
+| q_val action 5      | 83.8     |
+| q_val action 6      | 89.5     |
+| q_val action 7      | 82.3     |
+| q_val action 8      | 84.9     |
+| td loss             | 881      |
+| training_reward     | 852      |
+----------------------------------
+Average Evaluation Reward 346.969696969697
+Average Sequence Length 309.54545454545456
+----------------------------------
+| Current Exploration | 0.0898   |
+| Episode Length      | 430      |
+| frame_number        | 6.61e+06 |
+| q_val action 0      | 156      |
+| q_val action 1      | 155      |
+| q_val action 2      | 153      |
+| q_val action 3      | 155      |
+| q_val action 4      | 155      |
+| q_val action 5      | 154      |
+| q_val action 6      | 159      |
+| q_val action 7      | 157      |
+| q_val action 8      | 152      |
+| td loss             | 359      |
+| training_reward     | 760      |
+----------------------------------
+Average Evaluation Reward 422.85714285714283
+Average Sequence Length 291.9142857142857
+----------------------------------
+| Current Exploration | 0.0896   |
+| Episode Length      | 394      |
+| frame_number        | 6.71e+06 |
+| q_val action 0      | 101      |
+| q_val action 1      | 101      |
+| q_val action 2      | 98.9     |
+| q_val action 3      | 100      |
+| q_val action 4      | 100      |
+| q_val action 5      | 99.8     |
+| q_val action 6      | 101      |
+| q_val action 7      | 100      |
+| q_val action 8      | 97.9     |
+| td loss             | 629      |
+| training_reward     | 699      |
+----------------------------------
+Average Evaluation Reward 361.1111111111111
+Average Sequence Length 285.97222222222223
+----------------------------------
+| Current Exploration | 0.0894   |
+| Episode Length      | 415      |
+| frame_number        | 6.81e+06 |
+| q_val action 0      | 136      |
+| q_val action 1      | 136      |
+| q_val action 2      | 135      |
+| q_val action 3      | 137      |
+| q_val action 4      | 137      |
+| q_val action 5      | 135      |
+| q_val action 6      | 139      |
+| q_val action 7      | 136      |
+| q_val action 8      | 134      |
+| td loss             | 1.99e+03 |
+| training_reward     | 816      |
+----------------------------------
+Average Evaluation Reward 416.6666666666667
+Average Sequence Length 284.6388888888889
+----------------------------------
+| Current Exploration | 0.0892   |
+| Episode Length      | 438      |
+| frame_number        | 6.91e+06 |
+| q_val action 0      | 104      |
+| q_val action 1      | 104      |
+| q_val action 2      | 104      |
+| q_val action 3      | 105      |
+| q_val action 4      | 104      |
+| q_val action 5      | 104      |
+| q_val action 6      | 108      |
+| q_val action 7      | 101      |
+| q_val action 8      | 103      |
+| td loss             | 383      |
+| training_reward     | 820      |
+----------------------------------
+Average Evaluation Reward 395.3125
+Average Sequence Length 314.59375
+----------------------------------
+| Current Exploration | 0.089    |
+| Episode Length      | 462      |
+| frame_number        | 7.01e+06 |
+| q_val action 0      | 105      |
+| q_val action 1      | 105      |
+| q_val action 2      | 105      |
+| q_val action 3      | 107      |
+| q_val action 4      | 104      |
+| q_val action 5      | 104      |
+| q_val action 6      | 110      |
+| q_val action 7      | 102      |
+| q_val action 8      | 105      |
+| td loss             | 4.87e+03 |
+| training_reward     | 807      |
+----------------------------------
+Average Evaluation Reward 425.75757575757575
+Average Sequence Length 306.2121212121212
+----------------------------------
+| Current Exploration | 0.0889   |
+| Episode Length      | 447      |
+| frame_number        | 7.11e+06 |
+| q_val action 0      | 132      |
+| q_val action 1      | 131      |
+| q_val action 2      | 131      |
+| q_val action 3      | 132      |
+| q_val action 4      | 133      |
+| q_val action 5      | 130      |
+| q_val action 6      | 134      |
+| q_val action 7      | 132      |
+| q_val action 8      | 130      |
+| td loss             | 278      |
+| training_reward     | 819      |
+----------------------------------
+Average Evaluation Reward 434.8484848484849
+Average Sequence Length 303.75757575757575
+----------------------------------
+| Current Exploration | 0.0887   |
+| Episode Length      | 466      |
+| frame_number        | 7.22e+06 |
+| q_val action 0      | 146      |
+| q_val action 1      | 145      |
+| q_val action 2      | 144      |
+| q_val action 3      | 144      |
+| q_val action 4      | 145      |
+| q_val action 5      | 143      |
+| q_val action 6      | 148      |
+| q_val action 7      | 145      |
+| q_val action 8      | 145      |
+| td loss             | 398      |
+| training_reward     | 944      |
+----------------------------------
+Average Evaluation Reward 508.3333333333333
+Average Sequence Length 428.4583333333333
+----------------------------------
+| Current Exploration | 0.0885   |
+| Episode Length      | 442      |
+| frame_number        | 7.31e+06 |
+| q_val action 0      | 146      |
+| q_val action 1      | 146      |
+| q_val action 2      | 142      |
+| q_val action 3      | 145      |
+| q_val action 4      | 146      |
+| q_val action 5      | 143      |
+| q_val action 6      | 149      |
+| q_val action 7      | 145      |
+| q_val action 8      | 143      |
+| td loss             | 437      |
+| training_reward     | 744      |
+----------------------------------
+Average Evaluation Reward 439.6551724137931
+Average Sequence Length 350.37931034482756
+----------------------------------
+| Current Exploration | 0.0883   |
+| Episode Length      | 443      |
+| frame_number        | 7.42e+06 |
+| q_val action 0      | 76.8     |
+| q_val action 1      | 77.4     |
+| q_val action 2      | 75.5     |
+| q_val action 3      | 77.6     |
+| q_val action 4      | 75.6     |
+| q_val action 5      | 75.7     |
+| q_val action 6      | 81       |
+| q_val action 7      | 72.8     |
+| q_val action 8      | 75.5     |
+| td loss             | 462      |
+| training_reward     | 772      |
+----------------------------------
+Average Evaluation Reward 352.77777777777777
+Average Sequence Length 282.5
+----------------------------------
+| Current Exploration | 0.0881   |
+| Episode Length      | 438      |
+| frame_number        | 7.52e+06 |
+| q_val action 0      | 59.9     |
+| q_val action 1      | 60.6     |
+| q_val action 2      | 59.8     |
+| q_val action 3      | 62       |
+| q_val action 4      | 60.1     |
+| q_val action 5      | 59.8     |
+| q_val action 6      | 64       |
+| q_val action 7      | 57.5     |
+| q_val action 8      | 59.9     |
+| td loss             | 431      |
+| training_reward     | 868      |
+----------------------------------
+Average Evaluation Reward 380.0
+Average Sequence Length 287.48571428571427
+----------------------------------
+| Current Exploration | 0.0879   |
+| Episode Length      | 412      |
+| frame_number        | 7.62e+06 |
+| q_val action 0      | 63.2     |
+| q_val action 1      | 63.5     |
+| q_val action 2      | 62.9     |
+| q_val action 3      | 63.2     |
+| q_val action 4      | 63       |
+| q_val action 5      | 62.4     |
+| q_val action 6      | 65.2     |
+| q_val action 7      | 62.2     |
+| q_val action 8      | 62.1     |
+| td loss             | 809      |
+| training_reward     | 710      |
+----------------------------------
+Average Evaluation Reward 413.2352941176471
+Average Sequence Length 301.38235294117646
+----------------------------------
+| Current Exploration | 0.0877   |
+| Episode Length      | 456      |
+| frame_number        | 7.72e+06 |
+| q_val action 0      | 83.8     |
+| q_val action 1      | 84.5     |
+| q_val action 2      | 81.8     |
+| q_val action 3      | 83.2     |
+| q_val action 4      | 82.5     |
+| q_val action 5      | 83       |
+| q_val action 6      | 88.4     |
+| q_val action 7      | 80.1     |
+| q_val action 8      | 81.9     |
+| td loss             | 1.69e+03 |
+| training_reward     | 857      |
+----------------------------------
+Average Evaluation Reward 332.8125
+Average Sequence Length 321.90625
+----------------------------------
+| Current Exploration | 0.0876   |
+| Episode Length      | 462      |
+| frame_number        | 7.82e+06 |
+| q_val action 0      | 125      |
+| q_val action 1      | 126      |
+| q_val action 2      | 123      |
+| q_val action 3      | 125      |
+| q_val action 4      | 125      |
+| q_val action 5      | 124      |
+| q_val action 6      | 129      |
+| q_val action 7      | 121      |
+| q_val action 8      | 123      |
+| td loss             | 2.23e+03 |
+| training_reward     | 900      |
+----------------------------------
+Average Evaluation Reward 489.2857142857143
+Average Sequence Length 359.7857142857143
+----------------------------------
+| Current Exploration | 0.0874   |
+| Episode Length      | 466      |
+| frame_number        | 7.91e+06 |
+| q_val action 0      | 72.9     |
+| q_val action 1      | 72.9     |
+| q_val action 2      | 71.1     |
+| q_val action 3      | 73.6     |
+| q_val action 4      | 71.7     |
+| q_val action 5      | 71.8     |
+| q_val action 6      | 75.6     |
+| q_val action 7      | 67.2     |
+| q_val action 8      | 71.2     |
+| td loss             | 734      |
+| training_reward     | 858      |
+----------------------------------
+Average Evaluation Reward 370.96774193548384
+Average Sequence Length 323.93548387096774
+----------------------------------
+| Current Exploration | 0.0872   |
+| Episode Length      | 448      |
+| frame_number        | 8.02e+06 |
+| q_val action 0      | 102      |
+| q_val action 1      | 101      |
+| q_val action 2      | 101      |
+| q_val action 3      | 102      |
+| q_val action 4      | 101      |
+| q_val action 5      | 101      |
+| q_val action 6      | 103      |
+| q_val action 7      | 98.2     |
+| q_val action 8      | 100      |
+| td loss             | 771      |
+| training_reward     | 822      |
+----------------------------------
+Average Evaluation Reward 375.75757575757575
+Average Sequence Length 307.90909090909093
+----------------------------------
+| Current Exploration | 0.087    |
+| Episode Length      | 435      |
+| frame_number        | 8.12e+06 |
+| q_val action 0      | 151      |
+| q_val action 1      | 151      |
+| q_val action 2      | 149      |
+| q_val action 3      | 150      |
+| q_val action 4      | 150      |
+| q_val action 5      | 149      |
+| q_val action 6      | 154      |
+| q_val action 7      | 147      |
+| q_val action 8      | 147      |
+| td loss             | 6.91e+03 |
+| training_reward     | 802      |
+----------------------------------
+Average Evaluation Reward 386.7647058823529
+Average Sequence Length 295.88235294117646
+----------------------------------
+| Current Exploration | 0.0868   |
+| Episode Length      | 420      |
+| frame_number        | 8.22e+06 |
+| q_val action 0      | 128      |
+| q_val action 1      | 129      |
+| q_val action 2      | 127      |
+| q_val action 3      | 128      |
+| q_val action 4      | 128      |
+| q_val action 5      | 127      |
+| q_val action 6      | 132      |
+| q_val action 7      | 124      |
+| q_val action 8      | 126      |
+| td loss             | 2.27e+03 |
+| training_reward     | 804      |
+----------------------------------
+Average Evaluation Reward 550.0
+Average Sequence Length 351.48275862068965
+----------------------------------
+| Current Exploration | 0.0866   |
+| Episode Length      | 431      |
+| frame_number        | 8.32e+06 |
+| q_val action 0      | 97.7     |
+| q_val action 1      | 97.8     |
+| q_val action 2      | 97.8     |
+| q_val action 3      | 96.5     |
+| q_val action 4      | 97.9     |
+| q_val action 5      | 96.2     |
+| q_val action 6      | 98.1     |
+| q_val action 7      | 97.5     |
+| q_val action 8      | 94.6     |
+| td loss             | 898      |
+| training_reward     | 688      |
+----------------------------------
+Average Evaluation Reward 498.3333333333333
+Average Sequence Length 341.73333333333335
+----------------------------------
+| Current Exploration | 0.0865   |
+| Episode Length      | 456      |
+| frame_number        | 8.42e+06 |
+| q_val action 0      | 80.2     |
+| q_val action 1      | 80.8     |
+| q_val action 2      | 80.1     |
+| q_val action 3      | 80.5     |
+| q_val action 4      | 80.7     |
+| q_val action 5      | 79.4     |
+| q_val action 6      | 81.9     |
+| q_val action 7      | 79.1     |
+| q_val action 8      | 79       |
+| td loss             | 1.15e+03 |
+| training_reward     | 852      |
+----------------------------------
+Average Evaluation Reward 514.2857142857143
+Average Sequence Length 371.07142857142856
+----------------------------------
+| Current Exploration | 0.0863   |
+| Episode Length      | 485      |
+| frame_number        | 8.52e+06 |
+| q_val action 0      | 53.9     |
+| q_val action 1      | 53.9     |
+| q_val action 2      | 53.2     |
+| q_val action 3      | 54.8     |
+| q_val action 4      | 54.8     |
+| q_val action 5      | 53.8     |
+| q_val action 6      | 55.7     |
+| q_val action 7      | 51       |
+| q_val action 8      | 53.4     |
+| td loss             | 1.28e+03 |
+| training_reward     | 924      |
+----------------------------------
+Average Evaluation Reward 535.483870967742
+Average Sequence Length 329.0
+----------------------------------
+| Current Exploration | 0.0861   |
+| Episode Length      | 454      |
+| frame_number        | 8.62e+06 |
+| q_val action 0      | 43.1     |
+| q_val action 1      | 44.4     |
+| q_val action 2      | 44.1     |
+| q_val action 3      | 44.8     |
+| q_val action 4      | 43.6     |
+| q_val action 5      | 43.8     |
+| q_val action 6      | 45.1     |
+| q_val action 7      | 40.6     |
+| q_val action 8      | 43.5     |
+| td loss             | 451      |
+| training_reward     | 864      |
+----------------------------------
+Average Evaluation Reward 503.7037037037037
+Average Sequence Length 371.2962962962963
+----------------------------------
+| Current Exploration | 0.0859   |
+| Episode Length      | 460      |
+| frame_number        | 8.72e+06 |
+| q_val action 0      | 28.8     |
+| q_val action 1      | 29.9     |
+| q_val action 2      | 30.2     |
+| q_val action 3      | 30.8     |
+| q_val action 4      | 29.1     |
+| q_val action 5      | 30.3     |
+| q_val action 6      | 30       |
+| q_val action 7      | 27.7     |
+| q_val action 8      | 31       |
+| td loss             | 1.76e+03 |
+| training_reward     | 894      |
+----------------------------------
+Average Evaluation Reward 418.05555555555554
+Average Sequence Length 284.80555555555554
+----------------------------------
+| Current Exploration | 0.0857   |
+| Episode Length      | 439      |
+| frame_number        | 8.82e+06 |
+| q_val action 0      | 38.7     |
+| q_val action 1      | 38.6     |
+| q_val action 2      | 38.6     |
+| q_val action 3      | 39.2     |
+| q_val action 4      | 38       |
+| q_val action 5      | 37.4     |
+| q_val action 6      | 37.4     |
+| q_val action 7      | 37.2     |
+| q_val action 8      | 36.4     |
+| td loss             | 3.02e+04 |
+| training_reward     | 828      |
+----------------------------------
+Average Evaluation Reward 390.27777777777777
+Average Sequence Length 292.0833333333333
+----------------------------------
+| Current Exploration | 0.0855   |
+| Episode Length      | 519      |
+| frame_number        | 8.92e+06 |
+| q_val action 0      | 54.5     |
+| q_val action 1      | 55.2     |
+| q_val action 2      | 55.1     |
+| q_val action 3      | 55.3     |
+| q_val action 4      | 53.9     |
+| q_val action 5      | 54.3     |
+| q_val action 6      | 56.5     |
+| q_val action 7      | 51.8     |
+| q_val action 8      | 54.5     |
+| td loss             | 711      |
+| training_reward     | 837      |
+----------------------------------
+Average Evaluation Reward 401.7241379310345
+Average Sequence Length 349.51724137931035
+----------------------------------
+| Current Exploration | 0.0853   |
+| Episode Length      | 463      |
+| frame_number        | 9.02e+06 |
+| q_val action 0      | 40.5     |
+| q_val action 1      | 40.6     |
+| q_val action 2      | 41.8     |
+| q_val action 3      | 41.1     |
+| q_val action 4      | 40.9     |
+| q_val action 5      | 40.2     |
+| q_val action 6      | 40.7     |
+| q_val action 7      | 38.9     |
+| q_val action 8      | 41.5     |
+| td loss             | 4.63e+03 |
+| training_reward     | 820      |
+----------------------------------
+Average Evaluation Reward 476.0869565217391
+Average Sequence Length 457.6521739130435
+----------------------------------
+| Current Exploration | 0.0852   |
+| Episode Length      | 468      |
+| frame_number        | 9.12e+06 |
+| q_val action 0      | 37.9     |
+| q_val action 1      | 38.3     |
+| q_val action 2      | 39.3     |
+| q_val action 3      | 38.2     |
+| q_val action 4      | 39.7     |
+| q_val action 5      | 38.2     |
+| q_val action 6      | 37.7     |
+| q_val action 7      | 37       |
+| q_val action 8      | 38.3     |
+| td loss             | 1.74e+03 |
+| training_reward     | 817      |
+----------------------------------
+Average Evaluation Reward 409.09090909090907
+Average Sequence Length 309.3636363636364
+----------------------------------
+| Current Exploration | 0.085    |
+| Episode Length      | 397      |
+| frame_number        | 9.22e+06 |
+| q_val action 0      | 28.3     |
+| q_val action 1      | 28.8     |
+| q_val action 2      | 29.1     |
+| q_val action 3      | 28.6     |
+| q_val action 4      | 29       |
+| q_val action 5      | 28.9     |
+| q_val action 6      | 28.3     |
+| q_val action 7      | 28.5     |
+| q_val action 8      | 29.1     |
+| td loss             | 2.43e+03 |
+| training_reward     | 679      |
+----------------------------------
+Average Evaluation Reward 440.3225806451613
+Average Sequence Length 328.16129032258067
+----------------------------------
+| Current Exploration | 0.0848   |
+| Episode Length      | 449      |
+| frame_number        | 9.32e+06 |
+| q_val action 0      | 34.3     |
+| q_val action 1      | 34.3     |
+| q_val action 2      | 33.1     |
+| q_val action 3      | 34.7     |
+| q_val action 4      | 33.8     |
+| q_val action 5      | 34.8     |
+| q_val action 6      | 35.6     |
+| q_val action 7      | 32.1     |
+| q_val action 8      | 34.1     |
+| td loss             | 748      |
+| training_reward     | 792      |
+----------------------------------
+Average Evaluation Reward 389.0625
+Average Sequence Length 314.03125
+----------------------------------
+| Current Exploration | 0.0846   |
+| Episode Length      | 422      |
+| frame_number        | 9.42e+06 |
+| q_val action 0      | 43       |
+| q_val action 1      | 43.1     |
+| q_val action 2      | 42.1     |
+| q_val action 3      | 42.6     |
+| q_val action 4      | 42.1     |
+| q_val action 5      | 42.5     |
+| q_val action 6      | 43.8     |
+| q_val action 7      | 41.6     |
+| q_val action 8      | 42.2     |
+| td loss             | 9.28e+03 |
+| training_reward     | 723      |
+----------------------------------
+Average Evaluation Reward 440.3225806451613
+Average Sequence Length 335.19354838709677
+----------------------------------
+| Current Exploration | 0.0844   |
+| Episode Length      | 475      |
+| frame_number        | 9.52e+06 |
+| q_val action 0      | 67.1     |
+| q_val action 1      | 69.5     |
+| q_val action 2      | 67.8     |
+| q_val action 3      | 67.8     |
+| q_val action 4      | 65.9     |
+| q_val action 5      | 66.9     |
+| q_val action 6      | 70.9     |
+| q_val action 7      | 66.8     |
+| q_val action 8      | 68.2     |
+| td loss             | 3.63e+03 |
+| training_reward     | 882      |
+----------------------------------
+Average Evaluation Reward 410.9375
+Average Sequence Length 325.53125
+----------------------------------
+| Current Exploration | 0.0842   |
+| Episode Length      | 470      |
+| frame_number        | 9.62e+06 |
+| q_val action 0      | 70.3     |
+| q_val action 1      | 72       |
+| q_val action 2      | 70.8     |
+| q_val action 3      | 70.2     |
+| q_val action 4      | 70.2     |
+| q_val action 5      | 69.5     |
+| q_val action 6      | 72.8     |
+| q_val action 7      | 68.8     |
+| q_val action 8      | 69.6     |
+| td loss             | 250      |
+| training_reward     | 732      |
+----------------------------------
+Average Evaluation Reward 528.5714285714286
+Average Sequence Length 361.32142857142856
+----------------------------------
+| Current Exploration | 0.0841   |
+| Episode Length      | 425      |
+| frame_number        | 9.72e+06 |
+| q_val action 0      | 66.5     |
+| q_val action 1      | 66.7     |
+| q_val action 2      | 66.1     |
+| q_val action 3      | 66.1     |
+| q_val action 4      | 66.2     |
+| q_val action 5      | 65.4     |
+| q_val action 6      | 67.5     |
+| q_val action 7      | 64.7     |
+| q_val action 8      | 63.4     |
+| td loss             | 1.08e+03 |
+| training_reward     | 742      |
+----------------------------------
+Average Evaluation Reward 379.6875
+Average Sequence Length 316.9375
+----------------------------------
+| Current Exploration | 0.0839   |
+| Episode Length      | 463      |
+| frame_number        | 9.82e+06 |
+| q_val action 0      | 61.2     |
+| q_val action 1      | 61.7     |
+| q_val action 2      | 62.1     |
+| q_val action 3      | 61.7     |
+| q_val action 4      | 60.5     |
+| q_val action 5      | 60.4     |
+| q_val action 6      | 62.2     |
+| q_val action 7      | 60.1     |
+| q_val action 8      | 59.4     |
+| td loss             | 2.66e+03 |
+| training_reward     | 874      |
+----------------------------------
+Average Evaluation Reward 389.3939393939394
+Average Sequence Length 307.6363636363636
+----------------------------------
+| Current Exploration | 0.0837   |
+| Episode Length      | 485      |
+| frame_number        | 9.92e+06 |
+| q_val action 0      | 48.8     |
+| q_val action 1      | 49.8     |
+| q_val action 2      | 49.2     |
+| q_val action 3      | 48.8     |
+| q_val action 4      | 48.2     |
+| q_val action 5      | 50       |
+| q_val action 6      | 49.8     |
+| q_val action 7      | 49.1     |
+| q_val action 8      | 47.9     |
+| td loss             | 605      |
+| training_reward     | 901      |
+----------------------------------
+Average Evaluation Reward 426.47058823529414
+Average Sequence Length 294.4117647058824
+----------------------------------
+| Current Exploration | 0.0835   |
+| Episode Length      | 458      |
+| frame_number        | 1e+07    |
+| q_val action 0      | 50.1     |
+| q_val action 1      | 50       |
+| q_val action 2      | 50.1     |
+| q_val action 3      | 51.2     |
+| q_val action 4      | 48.7     |
+| q_val action 5      | 49.7     |
+| q_val action 6      | 51.5     |
+| q_val action 7      | 47.6     |
+| q_val action 8      | 49.6     |
+| td loss             | 1.58e+03 |
+| training_reward     | 846      |
+----------------------------------
+Average Evaluation Reward 445.7142857142857
+Average Sequence Length 292.9428571428571
+----------------------------------
+| Current Exploration | 0.0833   |
+| Episode Length      | 439      |
+| frame_number        | 1.01e+07 |
+| q_val action 0      | 44.8     |
+| q_val action 1      | 45.2     |
+| q_val action 2      | 44.1     |
+| q_val action 3      | 45.4     |
+| q_val action 4      | 44.2     |
+| q_val action 5      | 44.1     |
+| q_val action 6      | 46.9     |
+| q_val action 7      | 42.8     |
+| q_val action 8      | 44.8     |
+| td loss             | 447      |
+| training_reward     | 828      |
+----------------------------------
+Average Evaluation Reward 357.3529411764706
+Average Sequence Length 294.9117647058824
+----------------------------------
+| Current Exploration | 0.0831   |
+| Episode Length      | 484      |
+| frame_number        | 1.02e+07 |
+| q_val action 0      | 55.5     |
+| q_val action 1      | 57.3     |
+| q_val action 2      | 55.9     |
+| q_val action 3      | 58.3     |
+| q_val action 4      | 56.5     |
+| q_val action 5      | 55.2     |
+| q_val action 6      | 59.6     |
+| q_val action 7      | 54.1     |
+| q_val action 8      | 56.1     |
+| td loss             | 244      |
+| training_reward     | 742      |
+----------------------------------
+Average Evaluation Reward 497.9166666666667
+Average Sequence Length 428.0416666666667
+----------------------------------
+| Current Exploration | 0.083    |
+| Episode Length      | 440      |
+| frame_number        | 1.03e+07 |
+| q_val action 0      | 33.8     |
+| q_val action 1      | 34.3     |
+| q_val action 2      | 33.3     |
+| q_val action 3      | 34.5     |
+| q_val action 4      | 33.6     |
+| q_val action 5      | 33.5     |
+| q_val action 6      | 35.7     |
+| q_val action 7      | 32.4     |
+| q_val action 8      | 34.1     |
+| td loss             | 317      |
+| training_reward     | 796      |
+----------------------------------
+Average Evaluation Reward 632.6086956521739
+Average Sequence Length 436.60869565217394
+----------------------------------
+| Current Exploration | 0.0828   |
+| Episode Length      | 457      |
+| frame_number        | 1.04e+07 |
+| q_val action 0      | 34.9     |
+| q_val action 1      | 35.2     |
+| q_val action 2      | 35.1     |
+| q_val action 3      | 35.7     |
+| q_val action 4      | 34.6     |
+| q_val action 5      | 34.5     |
+| q_val action 6      | 35.7     |
+| q_val action 7      | 34.6     |
+| q_val action 8      | 34.9     |
+| td loss             | 540      |
+| training_reward     | 840      |
+----------------------------------
+Average Evaluation Reward 404.83870967741933
+Average Sequence Length 327.5806451612903
+----------------------------------
+| Current Exploration | 0.0826   |
+| Episode Length      | 444      |
+| frame_number        | 1.05e+07 |
+| q_val action 0      | 36.3     |
+| q_val action 1      | 37.3     |
+| q_val action 2      | 36.9     |
+| q_val action 3      | 37.8     |
+| q_val action 4      | 37.4     |
+| q_val action 5      | 37.4     |
+| q_val action 6      | 37.4     |
+| q_val action 7      | 36.1     |
+| q_val action 8      | 37.2     |
+| td loss             | 344      |
+| training_reward     | 834      |
+----------------------------------
+Average Evaluation Reward 391.6666666666667
+Average Sequence Length 345.3333333333333
+----------------------------------
+| Current Exploration | 0.0824   |
+| Episode Length      | 490      |
+| frame_number        | 1.06e+07 |
+| q_val action 0      | 46.4     |
+| q_val action 1      | 46.7     |
+| q_val action 2      | 45.2     |
+| q_val action 3      | 47.2     |
+| q_val action 4      | 47.5     |
+| q_val action 5      | 46.5     |
+| q_val action 6      | 46.6     |
+| q_val action 7      | 44.5     |
+| q_val action 8      | 46.3     |
+| td loss             | 446      |
+| training_reward     | 826      |
+----------------------------------
+Average Evaluation Reward 409.6774193548387
+Average Sequence Length 328.741935483871
+----------------------------------
+| Current Exploration | 0.0822   |
+| Episode Length      | 497      |
+| frame_number        | 1.07e+07 |
+| q_val action 0      | 53.9     |
+| q_val action 1      | 54.4     |
+| q_val action 2      | 53.1     |
+| q_val action 3      | 54.3     |
+| q_val action 4      | 54.7     |
+| q_val action 5      | 53.4     |
+| q_val action 6      | 54.4     |
+| q_val action 7      | 53.9     |
+| q_val action 8      | 52.5     |
+| td loss             | 651      |
+| training_reward     | 865      |
+----------------------------------
+Average Evaluation Reward 564.0
+Average Sequence Length 405.28
+----------------------------------
+| Current Exploration | 0.082    |
+| Episode Length      | 469      |
+| frame_number        | 1.08e+07 |
+| q_val action 0      | 51.6     |
+| q_val action 1      | 53.6     |
+| q_val action 2      | 52.9     |
+| q_val action 3      | 52.9     |
+| q_val action 4      | 52.8     |
+| q_val action 5      | 52.6     |
+| q_val action 6      | 53.3     |
+| q_val action 7      | 53.5     |
+| q_val action 8      | 51.9     |
+| td loss             | 352      |
+| training_reward     | 882      |
+----------------------------------
+Average Evaluation Reward 538.8888888888889
+Average Sequence Length 371.037037037037
+----------------------------------
+| Current Exploration | 0.0818   |
+| Episode Length      | 473      |
+| frame_number        | 1.09e+07 |
+| q_val action 0      | 100      |
+| q_val action 1      | 102      |
+| q_val action 2      | 99.7     |
+| q_val action 3      | 101      |
+| q_val action 4      | 102      |
+| q_val action 5      | 97.9     |
+| q_val action 6      | 102      |
+| q_val action 7      | 101      |
+| q_val action 8      | 99.9     |
+| td loss             | 873      |
+| training_reward     | 827      |
+----------------------------------
+Average Evaluation Reward 459.25925925925924
+Average Sequence Length 383.85185185185185
+----------------------------------
+| Current Exploration | 0.0817   |
+| Episode Length      | 475      |
+| frame_number        | 1.1e+07  |
+| q_val action 0      | 87.1     |
+| q_val action 1      | 88.4     |
+| q_val action 2      | 86.5     |
+| q_val action 3      | 89.1     |
+| q_val action 4      | 86.6     |
+| q_val action 5      | 85.1     |
+| q_val action 6      | 91.7     |
+| q_val action 7      | 84.6     |
+| q_val action 8      | 86.7     |
+| td loss             | 9.05e+03 |
+| training_reward     | 868      |
+----------------------------------
+Average Evaluation Reward 569.5652173913044
+Average Sequence Length 444.60869565217394
+----------------------------------
+| Current Exploration | 0.0815   |
+| Episode Length      | 535      |
+| frame_number        | 1.11e+07 |
+| q_val action 0      | 98.5     |
+| q_val action 1      | 99.8     |
+| q_val action 2      | 98.2     |
+| q_val action 3      | 100      |
+| q_val action 4      | 99.2     |
+| q_val action 5      | 95.3     |
+| q_val action 6      | 102      |
+| q_val action 7      | 98.4     |
+| q_val action 8      | 98.7     |
+| td loss             | 586      |
+| training_reward     | 900      |
+----------------------------------
+Average Evaluation Reward 513.0434782608696
+Average Sequence Length 443.9130434782609
+----------------------------------
+| Current Exploration | 0.0813   |
+| Episode Length      | 478      |
+| frame_number        | 1.12e+07 |
+| q_val action 0      | 77.4     |
+| q_val action 1      | 78.3     |
+| q_val action 2      | 77.1     |
+| q_val action 3      | 78.1     |
+| q_val action 4      | 78       |
+| q_val action 5      | 75       |
+| q_val action 6      | 79.8     |
+| q_val action 7      | 77.9     |
+| q_val action 8      | 76.5     |
+| td loss             | 821      |
+| training_reward     | 896      |
+----------------------------------
+Average Evaluation Reward 424.24242424242425
+Average Sequence Length 305.72727272727275
+----------------------------------
+| Current Exploration | 0.0811   |
+| Episode Length      | 463      |
+| frame_number        | 1.13e+07 |
+| q_val action 0      | 59.2     |
+| q_val action 1      | 60.1     |
+| q_val action 2      | 58       |
+| q_val action 3      | 59.4     |
+| q_val action 4      | 59.2     |
+| q_val action 5      | 57.4     |
+| q_val action 6      | 59.1     |
+| q_val action 7      | 58.4     |
+| q_val action 8      | 57.9     |
+| td loss             | 1.47e+03 |
+| training_reward     | 806      |
+----------------------------------
+Average Evaluation Reward 506.06060606060606
+Average Sequence Length 312.030303030303
+----------------------------------
+| Current Exploration | 0.0809   |
+| Episode Length      | 519      |
+| frame_number        | 1.14e+07 |
+| q_val action 0      | 54.8     |
+| q_val action 1      | 55.8     |
+| q_val action 2      | 54.3     |
+| q_val action 3      | 55.8     |
+| q_val action 4      | 54.7     |
+| q_val action 5      | 53.9     |
+| q_val action 6      | 55.7     |
+| q_val action 7      | 54.1     |
+| q_val action 8      | 53.9     |
+| td loss             | 1.91e+03 |
+| training_reward     | 922      |
+----------------------------------
+Average Evaluation Reward 414.70588235294116
+Average Sequence Length 299.52941176470586
+----------------------------------
+| Current Exploration | 0.0807   |
+| Episode Length      | 502      |
+| frame_number        | 1.15e+07 |
+| q_val action 0      | 62.1     |
+| q_val action 1      | 62.7     |
+| q_val action 2      | 62.1     |
+| q_val action 3      | 62       |
+| q_val action 4      | 63.1     |
+| q_val action 5      | 61.2     |
+| q_val action 6      | 61.8     |
+| q_val action 7      | 61.9     |
+| q_val action 8      | 61       |
+| td loss             | 367      |
+| training_reward     | 956      |
+----------------------------------
+Average Evaluation Reward 450.0
+Average Sequence Length 340.03333333333336
+----------------------------------
+| Current Exploration | 0.0806   |
+| Episode Length      | 529      |
+| frame_number        | 1.16e+07 |
+| q_val action 0      | 63.8     |
+| q_val action 1      | 64.9     |
+| q_val action 2      | 63.4     |
+| q_val action 3      | 64.5     |
+| q_val action 4      | 65.4     |
+| q_val action 5      | 63.2     |
+| q_val action 6      | 63.7     |
+| q_val action 7      | 64.4     |
+| q_val action 8      | 64.6     |
+| td loss             | 3.06e+03 |
+| training_reward     | 952      |
+----------------------------------
+Average Evaluation Reward 530.0
+Average Sequence Length 415.76
+----------------------------------
+| Current Exploration | 0.0804   |
+| Episode Length      | 481      |
+| frame_number        | 1.17e+07 |
+| q_val action 0      | 54.8     |
+| q_val action 1      | 55.4     |
+| q_val action 2      | 54.4     |
+| q_val action 3      | 54.3     |
+| q_val action 4      | 56       |
+| q_val action 5      | 54.2     |
+| q_val action 6      | 54.6     |
+| q_val action 7      | 55.8     |
+| q_val action 8      | 54.4     |
+| td loss             | 498      |
+| training_reward     | 900      |
+----------------------------------
+Average Evaluation Reward 613.6363636363636
+Average Sequence Length 454.54545454545456
+----------------------------------
+| Current Exploration | 0.0802   |
+| Episode Length      | 516      |
+| frame_number        | 1.18e+07 |
+| q_val action 0      | 43.2     |
+| q_val action 1      | 42.6     |
+| q_val action 2      | 43.3     |
+| q_val action 3      | 43.4     |
+| q_val action 4      | 44.3     |
+| q_val action 5      | 42.8     |
+| q_val action 6      | 41.7     |
+| q_val action 7      | 43.9     |
+| q_val action 8      | 42.7     |
+| td loss             | 2.98e+03 |
+| training_reward     | 974      |
+----------------------------------
+Average Evaluation Reward 493.3333333333333
+Average Sequence Length 341.6333333333333
+----------------------------------
+| Current Exploration | 0.08     |
+| Episode Length      | 478      |
+| frame_number        | 1.19e+07 |
+| q_val action 0      | 42.3     |
+| q_val action 1      | 42.4     |
+| q_val action 2      | 41.8     |
+| q_val action 3      | 42.6     |
+| q_val action 4      | 42.6     |
+| q_val action 5      | 42.4     |
+| q_val action 6      | 40.9     |
+| q_val action 7      | 43.1     |
+| q_val action 8      | 41.8     |
+| td loss             | 2.66e+03 |
+| training_reward     | 924      |
+----------------------------------
+Average Evaluation Reward 511.1111111111111
+Average Sequence Length 384.25925925925924
+----------------------------------
+| Current Exploration | 0.0798   |
+| Episode Length      | 504      |
+| frame_number        | 1.2e+07  |
+| q_val action 0      | 29.4     |
+| q_val action 1      | 30.9     |
+| q_val action 2      | 30.9     |
+| q_val action 3      | 30.8     |
+| q_val action 4      | 32.2     |
+| q_val action 5      | 31.5     |
+| q_val action 6      | 29.5     |
+| q_val action 7      | 30.7     |
+| q_val action 8      | 30.4     |
+| td loss             | 4.21e+03 |
+| training_reward     | 880      |
+----------------------------------
+Average Evaluation Reward 563.3333333333334
+Average Sequence Length 343.7
+----------------------------------
+| Current Exploration | 0.0796   |
+| Episode Length      | 469      |
+| frame_number        | 1.21e+07 |
+| q_val action 0      | 27.5     |
+| q_val action 1      | 27.8     |
+| q_val action 2      | 28.1     |
+| q_val action 3      | 27.9     |
+| q_val action 4      | 27.8     |
+| q_val action 5      | 27.5     |
+| q_val action 6      | 26.8     |
+| q_val action 7      | 28       |
+| q_val action 8      | 27.5     |
+| td loss             | 913      |
+| training_reward     | 816      |
+----------------------------------
+Average Evaluation Reward 442.42424242424244
+Average Sequence Length 311.1818181818182
+----------------------------------
+| Current Exploration | 0.0795   |
+| Episode Length      | 499      |
+| frame_number        | 1.22e+07 |
+| q_val action 0      | 49.5     |
+| q_val action 1      | 49.6     |
+| q_val action 2      | 49.7     |
+| q_val action 3      | 49.2     |
+| q_val action 4      | 50.4     |
+| q_val action 5      | 48.2     |
+| q_val action 6      | 49       |
+| q_val action 7      | 50.4     |
+| q_val action 8      | 48.1     |
+| td loss             | 403      |
+| training_reward     | 894      |
+----------------------------------
+Average Evaluation Reward 518.0
+Average Sequence Length 400.36
+----------------------------------
+| Current Exploration | 0.0793   |
+| Episode Length      | 484      |
+| frame_number        | 1.23e+07 |
+| q_val action 0      | 36.3     |
+| q_val action 1      | 38       |
+| q_val action 2      | 38.3     |
+| q_val action 3      | 37.6     |
+| q_val action 4      | 38.5     |
+| q_val action 5      | 37.8     |
+| q_val action 6      | 37.7     |
+| q_val action 7      | 38.6     |
+| q_val action 8      | 36.8     |
+| td loss             | 216      |
+| training_reward     | 864      |
+----------------------------------
