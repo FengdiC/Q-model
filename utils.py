@@ -448,6 +448,36 @@ def get_minibatch(replay_buff):
     return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
         replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
+def test_q_values(sess, env, action_getter, input, output, threshold_test=0.9):
+    #Test number of states with greater than 90% confidence
+    my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
+    env.reset(sess)
+    accumulated_rewards = 0
+    terminal_life_lost = True
+    for i in range(20000):
+        action = 1 if terminal_life_lost else action_getter.get_action(sess, 1000,
+                                                                        atari.state,
+                                                                        MAIN_DQN,
+                                                                        evaluation=True)        #print("Action: ",action)
+        # (5★)
+        processed_new_frame, reward, terminal, terminal_life_lost, _ = env.step(sess, action)
+        my_replay_memory.add_experience(action=action,
+                                        frame=processed_new_frame[:, :, 0],
+                                        reward=reward,
+                                        terminal=terminal_life_lost)
+        accumulated_rewards += reward
+        if terminal:
+            break
+    env.reset(sess)
+    count = 0
+    for i in range(my_replay_memory.count):
+        states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
+        values = sess.run(output, feed_dict={input: states})
+        if np.max(values) >= threshold_test:
+            count += 1
+    print("Number of states: ", my_replay_memory.count)
+    print("Number of certain actions: ", count)
+
 def sample(args, DQN, name, save=True):
     tf.random.set_random_seed(args.seed)
     tf.reset_default_graph()
@@ -569,7 +599,7 @@ def sample(args, DQN, name, save=True):
     if save:
         pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
 
-def train(args, DQN, learn, name, expert=False):
+def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=10001):
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
@@ -661,6 +691,21 @@ def train(args, DQN, learn, name, expert=False):
         os.makedirs(args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
     if not os.path.exists(args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs(args.expert_dir + "/" + name + "/" + args.env_id + "/")
+
+    if expert and pretrain:
+        #Pretrain system .... 
+        bc_loss = []
+        print("Pretraining ....")
+        for i in tqdm(range(pretrain_iters)):
+            states, actions, _, _, _, weights = get_minibatch(dataset)
+            expert_loss, _ = sess.run([MAIN_DQN.behavior_cloning_loss,MAIN_DQN.bc_update],
+                                feed_dict={MAIN_DQN.input:states,
+                                        MAIN_DQN.expert_action:actions,
+                                        MAIN_DQN.expert_weights:weights})
+            bc_loss.append(expert_loss)
+            if i % (pretrain_iters//4) == 0 and i > 0:
+                print(np.mean(bc_loss[-pretrain_iters//4:]), i)
+
     eval_rewards = [0]
     frame_number = 0
     rewards = []
@@ -737,6 +782,7 @@ def train(args, DQN, learn, name, expert=False):
                         logger.record_tabular("expert_loss", 0)
                     else:
                         logger.record_tabular("expert_loss", np.mean(expert_loss_list[-100:]))
+                        test_q_values(sess, atari, action_getter, DQN.input, DQN.action_prob_expert)
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 logger.dumpkvs()

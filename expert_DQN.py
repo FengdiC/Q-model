@@ -38,6 +38,9 @@ class DQN:
         self.input = tf.placeholder(shape=[None, self.frame_height,
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
+        self.generated_input = tf.placeholder(shape=[None, self.frame_height,
+                                           self.frame_width, self.agent_history_length],
+                                    dtype=tf.float32)
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.expert_weights = tf.placeholder(shape=[None], dtype=tf.float32)
@@ -67,20 +70,22 @@ class DQN:
         self.expert_prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.expert_data_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
-        self.generated_input = tf.placeholder(shape=[None, self.frame_height,
-                                           self.frame_width, self.agent_history_length],
-                                    dtype=tf.float32)
+        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
+        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
-
-        _, self.generated_action_preference = self.build_graph(self.generated_input, hidden, n_actions, reuse=True)
-        self.action_prob_generated = tf.nn.softmax(self.generated_action_preference)
-        self.generated_data_loss = tf.reduce_mean(self.action_prob_generated * tf.log(self.action_prob_generated  +0.00001))# + a l2 reg to prevent overtraining too much
-        self.expert_loss = self.expert_data_loss + self.generated_data_loss
+        self.expert_loss = tf.reduce_mean(tf.reduce_sum( -tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
+        self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
-        self.action_prob = self.action_prob_q * self.action_prob_expert
+        # _, self.generated_action_preference = self.build_graph(self.generated_input, hidden, n_actions, reuse=True)
+        # self.action_prob_generated = tf.nn.softmax(self.generated_action_preference)
+        # self.generated_data_loss = tf.reduce_mean(self.action_prob_generated * tf.log(self.action_prob_generated  +0.00001))# + a l2 reg to prevent overtraining too much
+        # self.expert_loss = self.expert_data_loss + self.generated_data_loss
+        # self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        # self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
+
+        self.action_prob = self.action_prob_q
         self.best_action = tf.argmax(self.action_prob, 1)
         #
         # self.all_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
@@ -113,24 +118,24 @@ class DQN:
                 kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value', reuse=reuse)
 
         with tf.variable_scope("ExpertPref"):
-        #     self.expert_conv1 = tf.layers.conv2d(
-        #         inputs=self.scaled_input, filters=32, kernel_size=[8, 8], strides=4,
-        #         kernel_initializer=tf.variance_scaling_initializer(scale=2),
-        #         padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1', reuse=reuse)
-        #     self.expert_conv2 = tf.layers.conv2d(
-        #         inputs=self.expert_conv1, filters=64, kernel_size=[4, 4], strides=2,
-        #         kernel_initializer=tf.variance_scaling_initializer(scale=2),
-        #         padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2', reuse=reuse)
-        #     self.expert_conv3 = tf.layers.conv2d(
-        #         inputs=self.expert_conv2, filters=64, kernel_size=[3, 3], strides=1,
-        #         kernel_initializer=tf.variance_scaling_initializer(scale=2),
-        #         padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
-        #     self.expert_conv4 = tf.layers.conv2d(
-        #         inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-        #         kernel_initializer=tf.variance_scaling_initializer(scale=2),
-        #         padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
-        #     self.expert_d = tf.layers.flatten(self.expert_conv4)
-            self.expert_dense = tf.layers.dense(inputs =self.d,units = hidden,activation=tf.tanh,
+            self.expert_conv1 = tf.layers.conv2d(
+                inputs=self.scaled_input, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1', reuse=reuse)
+            self.expert_conv2 = tf.layers.conv2d(
+                inputs=self.expert_conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2', reuse=reuse)
+            self.expert_conv3 = tf.layers.conv2d(
+                inputs=self.expert_conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
+            self.expert_conv4 = tf.layers.conv2d(
+                inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
+            self.expert_d = tf.layers.flatten(self.expert_conv4)
+            self.expert_dense = tf.layers.dense(inputs =self.expert_d,units = hidden,activation=tf.tanh,
                                          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5", reuse=reuse)
             action_preference = tf.layers.dense(
                 inputs=self.expert_dense, units=n_actions,activation=tf.identity,
@@ -188,37 +193,6 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                             main_dqn.expert_weights:weights})
     return loss,expert_loss
 
-def test_q_values(sess, env, action_getter, input, output, threshold_test=0.9):
-    #Test number of states with greater than 90% confidence
-    my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
-    env.reset(sess)
-    accumulated_rewards = 0
-    terminal_life_lost = True
-    for i in range(20000):
-        action = 1 if terminal_life_lost else action_getter.get_action(sess, 1000,
-                                                                        atari.state,
-                                                                        MAIN_DQN,
-                                                                        evaluation=True)        #print("Action: ",action)
-        # (5★)
-        processed_new_frame, reward, terminal, terminal_life_lost, _ = env.step(sess, action)
-        my_replay_memory.add_experience(action=action,
-                                        frame=processed_new_frame[:, :, 0],
-                                        reward=reward,
-                                        terminal=terminal_life_lost)
-        accumulated_rewards += reward
-        if terminal:
-            break
-    env.reset(sess)
-    count = 0
-    for i in range(my_replay_memory.count):
-        states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
-        values = sess.run(output, feed_dict={input: states})
-        if np.max(values) >= threshold_test:
-            count += 1
-    print("Number of states: ", my_replay_memory.count)
-    print("Number of certain actions: ", count)
-
-
 args = utils.argsparser()
 tf.random.set_random_seed(args.seed)
 np.random.seed(args.seed)
@@ -226,7 +200,7 @@ np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 if args.task == "train":
-    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True)
+    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, pretrain=True)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
 else:

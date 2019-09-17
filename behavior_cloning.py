@@ -84,8 +84,8 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        #self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
-        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
+        #self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.loss)
 
