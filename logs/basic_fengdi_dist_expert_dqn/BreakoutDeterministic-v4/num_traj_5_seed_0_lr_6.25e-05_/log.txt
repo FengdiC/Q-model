@@ -1,0 +1,3843 @@
+Logging to logs//basic_fengdi_dist_expert_dqn/BreakoutDeterministic-v4/num_traj_5_seed_0_lr_6.25e-05_/
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 186      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 3.72e+03 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 185      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 7.38e+03 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.27     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 183      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 1.1e+04  |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 187      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 1.49e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.34     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 184      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 1.84e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 185      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 2.22e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.32     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 185      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 2.59e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 184      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 2.93e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 179      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 3.28e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.14     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 177      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 3.61e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.08     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 170      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 3.92e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 0.91     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 173      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 4.32e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 0.98     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.315    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.29     |
+| current_exploration | 1        |
+| episode_length      | 174      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0        |
+| frame_number        | 4.68e+04 |
+| q_val_action 0      | -0.157   |
+| q_val_action 1      | 0.065    |
+| q_val_action 2      | -0.734   |
+| q_val_action 3      | -0.0178  |
+| td_loss             | 0        |
+| training_reward     | 1.04     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.246    |
+| action_prob 2       | 0.252    |
+| action_prob 3       | 0.262    |
+| current_exploration | 1        |
+| episode_length      | 177      |
+| evaluation_reward   | 0        |
+| expert_loss         | 1.14     |
+| frame_number        | 5.05e+04 |
+| q_val_action 0      | -0.0508  |
+| q_val_action 1      | -0.0277  |
+| q_val_action 2      | -0.00564 |
+| q_val_action 3      | 0.0354   |
+| td_loss             | 1.07     |
+| training_reward     | 1.1      |
+----------------------------------
+-----------------------------------
+| action_prob 0       | 0.258     |
+| action_prob 1       | 0.243     |
+| action_prob 2       | 0.241     |
+| action_prob 3       | 0.258     |
+| current_exploration | 0.996     |
+| episode_length      | 179       |
+| evaluation_reward   | 0         |
+| expert_loss         | 0.924     |
+| frame_number        | 5.4e+04   |
+| q_val_action 0      | -0.000518 |
+| q_val_action 1      | -0.0624   |
+| q_val_action 2      | -0.0688   |
+| q_val_action 3      | -0.000381 |
+| td_loss             | 1.08      |
+| training_reward     | 1.13      |
+-----------------------------------
+----------------------------------
+| action_prob 0       | 0.243    |
+| action_prob 1       | 0.238    |
+| action_prob 2       | 0.243    |
+| action_prob 3       | 0.276    |
+| current_exploration | 0.993    |
+| episode_length      | 184      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.889    |
+| frame_number        | 5.76e+04 |
+| q_val_action 0      | 0.118    |
+| q_val_action 1      | 0.0982   |
+| q_val_action 2      | 0.117    |
+| q_val_action 3      | 0.246    |
+| td_loss             | 1.07     |
+| training_reward     | 1.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.248    |
+| action_prob 1       | 0.246    |
+| action_prob 2       | 0.242    |
+| action_prob 3       | 0.264    |
+| current_exploration | 0.99     |
+| episode_length      | 179      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.793    |
+| frame_number        | 6.11e+04 |
+| q_val_action 0      | 0.277    |
+| q_val_action 1      | 0.268    |
+| q_val_action 2      | 0.254    |
+| q_val_action 3      | 0.34     |
+| td_loss             | 1        |
+| training_reward     | 1.15     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.249    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.244    |
+| action_prob 3       | 0.264    |
+| current_exploration | 0.987    |
+| episode_length      | 176      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.692    |
+| frame_number        | 6.44e+04 |
+| q_val_action 0      | 0.229    |
+| q_val_action 1      | 0.206    |
+| q_val_action 2      | 0.208    |
+| q_val_action 3      | 0.29     |
+| td_loss             | 1.01     |
+| training_reward     | 1.07     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.249    |
+| action_prob 2       | 0.253    |
+| action_prob 3       | 0.251    |
+| current_exploration | 0.984    |
+| episode_length      | 177      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.619    |
+| frame_number        | 6.82e+04 |
+| q_val_action 0      | 0.249    |
+| q_val_action 1      | 0.259    |
+| q_val_action 2      | 0.276    |
+| q_val_action 3      | 0.266    |
+| td_loss             | 1        |
+| training_reward     | 1.09     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.254    |
+| action_prob 2       | 0.244    |
+| action_prob 3       | 0.25     |
+| current_exploration | 0.98     |
+| episode_length      | 180      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.51     |
+| frame_number        | 7.2e+04  |
+| q_val_action 0      | 0.203    |
+| q_val_action 1      | 0.212    |
+| q_val_action 2      | 0.171    |
+| q_val_action 3      | 0.196    |
+| td_loss             | 1        |
+| training_reward     | 1.16     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.26     |
+| action_prob 1       | 0.261    |
+| action_prob 2       | 0.24     |
+| action_prob 3       | 0.239    |
+| current_exploration | 0.977    |
+| episode_length      | 180      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.425    |
+| frame_number        | 7.56e+04 |
+| q_val_action 0      | 0.231    |
+| q_val_action 1      | 0.235    |
+| q_val_action 2      | 0.149    |
+| q_val_action 3      | 0.146    |
+| td_loss             | 1        |
+| training_reward     | 1.18     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.255    |
+| action_prob 2       | 0.257    |
+| action_prob 3       | 0.235    |
+| current_exploration | 0.974    |
+| episode_length      | 183      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.338    |
+| frame_number        | 7.94e+04 |
+| q_val_action 0      | 0.202    |
+| q_val_action 1      | 0.214    |
+| q_val_action 2      | 0.222    |
+| q_val_action 3      | 0.131    |
+| td_loss             | 0.999    |
+| training_reward     | 1.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.26     |
+| action_prob 1       | 0.267    |
+| action_prob 2       | 0.241    |
+| action_prob 3       | 0.232    |
+| current_exploration | 0.97     |
+| episode_length      | 186      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.28     |
+| frame_number        | 8.3e+04  |
+| q_val_action 0      | 0.244    |
+| q_val_action 1      | 0.272    |
+| q_val_action 2      | 0.169    |
+| q_val_action 3      | 0.129    |
+| td_loss             | 0.999    |
+| training_reward     | 1.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.257    |
+| action_prob 1       | 0.258    |
+| action_prob 2       | 0.249    |
+| action_prob 3       | 0.235    |
+| current_exploration | 0.967    |
+| episode_length      | 180      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.212    |
+| frame_number        | 8.63e+04 |
+| q_val_action 0      | 0.241    |
+| q_val_action 1      | 0.245    |
+| q_val_action 2      | 0.209    |
+| q_val_action 3      | 0.151    |
+| td_loss             | 0.998    |
+| training_reward     | 1.16     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.256    |
+| action_prob 2       | 0.245    |
+| action_prob 3       | 0.24     |
+| current_exploration | 0.964    |
+| episode_length      | 183      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.173    |
+| frame_number        | 9.03e+04 |
+| q_val_action 0      | 0.218    |
+| q_val_action 1      | 0.205    |
+| q_val_action 2      | 0.163    |
+| q_val_action 3      | 0.142    |
+| td_loss             | 1        |
+| training_reward     | 1.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.246    |
+| action_prob 1       | 0.258    |
+| action_prob 2       | 0.239    |
+| action_prob 3       | 0.257    |
+| current_exploration | 0.961    |
+| episode_length      | 181      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.13     |
+| frame_number        | 9.37e+04 |
+| q_val_action 0      | 0.188    |
+| q_val_action 1      | 0.237    |
+| q_val_action 2      | 0.161    |
+| q_val_action 3      | 0.231    |
+| td_loss             | 0.999    |
+| training_reward     | 1.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.249    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.233    |
+| action_prob 3       | 0.276    |
+| current_exploration | 0.957    |
+| episode_length      | 181      |
+| evaluation_reward   | 0        |
+| expert_loss         | 0.115    |
+| frame_number        | 9.75e+04 |
+| q_val_action 0      | 0.171    |
+| q_val_action 1      | 0.145    |
+| q_val_action 2      | 0.103    |
+| q_val_action 3      | 0.274    |
+| td_loss             | 0.998    |
+| training_reward     | 1.19     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.248    |
+| action_prob 1       | 0.255    |
+| action_prob 2       | 0.241    |
+| action_prob 3       | 0.256    |
+| current_exploration | 0.954    |
+| episode_length      | 184      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.139    |
+| frame_number        | 1.01e+05 |
+| q_val_action 0      | 0.212    |
+| q_val_action 1      | 0.237    |
+| q_val_action 2      | 0.182    |
+| q_val_action 3      | 0.244    |
+| td_loss             | 1        |
+| training_reward     | 1.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.246    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.245    |
+| action_prob 3       | 0.268    |
+| current_exploration | 0.951    |
+| episode_length      | 183      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0797   |
+| frame_number        | 1.05e+05 |
+| q_val_action 0      | 0.201    |
+| q_val_action 1      | 0.183    |
+| q_val_action 2      | 0.198    |
+| q_val_action 3      | 0.287    |
+| td_loss             | 0.999    |
+| training_reward     | 1.28     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.246    |
+| action_prob 1       | 0.237    |
+| action_prob 2       | 0.245    |
+| action_prob 3       | 0.271    |
+| current_exploration | 0.948    |
+| episode_length      | 179      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0858   |
+| frame_number        | 1.08e+05 |
+| q_val_action 0      | 0.168    |
+| q_val_action 1      | 0.133    |
+| q_val_action 2      | 0.166    |
+| q_val_action 3      | 0.267    |
+| td_loss             | 1        |
+| training_reward     | 1.13     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.247    |
+| action_prob 2       | 0.234    |
+| action_prob 3       | 0.268    |
+| current_exploration | 0.944    |
+| episode_length      | 181      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0668   |
+| frame_number        | 1.12e+05 |
+| q_val_action 0      | 0.316    |
+| q_val_action 1      | 0.295    |
+| q_val_action 2      | 0.242    |
+| q_val_action 3      | 0.377    |
+| td_loss             | 1        |
+| training_reward     | 1.2      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.242    |
+| action_prob 1       | 0.245    |
+| action_prob 2       | 0.247    |
+| action_prob 3       | 0.267    |
+| current_exploration | 0.941    |
+| episode_length      | 181      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0692   |
+| frame_number        | 1.16e+05 |
+| q_val_action 0      | 0.239    |
+| q_val_action 1      | 0.253    |
+| q_val_action 2      | 0.26     |
+| q_val_action 3      | 0.34     |
+| td_loss             | 1        |
+| training_reward     | 1.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.25     |
+| action_prob 1       | 0.249    |
+| action_prob 2       | 0.239    |
+| action_prob 3       | 0.262    |
+| current_exploration | 0.938    |
+| episode_length      | 176      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0456   |
+| frame_number        | 1.19e+05 |
+| q_val_action 0      | 0.286    |
+| q_val_action 1      | 0.284    |
+| q_val_action 2      | 0.24     |
+| q_val_action 3      | 0.336    |
+| td_loss             | 1        |
+| training_reward     | 1.06     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.241    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.228    |
+| action_prob 3       | 0.289    |
+| current_exploration | 0.935    |
+| episode_length      | 179      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0388   |
+| frame_number        | 1.23e+05 |
+| q_val_action 0      | 0.284    |
+| q_val_action 1      | 0.285    |
+| q_val_action 2      | 0.229    |
+| q_val_action 3      | 0.466    |
+| td_loss             | 1        |
+| training_reward     | 1.13     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.239    |
+| action_prob 2       | 0.23     |
+| action_prob 3       | 0.298    |
+| current_exploration | 0.931    |
+| episode_length      | 181      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0356   |
+| frame_number        | 1.26e+05 |
+| q_val_action 0      | 0.211    |
+| q_val_action 1      | 0.237    |
+| q_val_action 2      | 0.202    |
+| q_val_action 3      | 0.46     |
+| td_loss             | 1        |
+| training_reward     | 1.2      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.245    |
+| action_prob 1       | 0.242    |
+| action_prob 2       | 0.246    |
+| action_prob 3       | 0.267    |
+| current_exploration | 0.928    |
+| episode_length      | 177      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0376   |
+| frame_number        | 1.3e+05  |
+| q_val_action 0      | 0.285    |
+| q_val_action 1      | 0.274    |
+| q_val_action 2      | 0.29     |
+| q_val_action 3      | 0.369    |
+| td_loss             | 1        |
+| training_reward     | 1.1      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.236    |
+| action_prob 1       | 0.242    |
+| action_prob 2       | 0.227    |
+| action_prob 3       | 0.296    |
+| current_exploration | 0.925    |
+| episode_length      | 175      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0363   |
+| frame_number        | 1.33e+05 |
+| q_val_action 0      | 0.294    |
+| q_val_action 1      | 0.317    |
+| q_val_action 2      | 0.253    |
+| q_val_action 3      | 0.519    |
+| td_loss             | 1        |
+| training_reward     | 1.08     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.231    |
+| action_prob 1       | 0.237    |
+| action_prob 2       | 0.234    |
+| action_prob 3       | 0.298    |
+| current_exploration | 0.922    |
+| episode_length      | 175      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0347   |
+| frame_number        | 1.36e+05 |
+| q_val_action 0      | 0.291    |
+| q_val_action 1      | 0.318    |
+| q_val_action 2      | 0.305    |
+| q_val_action 3      | 0.549    |
+| td_loss             | 1        |
+| training_reward     | 1.06     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.228    |
+| action_prob 1       | 0.228    |
+| action_prob 2       | 0.255    |
+| action_prob 3       | 0.289    |
+| current_exploration | 0.919    |
+| episode_length      | 175      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0295   |
+| frame_number        | 1.4e+05  |
+| q_val_action 0      | 0.317    |
+| q_val_action 1      | 0.316    |
+| q_val_action 2      | 0.429    |
+| q_val_action 3      | 0.556    |
+| td_loss             | 1        |
+| training_reward     | 1.1      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.228    |
+| action_prob 1       | 0.227    |
+| action_prob 2       | 0.25     |
+| action_prob 3       | 0.294    |
+| current_exploration | 0.916    |
+| episode_length      | 176      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0276   |
+| frame_number        | 1.44e+05 |
+| q_val_action 0      | 0.378    |
+| q_val_action 1      | 0.374    |
+| q_val_action 2      | 0.471    |
+| q_val_action 3      | 0.632    |
+| td_loss             | 1        |
+| training_reward     | 1.13     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.23     |
+| action_prob 1       | 0.228    |
+| action_prob 2       | 0.228    |
+| action_prob 3       | 0.313    |
+| current_exploration | 0.912    |
+| episode_length      | 182      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0351   |
+| frame_number        | 1.48e+05 |
+| q_val_action 0      | 0.362    |
+| q_val_action 1      | 0.35     |
+| q_val_action 2      | 0.353    |
+| q_val_action 3      | 0.669    |
+| td_loss             | 1        |
+| training_reward     | 1.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.236    |
+| action_prob 1       | 0.242    |
+| action_prob 2       | 0.247    |
+| action_prob 3       | 0.275    |
+| current_exploration | 0.909    |
+| episode_length      | 183      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.033    |
+| frame_number        | 1.51e+05 |
+| q_val_action 0      | 0.436    |
+| q_val_action 1      | 0.46     |
+| q_val_action 2      | 0.482    |
+| q_val_action 3      | 0.588    |
+| td_loss             | 1        |
+| training_reward     | 1.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.249    |
+| action_prob 1       | 0.232    |
+| action_prob 2       | 0.251    |
+| action_prob 3       | 0.268    |
+| current_exploration | 0.906    |
+| episode_length      | 183      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0298   |
+| frame_number        | 1.55e+05 |
+| q_val_action 0      | 0.493    |
+| q_val_action 1      | 0.424    |
+| q_val_action 2      | 0.502    |
+| q_val_action 3      | 0.568    |
+| td_loss             | 1        |
+| training_reward     | 1.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.244    |
+| action_prob 1       | 0.235    |
+| action_prob 2       | 0.262    |
+| action_prob 3       | 0.259    |
+| current_exploration | 0.902    |
+| episode_length      | 185      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0325   |
+| frame_number        | 1.59e+05 |
+| q_val_action 0      | 0.371    |
+| q_val_action 1      | 0.332    |
+| q_val_action 2      | 0.443    |
+| q_val_action 3      | 0.429    |
+| td_loss             | 1        |
+| training_reward     | 1.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.239    |
+| action_prob 1       | 0.229    |
+| action_prob 2       | 0.246    |
+| action_prob 3       | 0.286    |
+| current_exploration | 0.899    |
+| episode_length      | 186      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0389   |
+| frame_number        | 1.62e+05 |
+| q_val_action 0      | 0.532    |
+| q_val_action 1      | 0.488    |
+| q_val_action 2      | 0.56     |
+| q_val_action 3      | 0.712    |
+| td_loss             | 1        |
+| training_reward     | 1.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.255    |
+| action_prob 2       | 0.255    |
+| action_prob 3       | 0.237    |
+| current_exploration | 0.895    |
+| episode_length      | 186      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0333   |
+| frame_number        | 1.66e+05 |
+| q_val_action 0      | 0.606    |
+| q_val_action 1      | 0.616    |
+| q_val_action 2      | 0.618    |
+| q_val_action 3      | 0.544    |
+| td_loss             | 1        |
+| training_reward     | 1.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.235    |
+| action_prob 2       | 0.242    |
+| action_prob 3       | 0.264    |
+| current_exploration | 0.892    |
+| episode_length      | 185      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0328   |
+| frame_number        | 1.7e+05  |
+| q_val_action 0      | 0.633    |
+| q_val_action 1      | 0.537    |
+| q_val_action 2      | 0.564    |
+| q_val_action 3      | 0.654    |
+| td_loss             | 1        |
+| training_reward     | 1.3      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.263    |
+| action_prob 1       | 0.253    |
+| action_prob 2       | 0.249    |
+| action_prob 3       | 0.235    |
+| current_exploration | 0.889    |
+| episode_length      | 186      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0309   |
+| frame_number        | 1.73e+05 |
+| q_val_action 0      | 0.735    |
+| q_val_action 1      | 0.697    |
+| q_val_action 2      | 0.682    |
+| q_val_action 3      | 0.626    |
+| td_loss             | 1.01     |
+| training_reward     | 1.34     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.212    |
+| action_prob 3       | 0.298    |
+| current_exploration | 0.886    |
+| episode_length      | 184      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0306   |
+| frame_number        | 1.77e+05 |
+| q_val_action 0      | 0.667    |
+| q_val_action 1      | 0.65     |
+| q_val_action 2      | 0.51     |
+| q_val_action 3      | 0.852    |
+| td_loss             | 1.01     |
+| training_reward     | 1.3      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.251    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.253    |
+| action_prob 3       | 0.255    |
+| current_exploration | 0.883    |
+| episode_length      | 181      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0399   |
+| frame_number        | 1.8e+05  |
+| q_val_action 0      | 0.741    |
+| q_val_action 1      | 0.699    |
+| q_val_action 2      | 0.749    |
+| q_val_action 3      | 0.756    |
+| td_loss             | 1.01     |
+| training_reward     | 1.24     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.231    |
+| action_prob 2       | 0.191    |
+| action_prob 3       | 0.319    |
+| current_exploration | 0.879    |
+| episode_length      | 181      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0407   |
+| frame_number        | 1.84e+05 |
+| q_val_action 0      | 0.701    |
+| q_val_action 1      | 0.583    |
+| q_val_action 2      | 0.396    |
+| q_val_action 3      | 0.906    |
+| td_loss             | 1.01     |
+| training_reward     | 1.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.259    |
+| action_prob 3       | 0.255    |
+| current_exploration | 0.875    |
+| episode_length      | 185      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0493   |
+| frame_number        | 1.88e+05 |
+| q_val_action 0      | 0.715    |
+| q_val_action 1      | 0.64     |
+| q_val_action 2      | 0.742    |
+| q_val_action 3      | 0.727    |
+| td_loss             | 1.01     |
+| training_reward     | 1.32     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.273    |
+| action_prob 1       | 0.207    |
+| action_prob 2       | 0.273    |
+| action_prob 3       | 0.247    |
+| current_exploration | 0.872    |
+| episode_length      | 184      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0552   |
+| frame_number        | 1.92e+05 |
+| q_val_action 0      | 0.753    |
+| q_val_action 1      | 0.473    |
+| q_val_action 2      | 0.751    |
+| q_val_action 3      | 0.653    |
+| td_loss             | 1.01     |
+| training_reward     | 1.28     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.254    |
+| action_prob 1       | 0.237    |
+| action_prob 2       | 0.248    |
+| action_prob 3       | 0.261    |
+| current_exploration | 0.869    |
+| episode_length      | 188      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0647   |
+| frame_number        | 1.96e+05 |
+| q_val_action 0      | 0.708    |
+| q_val_action 1      | 0.642    |
+| q_val_action 2      | 0.684    |
+| q_val_action 3      | 0.739    |
+| td_loss             | 1.01     |
+| training_reward     | 1.38     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.266    |
+| action_prob 1       | 0.219    |
+| action_prob 2       | 0.225    |
+| action_prob 3       | 0.289    |
+| current_exploration | 0.865    |
+| episode_length      | 191      |
+| evaluation_reward   | 8.59     |
+| expert_loss         | 0.0516   |
+| frame_number        | 2e+05    |
+| q_val_action 0      | 0.797    |
+| q_val_action 1      | 0.602    |
+| q_val_action 2      | 0.63     |
+| q_val_action 3      | 0.879    |
+| td_loss             | 1.01     |
+| training_reward     | 1.45     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.249    |
+| action_prob 1       | 0.219    |
+| action_prob 2       | 0.226    |
+| action_prob 3       | 0.306    |
+| current_exploration | 0.862    |
+| episode_length      | 189      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0536   |
+| frame_number        | 2.03e+05 |
+| q_val_action 0      | 0.933    |
+| q_val_action 1      | 0.805    |
+| q_val_action 2      | 0.839    |
+| q_val_action 3      | 1.14     |
+| td_loss             | 1.01     |
+| training_reward     | 1.42     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.246    |
+| action_prob 1       | 0.255    |
+| action_prob 2       | 0.23     |
+| action_prob 3       | 0.269    |
+| current_exploration | 0.858    |
+| episode_length      | 190      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0529   |
+| frame_number        | 2.07e+05 |
+| q_val_action 0      | 1.05     |
+| q_val_action 1      | 1.08     |
+| q_val_action 2      | 0.981    |
+| q_val_action 3      | 1.14     |
+| td_loss             | 1.01     |
+| training_reward     | 1.45     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.248    |
+| action_prob 1       | 0.212    |
+| action_prob 2       | 0.22     |
+| action_prob 3       | 0.32     |
+| current_exploration | 0.855    |
+| episode_length      | 193      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0559   |
+| frame_number        | 2.11e+05 |
+| q_val_action 0      | 0.984    |
+| q_val_action 1      | 0.825    |
+| q_val_action 2      | 0.864    |
+| q_val_action 3      | 1.24     |
+| td_loss             | 1.01     |
+| training_reward     | 1.57     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.253    |
+| action_prob 1       | 0.232    |
+| action_prob 2       | 0.25     |
+| action_prob 3       | 0.264    |
+| current_exploration | 0.851    |
+| episode_length      | 196      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0574   |
+| frame_number        | 2.15e+05 |
+| q_val_action 0      | 0.873    |
+| q_val_action 1      | 0.785    |
+| q_val_action 2      | 0.862    |
+| q_val_action 3      | 0.916    |
+| td_loss             | 1.01     |
+| training_reward     | 1.6      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.265    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.248    |
+| action_prob 3       | 0.244    |
+| current_exploration | 0.848    |
+| episode_length      | 195      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0737   |
+| frame_number        | 2.19e+05 |
+| q_val_action 0      | 0.917    |
+| q_val_action 1      | 0.827    |
+| q_val_action 2      | 0.848    |
+| q_val_action 3      | 0.835    |
+| td_loss             | 1.01     |
+| training_reward     | 1.57     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.258    |
+| action_prob 1       | 0.244    |
+| action_prob 2       | 0.253    |
+| action_prob 3       | 0.245    |
+| current_exploration | 0.845    |
+| episode_length      | 195      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0662   |
+| frame_number        | 2.23e+05 |
+| q_val_action 0      | 0.947    |
+| q_val_action 1      | 0.891    |
+| q_val_action 2      | 0.927    |
+| q_val_action 3      | 0.896    |
+| td_loss             | 1.02     |
+| training_reward     | 1.56     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.237    |
+| action_prob 2       | 0.242    |
+| action_prob 3       | 0.269    |
+| current_exploration | 0.841    |
+| episode_length      | 191      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0657   |
+| frame_number        | 2.26e+05 |
+| q_val_action 0      | 0.839    |
+| q_val_action 1      | 0.779    |
+| q_val_action 2      | 0.797    |
+| q_val_action 3      | 0.903    |
+| td_loss             | 1.02     |
+| training_reward     | 1.46     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.263    |
+| action_prob 1       | 0.23     |
+| action_prob 2       | 0.264    |
+| action_prob 3       | 0.243    |
+| current_exploration | 0.838    |
+| episode_length      | 189      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0421   |
+| frame_number        | 2.3e+05  |
+| q_val_action 0      | 0.937    |
+| q_val_action 1      | 0.8      |
+| q_val_action 2      | 0.94     |
+| q_val_action 3      | 0.857    |
+| td_loss             | 1.01     |
+| training_reward     | 1.44     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.223    |
+| action_prob 2       | 0.285    |
+| action_prob 3       | 0.234    |
+| current_exploration | 0.835    |
+| episode_length      | 184      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0421   |
+| frame_number        | 2.34e+05 |
+| q_val_action 0      | 1.07     |
+| q_val_action 1      | 0.919    |
+| q_val_action 2      | 1.16     |
+| q_val_action 3      | 0.97     |
+| td_loss             | 1.02     |
+| training_reward     | 1.32     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.276    |
+| action_prob 3       | 0.222    |
+| current_exploration | 0.831    |
+| episode_length      | 184      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.041    |
+| frame_number        | 2.37e+05 |
+| q_val_action 0      | 0.924    |
+| q_val_action 1      | 0.862    |
+| q_val_action 2      | 0.988    |
+| q_val_action 3      | 0.772    |
+| td_loss             | 1.01     |
+| training_reward     | 1.35     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.266    |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.22     |
+| action_prob 3       | 0.278    |
+| current_exploration | 0.828    |
+| episode_length      | 185      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.059    |
+| frame_number        | 2.41e+05 |
+| q_val_action 0      | 0.907    |
+| q_val_action 1      | 0.786    |
+| q_val_action 2      | 0.717    |
+| q_val_action 3      | 0.951    |
+| td_loss             | 1.01     |
+| training_reward     | 1.4      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.245    |
+| action_prob 1       | 0.229    |
+| action_prob 2       | 0.281    |
+| action_prob 3       | 0.244    |
+| current_exploration | 0.824    |
+| episode_length      | 186      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0615   |
+| frame_number        | 2.45e+05 |
+| q_val_action 0      | 0.893    |
+| q_val_action 1      | 0.825    |
+| q_val_action 2      | 1.03     |
+| q_val_action 3      | 0.888    |
+| td_loss             | 1.01     |
+| training_reward     | 1.41     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.27     |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.274    |
+| action_prob 3       | 0.223    |
+| current_exploration | 0.821    |
+| episode_length      | 186      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0507   |
+| frame_number        | 2.49e+05 |
+| q_val_action 0      | 1.08     |
+| q_val_action 1      | 0.937    |
+| q_val_action 2      | 1.1      |
+| q_val_action 3      | 0.889    |
+| td_loss             | 1.01     |
+| training_reward     | 1.39     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.169    |
+| action_prob 2       | 0.248    |
+| action_prob 3       | 0.35     |
+| current_exploration | 0.818    |
+| episode_length      | 188      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0675   |
+| frame_number        | 2.53e+05 |
+| q_val_action 0      | 0.942    |
+| q_val_action 1      | 0.621    |
+| q_val_action 2      | 1.01     |
+| q_val_action 3      | 1.35     |
+| td_loss             | 1.02     |
+| training_reward     | 1.45     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.25     |
+| action_prob 2       | 0.217    |
+| action_prob 3       | 0.293    |
+| current_exploration | 0.814    |
+| episode_length      | 189      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0597   |
+| frame_number        | 2.56e+05 |
+| q_val_action 0      | 1.05     |
+| q_val_action 1      | 1.09     |
+| q_val_action 2      | 0.943    |
+| q_val_action 3      | 1.25     |
+| td_loss             | 1.02     |
+| training_reward     | 1.47     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.253    |
+| action_prob 1       | 0.198    |
+| action_prob 2       | 0.229    |
+| action_prob 3       | 0.32     |
+| current_exploration | 0.811    |
+| episode_length      | 191      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.124    |
+| frame_number        | 2.6e+05  |
+| q_val_action 0      | 1.04     |
+| q_val_action 1      | 0.798    |
+| q_val_action 2      | 0.942    |
+| q_val_action 3      | 1.28     |
+| td_loss             | 1.02     |
+| training_reward     | 1.52     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.223    |
+| action_prob 3       | 0.301    |
+| current_exploration | 0.807    |
+| episode_length      | 190      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.1      |
+| frame_number        | 2.64e+05 |
+| q_val_action 0      | 1.04     |
+| q_val_action 1      | 1.02     |
+| q_val_action 2      | 0.966    |
+| q_val_action 3      | 1.27     |
+| td_loss             | 1.02     |
+| training_reward     | 1.5      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.281    |
+| action_prob 1       | 0.289    |
+| action_prob 2       | 0.212    |
+| action_prob 3       | 0.219    |
+| current_exploration | 0.804    |
+| episode_length      | 191      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0964   |
+| frame_number        | 2.68e+05 |
+| q_val_action 0      | 1.13     |
+| q_val_action 1      | 1.15     |
+| q_val_action 2      | 0.846    |
+| q_val_action 3      | 0.877    |
+| td_loss             | 1.03     |
+| training_reward     | 1.53     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.29     |
+| action_prob 1       | 0.24     |
+| action_prob 2       | 0.262    |
+| action_prob 3       | 0.207    |
+| current_exploration | 0.801    |
+| episode_length      | 189      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.102    |
+| frame_number        | 2.71e+05 |
+| q_val_action 0      | 1        |
+| q_val_action 1      | 0.812    |
+| q_val_action 2      | 0.897    |
+| q_val_action 3      | 0.665    |
+| td_loss             | 1.02     |
+| training_reward     | 1.5      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.26     |
+| action_prob 1       | 0.246    |
+| action_prob 2       | 0.247    |
+| action_prob 3       | 0.247    |
+| current_exploration | 0.797    |
+| episode_length      | 190      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0972   |
+| frame_number        | 2.75e+05 |
+| q_val_action 0      | 0.968    |
+| q_val_action 1      | 0.912    |
+| q_val_action 2      | 0.918    |
+| q_val_action 3      | 0.918    |
+| td_loss             | 1.02     |
+| training_reward     | 1.51     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.267    |
+| action_prob 1       | 0.237    |
+| action_prob 2       | 0.229    |
+| action_prob 3       | 0.267    |
+| current_exploration | 0.794    |
+| episode_length      | 187      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.102    |
+| frame_number        | 2.79e+05 |
+| q_val_action 0      | 0.926    |
+| q_val_action 1      | 0.804    |
+| q_val_action 2      | 0.773    |
+| q_val_action 3      | 0.923    |
+| td_loss             | 1.01     |
+| training_reward     | 1.47     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.209    |
+| action_prob 1       | 0.202    |
+| action_prob 2       | 0.23     |
+| action_prob 3       | 0.36     |
+| current_exploration | 0.79     |
+| episode_length      | 189      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0943   |
+| frame_number        | 2.83e+05 |
+| q_val_action 0      | 0.847    |
+| q_val_action 1      | 0.815    |
+| q_val_action 2      | 0.942    |
+| q_val_action 3      | 1.39     |
+| td_loss             | 1.04     |
+| training_reward     | 1.54     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.23     |
+| action_prob 1       | 0.205    |
+| action_prob 2       | 0.213    |
+| action_prob 3       | 0.352    |
+| current_exploration | 0.787    |
+| episode_length      | 186      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0797   |
+| frame_number        | 2.86e+05 |
+| q_val_action 0      | 0.989    |
+| q_val_action 1      | 0.872    |
+| q_val_action 2      | 0.913    |
+| q_val_action 3      | 1.41     |
+| td_loss             | 1.04     |
+| training_reward     | 1.51     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.226    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.239    |
+| action_prob 3       | 0.293    |
+| current_exploration | 0.783    |
+| episode_length      | 192      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.072    |
+| frame_number        | 2.91e+05 |
+| q_val_action 0      | 1.08     |
+| q_val_action 1      | 1.15     |
+| q_val_action 2      | 1.13     |
+| q_val_action 3      | 1.34     |
+| td_loss             | 1.02     |
+| training_reward     | 1.64     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.25     |
+| action_prob 1       | 0.222    |
+| action_prob 2       | 0.27     |
+| action_prob 3       | 0.258    |
+| current_exploration | 0.78     |
+| episode_length      | 196      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0936   |
+| frame_number        | 2.95e+05 |
+| q_val_action 0      | 1.08     |
+| q_val_action 1      | 0.961    |
+| q_val_action 2      | 1.15     |
+| q_val_action 3      | 1.11     |
+| td_loss             | 1.02     |
+| training_reward     | 1.78     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.219    |
+| action_prob 1       | 0.195    |
+| action_prob 2       | 0.207    |
+| action_prob 3       | 0.379    |
+| current_exploration | 0.776    |
+| episode_length      | 197      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0744   |
+| frame_number        | 2.99e+05 |
+| q_val_action 0      | 0.873    |
+| q_val_action 1      | 0.761    |
+| q_val_action 2      | 0.817    |
+| q_val_action 3      | 1.42     |
+| td_loss             | 1.02     |
+| training_reward     | 1.79     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.243    |
+| action_prob 1       | 0.232    |
+| action_prob 2       | 0.21     |
+| action_prob 3       | 0.316    |
+| current_exploration | 0.772    |
+| episode_length      | 199      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0745   |
+| frame_number        | 3.03e+05 |
+| q_val_action 0      | 1.05     |
+| q_val_action 1      | 1        |
+| q_val_action 2      | 0.904    |
+| q_val_action 3      | 1.32     |
+| td_loss             | 1.01     |
+| training_reward     | 1.8      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.215    |
+| action_prob 2       | 0.243    |
+| action_prob 3       | 0.309    |
+| current_exploration | 0.769    |
+| episode_length      | 206      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0871   |
+| frame_number        | 3.07e+05 |
+| q_val_action 0      | 1.2      |
+| q_val_action 1      | 1.12     |
+| q_val_action 2      | 1.24     |
+| q_val_action 3      | 1.48     |
+| td_loss             | 1.02     |
+| training_reward     | 1.98     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.256    |
+| action_prob 1       | 0.207    |
+| action_prob 2       | 0.222    |
+| action_prob 3       | 0.316    |
+| current_exploration | 0.764    |
+| episode_length      | 214      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0796   |
+| frame_number        | 3.12e+05 |
+| q_val_action 0      | 1.14     |
+| q_val_action 1      | 0.925    |
+| q_val_action 2      | 0.993    |
+| q_val_action 3      | 1.35     |
+| td_loss             | 1.01     |
+| training_reward     | 2.22     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.2      |
+| action_prob 1       | 0.184    |
+| action_prob 2       | 0.199    |
+| action_prob 3       | 0.417    |
+| current_exploration | 0.76     |
+| episode_length      | 212      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0913   |
+| frame_number        | 3.16e+05 |
+| q_val_action 0      | 1.01     |
+| q_val_action 1      | 0.93     |
+| q_val_action 2      | 1.01     |
+| q_val_action 3      | 1.75     |
+| td_loss             | 1.01     |
+| training_reward     | 2.15     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.227    |
+| action_prob 1       | 0.226    |
+| action_prob 2       | 0.176    |
+| action_prob 3       | 0.372    |
+| current_exploration | 0.757    |
+| episode_length      | 216      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.128    |
+| frame_number        | 3.2e+05  |
+| q_val_action 0      | 1.39     |
+| q_val_action 1      | 1.39     |
+| q_val_action 2      | 1.13     |
+| q_val_action 3      | 1.88     |
+| td_loss             | 1.05     |
+| training_reward     | 2.33     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.194    |
+| action_prob 1       | 0.199    |
+| action_prob 2       | 0.186    |
+| action_prob 3       | 0.421    |
+| current_exploration | 0.753    |
+| episode_length      | 220      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0671   |
+| frame_number        | 3.25e+05 |
+| q_val_action 0      | 1.39     |
+| q_val_action 1      | 1.41     |
+| q_val_action 2      | 1.35     |
+| q_val_action 3      | 2.16     |
+| td_loss             | 1.03     |
+| training_reward     | 2.46     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.221    |
+| action_prob 1       | 0.179    |
+| action_prob 2       | 0.164    |
+| action_prob 3       | 0.436    |
+| current_exploration | 0.749    |
+| episode_length      | 218      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0765   |
+| frame_number        | 3.29e+05 |
+| q_val_action 0      | 1.09     |
+| q_val_action 1      | 0.875    |
+| q_val_action 2      | 0.79     |
+| q_val_action 3      | 1.76     |
+| td_loss             | 1.03     |
+| training_reward     | 2.39     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.183    |
+| action_prob 1       | 0.17     |
+| action_prob 2       | 0.219    |
+| action_prob 3       | 0.428    |
+| current_exploration | 0.745    |
+| episode_length      | 208      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0815   |
+| frame_number        | 3.33e+05 |
+| q_val_action 0      | 1.33     |
+| q_val_action 1      | 1.26     |
+| q_val_action 2      | 1.51     |
+| q_val_action 3      | 2.18     |
+| td_loss             | 1.03     |
+| training_reward     | 2.12     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.239    |
+| action_prob 1       | 0.179    |
+| action_prob 2       | 0.101    |
+| action_prob 3       | 0.481    |
+| current_exploration | 0.741    |
+| episode_length      | 211      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0746   |
+| frame_number        | 3.37e+05 |
+| q_val_action 0      | 1.58     |
+| q_val_action 1      | 1.29     |
+| q_val_action 2      | 0.715    |
+| q_val_action 3      | 2.28     |
+| td_loss             | 1.02     |
+| training_reward     | 2.21     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.171    |
+| action_prob 1       | 0.184    |
+| action_prob 2       | 0.153    |
+| action_prob 3       | 0.493    |
+| current_exploration | 0.738    |
+| episode_length      | 212      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0998   |
+| frame_number        | 3.42e+05 |
+| q_val_action 0      | 0.997    |
+| q_val_action 1      | 1.07     |
+| q_val_action 2      | 0.888    |
+| q_val_action 3      | 2.06     |
+| td_loss             | 1.11     |
+| training_reward     | 2.18     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.143    |
+| action_prob 1       | 0.144    |
+| action_prob 2       | 0.198    |
+| action_prob 3       | 0.515    |
+| current_exploration | 0.734    |
+| episode_length      | 207      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0748   |
+| frame_number        | 3.46e+05 |
+| q_val_action 0      | 1.16     |
+| q_val_action 1      | 1.17     |
+| q_val_action 2      | 1.49     |
+| q_val_action 3      | 2.44     |
+| td_loss             | 1.09     |
+| training_reward     | 2.05     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.214    |
+| action_prob 1       | 0.179    |
+| action_prob 2       | 0.165    |
+| action_prob 3       | 0.443    |
+| current_exploration | 0.73     |
+| episode_length      | 212      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0832   |
+| frame_number        | 3.5e+05  |
+| q_val_action 0      | 1.67     |
+| q_val_action 1      | 1.49     |
+| q_val_action 2      | 1.4      |
+| q_val_action 3      | 2.4      |
+| td_loss             | 1.08     |
+| training_reward     | 2.18     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.224    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.22     |
+| action_prob 3       | 0.315    |
+| current_exploration | 0.726    |
+| episode_length      | 218      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0773   |
+| frame_number        | 3.55e+05 |
+| q_val_action 0      | 1.25     |
+| q_val_action 1      | 1.33     |
+| q_val_action 2      | 1.23     |
+| q_val_action 3      | 1.59     |
+| td_loss             | 1.03     |
+| training_reward     | 2.37     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.189    |
+| action_prob 1       | 0.133    |
+| action_prob 2       | 0.125    |
+| action_prob 3       | 0.554    |
+| current_exploration | 0.722    |
+| episode_length      | 216      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0944   |
+| frame_number        | 3.59e+05 |
+| q_val_action 0      | 1.57     |
+| q_val_action 1      | 1.22     |
+| q_val_action 2      | 1.16     |
+| q_val_action 3      | 2.65     |
+| td_loss             | 1.03     |
+| training_reward     | 2.35     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.242    |
+| action_prob 1       | 0.214    |
+| action_prob 2       | 0.188    |
+| action_prob 3       | 0.356    |
+| current_exploration | 0.717    |
+| episode_length      | 224      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.0953   |
+| frame_number        | 3.64e+05 |
+| q_val_action 0      | 1.94     |
+| q_val_action 1      | 1.82     |
+| q_val_action 2      | 1.69     |
+| q_val_action 3      | 2.33     |
+| td_loss             | 1.04     |
+| training_reward     | 2.56     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.257    |
+| action_prob 1       | 0.203    |
+| action_prob 2       | 0.172    |
+| action_prob 3       | 0.369    |
+| current_exploration | 0.713    |
+| episode_length      | 233      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.109    |
+| frame_number        | 3.69e+05 |
+| q_val_action 0      | 2.15     |
+| q_val_action 1      | 1.91     |
+| q_val_action 2      | 1.75     |
+| q_val_action 3      | 2.51     |
+| td_loss             | 1.04     |
+| training_reward     | 2.81     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.191    |
+| action_prob 1       | 0.153    |
+| action_prob 2       | 0.162    |
+| action_prob 3       | 0.494    |
+| current_exploration | 0.709    |
+| episode_length      | 232      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.13     |
+| frame_number        | 3.73e+05 |
+| q_val_action 0      | 1.81     |
+| q_val_action 1      | 1.59     |
+| q_val_action 2      | 1.64     |
+| q_val_action 3      | 2.76     |
+| td_loss             | 1.03     |
+| training_reward     | 2.82     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.201    |
+| action_prob 1       | 0.173    |
+| action_prob 2       | 0.133    |
+| action_prob 3       | 0.493    |
+| current_exploration | 0.705    |
+| episode_length      | 233      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.113    |
+| frame_number        | 3.78e+05 |
+| q_val_action 0      | 1.8      |
+| q_val_action 1      | 1.65     |
+| q_val_action 2      | 1.39     |
+| q_val_action 3      | 2.7      |
+| td_loss             | 1.03     |
+| training_reward     | 2.9      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.19     |
+| action_prob 1       | 0.168    |
+| action_prob 2       | 0.156    |
+| action_prob 3       | 0.486    |
+| current_exploration | 0.701    |
+| episode_length      | 235      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.137    |
+| frame_number        | 3.82e+05 |
+| q_val_action 0      | 1.88     |
+| q_val_action 1      | 1.75     |
+| q_val_action 2      | 1.68     |
+| q_val_action 3      | 2.82     |
+| td_loss             | 1.03     |
+| training_reward     | 2.98     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.242    |
+| action_prob 1       | 0.182    |
+| action_prob 2       | 0.184    |
+| action_prob 3       | 0.392    |
+| current_exploration | 0.696    |
+| episode_length      | 232      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.123    |
+| frame_number        | 3.87e+05 |
+| q_val_action 0      | 2.28     |
+| q_val_action 1      | 2        |
+| q_val_action 2      | 2        |
+| q_val_action 3      | 2.76     |
+| td_loss             | 1.03     |
+| training_reward     | 2.89     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.226    |
+| action_prob 1       | 0.211    |
+| action_prob 2       | 0.184    |
+| action_prob 3       | 0.38     |
+| current_exploration | 0.692    |
+| episode_length      | 235      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.115    |
+| frame_number        | 3.92e+05 |
+| q_val_action 0      | 2.47     |
+| q_val_action 1      | 2.4      |
+| q_val_action 2      | 2.27     |
+| q_val_action 3      | 2.99     |
+| td_loss             | 1.04     |
+| training_reward     | 3.03     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.224    |
+| action_prob 1       | 0.208    |
+| action_prob 2       | 0.173    |
+| action_prob 3       | 0.395    |
+| current_exploration | 0.688    |
+| episode_length      | 235      |
+| evaluation_reward   | 2.88     |
+| expert_loss         | 0.113    |
+| frame_number        | 3.97e+05 |
+| q_val_action 0      | 2.51     |
+| q_val_action 1      | 2.44     |
+| q_val_action 2      | 2.26     |
+| q_val_action 3      | 3.08     |
+| td_loss             | 1.04     |
+| training_reward     | 3.05     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.225    |
+| action_prob 1       | 0.223    |
+| action_prob 2       | 0.149    |
+| action_prob 3       | 0.402    |
+| current_exploration | 0.683    |
+| episode_length      | 239      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.0991   |
+| frame_number        | 4.02e+05 |
+| q_val_action 0      | 2.57     |
+| q_val_action 1      | 2.56     |
+| q_val_action 2      | 2.16     |
+| q_val_action 3      | 3.15     |
+| td_loss             | 1.03     |
+| training_reward     | 3.16     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.212    |
+| action_prob 1       | 0.205    |
+| action_prob 2       | 0.19     |
+| action_prob 3       | 0.393    |
+| current_exploration | 0.679    |
+| episode_length      | 239      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.115    |
+| frame_number        | 4.06e+05 |
+| q_val_action 0      | 2.33     |
+| q_val_action 1      | 2.29     |
+| q_val_action 2      | 2.22     |
+| q_val_action 3      | 2.94     |
+| td_loss             | 1.03     |
+| training_reward     | 3.18     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.231    |
+| action_prob 1       | 0.224    |
+| action_prob 2       | 0.165    |
+| action_prob 3       | 0.38     |
+| current_exploration | 0.675    |
+| episode_length      | 239      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.111    |
+| frame_number        | 4.11e+05 |
+| q_val_action 0      | 2.65     |
+| q_val_action 1      | 2.62     |
+| q_val_action 2      | 2.32     |
+| q_val_action 3      | 3.15     |
+| td_loss             | 1.03     |
+| training_reward     | 3.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.237    |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.158    |
+| action_prob 3       | 0.37     |
+| current_exploration | 0.671    |
+| episode_length      | 238      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.103    |
+| frame_number        | 4.16e+05 |
+| q_val_action 0      | 2.79     |
+| q_val_action 1      | 2.78     |
+| q_val_action 2      | 2.39     |
+| q_val_action 3      | 3.24     |
+| td_loss             | 1.04     |
+| training_reward     | 3.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.226    |
+| action_prob 1       | 0.206    |
+| action_prob 2       | 0.182    |
+| action_prob 3       | 0.385    |
+| current_exploration | 0.667    |
+| episode_length      | 236      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.132    |
+| frame_number        | 4.2e+05  |
+| q_val_action 0      | 2.6      |
+| q_val_action 1      | 2.51     |
+| q_val_action 2      | 2.38     |
+| q_val_action 3      | 3.13     |
+| td_loss             | 1.04     |
+| training_reward     | 3.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.213    |
+| action_prob 1       | 0.27     |
+| action_prob 2       | 0.205    |
+| action_prob 3       | 0.312    |
+| current_exploration | 0.663    |
+| episode_length      | 230      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.132    |
+| frame_number        | 4.25e+05 |
+| q_val_action 0      | 2.32     |
+| q_val_action 1      | 2.55     |
+| q_val_action 2      | 2.28     |
+| q_val_action 3      | 2.69     |
+| td_loss             | 1.04     |
+| training_reward     | 2.96     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.239    |
+| action_prob 1       | 0.262    |
+| action_prob 2       | 0.178    |
+| action_prob 3       | 0.322    |
+| current_exploration | 0.659    |
+| episode_length      | 230      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.136    |
+| frame_number        | 4.29e+05 |
+| q_val_action 0      | 2.54     |
+| q_val_action 1      | 2.63     |
+| q_val_action 2      | 2.25     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.04     |
+| training_reward     | 2.96     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.216    |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.162    |
+| action_prob 3       | 0.386    |
+| current_exploration | 0.654    |
+| episode_length      | 230      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.119    |
+| frame_number        | 4.34e+05 |
+| q_val_action 0      | 2.23     |
+| q_val_action 1      | 2.32     |
+| q_val_action 2      | 1.95     |
+| q_val_action 3      | 2.82     |
+| td_loss             | 1.04     |
+| training_reward     | 2.86     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.206    |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.188    |
+| action_prob 3       | 0.371    |
+| current_exploration | 0.65     |
+| episode_length      | 231      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.136    |
+| frame_number        | 4.39e+05 |
+| q_val_action 0      | 2.45     |
+| q_val_action 1      | 2.58     |
+| q_val_action 2      | 2.36     |
+| q_val_action 3      | 3.04     |
+| td_loss             | 1.04     |
+| training_reward     | 2.93     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.237    |
+| action_prob 1       | 0.222    |
+| action_prob 2       | 0.239    |
+| action_prob 3       | 0.301    |
+| current_exploration | 0.645    |
+| episode_length      | 237      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.134    |
+| frame_number        | 4.44e+05 |
+| q_val_action 0      | 2.4      |
+| q_val_action 1      | 2.33     |
+| q_val_action 2      | 2.41     |
+| q_val_action 3      | 2.64     |
+| td_loss             | 1.08     |
+| training_reward     | 3.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.218    |
+| action_prob 1       | 0.265    |
+| action_prob 2       | 0.171    |
+| action_prob 3       | 0.346    |
+| current_exploration | 0.641    |
+| episode_length      | 240      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.129    |
+| frame_number        | 4.49e+05 |
+| q_val_action 0      | 2.6      |
+| q_val_action 1      | 2.79     |
+| q_val_action 2      | 2.35     |
+| q_val_action 3      | 3.06     |
+| td_loss             | 1.06     |
+| training_reward     | 3.33     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.251    |
+| action_prob 1       | 0.187    |
+| action_prob 2       | 0.21     |
+| action_prob 3       | 0.352    |
+| current_exploration | 0.637    |
+| episode_length      | 244      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.121    |
+| frame_number        | 4.54e+05 |
+| q_val_action 0      | 2.39     |
+| q_val_action 1      | 2.1      |
+| q_val_action 2      | 2.21     |
+| q_val_action 3      | 2.73     |
+| td_loss             | 1.05     |
+| training_reward     | 3.37     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.242    |
+| action_prob 1       | 0.232    |
+| action_prob 2       | 0.154    |
+| action_prob 3       | 0.371    |
+| current_exploration | 0.632    |
+| episode_length      | 246      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.117    |
+| frame_number        | 4.59e+05 |
+| q_val_action 0      | 2.41     |
+| q_val_action 1      | 2.37     |
+| q_val_action 2      | 1.96     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.06     |
+| training_reward     | 3.38     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.222    |
+| action_prob 1       | 0.183    |
+| action_prob 2       | 0.155    |
+| action_prob 3       | 0.441    |
+| current_exploration | 0.628    |
+| episode_length      | 244      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.133    |
+| frame_number        | 4.64e+05 |
+| q_val_action 0      | 2.52     |
+| q_val_action 1      | 2.33     |
+| q_val_action 2      | 2.16     |
+| q_val_action 3      | 3.2      |
+| td_loss             | 1.04     |
+| training_reward     | 3.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.263    |
+| action_prob 2       | 0.139    |
+| action_prob 3       | 0.351    |
+| current_exploration | 0.624    |
+| episode_length      | 239      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.13     |
+| frame_number        | 4.68e+05 |
+| q_val_action 0      | 2.79     |
+| q_val_action 1      | 2.85     |
+| q_val_action 2      | 2.22     |
+| q_val_action 3      | 3.14     |
+| td_loss             | 1.04     |
+| training_reward     | 3.01     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.219    |
+| action_prob 1       | 0.263    |
+| action_prob 2       | 0.149    |
+| action_prob 3       | 0.369    |
+| current_exploration | 0.619    |
+| episode_length      | 242      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.106    |
+| frame_number        | 4.73e+05 |
+| q_val_action 0      | 2.65     |
+| q_val_action 1      | 2.84     |
+| q_val_action 2      | 2.27     |
+| q_val_action 3      | 3.17     |
+| td_loss             | 1.04     |
+| training_reward     | 3.11     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.33     |
+| action_prob 2       | 0.166    |
+| action_prob 3       | 0.275    |
+| current_exploration | 0.615    |
+| episode_length      | 241      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.122    |
+| frame_number        | 4.78e+05 |
+| q_val_action 0      | 2.62     |
+| q_val_action 1      | 2.98     |
+| q_val_action 2      | 2.3      |
+| q_val_action 3      | 2.8      |
+| td_loss             | 1.04     |
+| training_reward     | 3.1      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.232    |
+| action_prob 1       | 0.274    |
+| action_prob 2       | 0.196    |
+| action_prob 3       | 0.298    |
+| current_exploration | 0.611    |
+| episode_length      | 231      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.125    |
+| frame_number        | 4.82e+05 |
+| q_val_action 0      | 2.56     |
+| q_val_action 1      | 2.72     |
+| q_val_action 2      | 2.39     |
+| q_val_action 3      | 2.81     |
+| td_loss             | 1.03     |
+| training_reward     | 2.88     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.213    |
+| action_prob 1       | 0.229    |
+| action_prob 2       | 0.142    |
+| action_prob 3       | 0.416    |
+| current_exploration | 0.607    |
+| episode_length      | 230      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.167    |
+| frame_number        | 4.86e+05 |
+| q_val_action 0      | 2.19     |
+| q_val_action 1      | 2.26     |
+| q_val_action 2      | 1.78     |
+| q_val_action 3      | 2.86     |
+| td_loss             | 1.04     |
+| training_reward     | 2.9      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.192    |
+| action_prob 2       | 0.189    |
+| action_prob 3       | 0.39     |
+| current_exploration | 0.602    |
+| episode_length      | 237      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.178    |
+| frame_number        | 4.92e+05 |
+| q_val_action 0      | 2.38     |
+| q_val_action 1      | 2.21     |
+| q_val_action 2      | 2.19     |
+| q_val_action 3      | 2.91     |
+| td_loss             | 1.04     |
+| training_reward     | 3.11     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.235    |
+| action_prob 1       | 0.245    |
+| action_prob 2       | 0.175    |
+| action_prob 3       | 0.344    |
+| current_exploration | 0.598    |
+| episode_length      | 235      |
+| evaluation_reward   | 1.39     |
+| expert_loss         | 0.155    |
+| frame_number        | 4.97e+05 |
+| q_val_action 0      | 2.4      |
+| q_val_action 1      | 2.45     |
+| q_val_action 2      | 2.11     |
+| q_val_action 3      | 2.79     |
+| td_loss             | 1.04     |
+| training_reward     | 3        |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.222    |
+| action_prob 1       | 0.269    |
+| action_prob 2       | 0.155    |
+| action_prob 3       | 0.354    |
+| current_exploration | 0.594    |
+| episode_length      | 237      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.164    |
+| frame_number        | 5.02e+05 |
+| q_val_action 0      | 2.59     |
+| q_val_action 1      | 2.78     |
+| q_val_action 2      | 2.23     |
+| q_val_action 3      | 3.05     |
+| td_loss             | 1.04     |
+| training_reward     | 3.1      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.219    |
+| action_prob 1       | 0.304    |
+| action_prob 2       | 0.161    |
+| action_prob 3       | 0.316    |
+| current_exploration | 0.59     |
+| episode_length      | 242      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.156    |
+| frame_number        | 5.06e+05 |
+| q_val_action 0      | 2.61     |
+| q_val_action 1      | 2.94     |
+| q_val_action 2      | 2.3      |
+| q_val_action 3      | 2.98     |
+| td_loss             | 1.03     |
+| training_reward     | 3.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.242    |
+| action_prob 1       | 0.219    |
+| action_prob 2       | 0.204    |
+| action_prob 3       | 0.334    |
+| current_exploration | 0.586    |
+| episode_length      | 240      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.182    |
+| frame_number        | 5.1e+05  |
+| q_val_action 0      | 2.44     |
+| q_val_action 1      | 2.34     |
+| q_val_action 2      | 2.27     |
+| q_val_action 3      | 2.76     |
+| td_loss             | 1.05     |
+| training_reward     | 3.14     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.239    |
+| action_prob 1       | 0.289    |
+| action_prob 2       | 0.156    |
+| action_prob 3       | 0.316    |
+| current_exploration | 0.582    |
+| episode_length      | 232      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.138    |
+| frame_number        | 5.15e+05 |
+| q_val_action 0      | 2.68     |
+| q_val_action 1      | 2.87     |
+| q_val_action 2      | 2.25     |
+| q_val_action 3      | 2.95     |
+| td_loss             | 1.04     |
+| training_reward     | 2.87     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.25     |
+| action_prob 1       | 0.251    |
+| action_prob 2       | 0.209    |
+| action_prob 3       | 0.29     |
+| current_exploration | 0.577    |
+| episode_length      | 234      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.111    |
+| frame_number        | 5.2e+05  |
+| q_val_action 0      | 2.72     |
+| q_val_action 1      | 2.73     |
+| q_val_action 2      | 2.54     |
+| q_val_action 3      | 2.87     |
+| td_loss             | 1.05     |
+| training_reward     | 2.97     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.22     |
+| action_prob 1       | 0.281    |
+| action_prob 2       | 0.231    |
+| action_prob 3       | 0.268    |
+| current_exploration | 0.573    |
+| episode_length      | 231      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.121    |
+| frame_number        | 5.25e+05 |
+| q_val_action 0      | 2.55     |
+| q_val_action 1      | 2.8      |
+| q_val_action 2      | 2.6      |
+| q_val_action 3      | 2.75     |
+| td_loss             | 1.04     |
+| training_reward     | 2.86     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.234    |
+| action_prob 1       | 0.286    |
+| action_prob 2       | 0.191    |
+| action_prob 3       | 0.289    |
+| current_exploration | 0.569    |
+| episode_length      | 233      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.141    |
+| frame_number        | 5.29e+05 |
+| q_val_action 0      | 2.59     |
+| q_val_action 1      | 2.79     |
+| q_val_action 2      | 2.38     |
+| q_val_action 3      | 2.8      |
+| td_loss             | 1.03     |
+| training_reward     | 2.88     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.272    |
+| action_prob 1       | 0.258    |
+| action_prob 2       | 0.171    |
+| action_prob 3       | 0.299    |
+| current_exploration | 0.565    |
+| episode_length      | 232      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.132    |
+| frame_number        | 5.34e+05 |
+| q_val_action 0      | 2.93     |
+| q_val_action 1      | 2.88     |
+| q_val_action 2      | 2.46     |
+| q_val_action 3      | 3.02     |
+| td_loss             | 1.05     |
+| training_reward     | 2.85     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.294    |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.163    |
+| action_prob 3       | 0.309    |
+| current_exploration | 0.56     |
+| episode_length      | 240      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.129    |
+| frame_number        | 5.39e+05 |
+| q_val_action 0      | 2.85     |
+| q_val_action 1      | 2.63     |
+| q_val_action 2      | 2.27     |
+| q_val_action 3      | 2.9      |
+| td_loss             | 1.05     |
+| training_reward     | 3.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.332    |
+| action_prob 2       | 0.138    |
+| action_prob 3       | 0.283    |
+| current_exploration | 0.556    |
+| episode_length      | 239      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.11     |
+| frame_number        | 5.44e+05 |
+| q_val_action 0      | 2.73     |
+| q_val_action 1      | 3.02     |
+| q_val_action 2      | 2.15     |
+| q_val_action 3      | 2.86     |
+| td_loss             | 1.05     |
+| training_reward     | 3.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.27     |
+| action_prob 1       | 0.27     |
+| action_prob 2       | 0.192    |
+| action_prob 3       | 0.268    |
+| current_exploration | 0.551    |
+| episode_length      | 240      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.105    |
+| frame_number        | 5.49e+05 |
+| q_val_action 0      | 2.85     |
+| q_val_action 1      | 2.85     |
+| q_val_action 2      | 2.51     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.05     |
+| training_reward     | 3.15     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.23     |
+| action_prob 1       | 0.301    |
+| action_prob 2       | 0.156    |
+| action_prob 3       | 0.313    |
+| current_exploration | 0.546    |
+| episode_length      | 247      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.131    |
+| frame_number        | 5.54e+05 |
+| q_val_action 0      | 2.53     |
+| q_val_action 1      | 2.8      |
+| q_val_action 2      | 2.14     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.04     |
+| training_reward     | 3.32     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.251    |
+| action_prob 1       | 0.297    |
+| action_prob 2       | 0.161    |
+| action_prob 3       | 0.291    |
+| current_exploration | 0.542    |
+| episode_length      | 252      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.128    |
+| frame_number        | 5.59e+05 |
+| q_val_action 0      | 2.68     |
+| q_val_action 1      | 2.85     |
+| q_val_action 2      | 2.24     |
+| q_val_action 3      | 2.83     |
+| td_loss             | 1.05     |
+| training_reward     | 3.49     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.234    |
+| action_prob 1       | 0.274    |
+| action_prob 2       | 0.197    |
+| action_prob 3       | 0.295    |
+| current_exploration | 0.538    |
+| episode_length      | 249      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.132    |
+| frame_number        | 5.64e+05 |
+| q_val_action 0      | 2.47     |
+| q_val_action 1      | 2.62     |
+| q_val_action 2      | 2.29     |
+| q_val_action 3      | 2.7      |
+| td_loss             | 1.05     |
+| training_reward     | 3.38     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.23     |
+| action_prob 1       | 0.288    |
+| action_prob 2       | 0.168    |
+| action_prob 3       | 0.313    |
+| current_exploration | 0.533    |
+| episode_length      | 249      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.107    |
+| frame_number        | 5.69e+05 |
+| q_val_action 0      | 2.63     |
+| q_val_action 1      | 2.85     |
+| q_val_action 2      | 2.32     |
+| q_val_action 3      | 2.94     |
+| td_loss             | 1.04     |
+| training_reward     | 3.39     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.164    |
+| action_prob 3       | 0.36     |
+| current_exploration | 0.529    |
+| episode_length      | 247      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.128    |
+| frame_number        | 5.73e+05 |
+| q_val_action 0      | 2.6      |
+| q_val_action 1      | 2.58     |
+| q_val_action 2      | 2.22     |
+| q_val_action 3      | 3        |
+| td_loss             | 1.06     |
+| training_reward     | 3.34     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.216    |
+| action_prob 1       | 0.254    |
+| action_prob 2       | 0.118    |
+| action_prob 3       | 0.412    |
+| current_exploration | 0.525    |
+| episode_length      | 243      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.102    |
+| frame_number        | 5.78e+05 |
+| q_val_action 0      | 2.6      |
+| q_val_action 1      | 2.76     |
+| q_val_action 2      | 2        |
+| q_val_action 3      | 3.25     |
+| td_loss             | 1.05     |
+| training_reward     | 3.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.21     |
+| action_prob 1       | 0.271    |
+| action_prob 2       | 0.189    |
+| action_prob 3       | 0.33     |
+| current_exploration | 0.52     |
+| episode_length      | 241      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.141    |
+| frame_number        | 5.83e+05 |
+| q_val_action 0      | 2.59     |
+| q_val_action 1      | 2.84     |
+| q_val_action 2      | 2.49     |
+| q_val_action 3      | 3.04     |
+| td_loss             | 1.04     |
+| training_reward     | 3.21     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.235    |
+| action_prob 1       | 0.227    |
+| action_prob 2       | 0.17     |
+| action_prob 3       | 0.368    |
+| current_exploration | 0.516    |
+| episode_length      | 243      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.144    |
+| frame_number        | 5.88e+05 |
+| q_val_action 0      | 2.53     |
+| q_val_action 1      | 2.49     |
+| q_val_action 2      | 2.2      |
+| q_val_action 3      | 2.98     |
+| td_loss             | 1.04     |
+| training_reward     | 3.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.19     |
+| action_prob 2       | 0.148    |
+| action_prob 3       | 0.422    |
+| current_exploration | 0.511    |
+| episode_length      | 244      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.147    |
+| frame_number        | 5.93e+05 |
+| q_val_action 0      | 2.28     |
+| q_val_action 1      | 2.05     |
+| q_val_action 2      | 1.8      |
+| q_val_action 3      | 2.85     |
+| td_loss             | 1.08     |
+| training_reward     | 3.21     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.192    |
+| action_prob 1       | 0.202    |
+| action_prob 2       | 0.0857   |
+| action_prob 3       | 0.52     |
+| current_exploration | 0.507    |
+| episode_length      | 244      |
+| evaluation_reward   | 1        |
+| expert_loss         | 0.118    |
+| frame_number        | 5.98e+05 |
+| q_val_action 0      | 2.58     |
+| q_val_action 1      | 2.63     |
+| q_val_action 2      | 1.77     |
+| q_val_action 3      | 3.57     |
+| td_loss             | 1.06     |
+| training_reward     | 3.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.245    |
+| action_prob 1       | 0.228    |
+| action_prob 2       | 0.18     |
+| action_prob 3       | 0.347    |
+| current_exploration | 0.503    |
+| episode_length      | 244      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.119    |
+| frame_number        | 6.03e+05 |
+| q_val_action 0      | 2.68     |
+| q_val_action 1      | 2.61     |
+| q_val_action 2      | 2.37     |
+| q_val_action 3      | 3.03     |
+| td_loss             | 1.05     |
+| training_reward     | 3.31     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.272    |
+| action_prob 1       | 0.155    |
+| action_prob 2       | 0.178    |
+| action_prob 3       | 0.395    |
+| current_exploration | 0.498    |
+| episode_length      | 248      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.143    |
+| frame_number        | 6.08e+05 |
+| q_val_action 0      | 2.52     |
+| q_val_action 1      | 1.96     |
+| q_val_action 2      | 2.09     |
+| q_val_action 3      | 2.89     |
+| td_loss             | 1.04     |
+| training_reward     | 3.46     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.253    |
+| action_prob 1       | 0.216    |
+| action_prob 2       | 0.156    |
+| action_prob 3       | 0.375    |
+| current_exploration | 0.493    |
+| episode_length      | 253      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.238    |
+| frame_number        | 6.13e+05 |
+| q_val_action 0      | 2.42     |
+| q_val_action 1      | 2.27     |
+| q_val_action 2      | 1.94     |
+| q_val_action 3      | 2.82     |
+| td_loss             | 1.06     |
+| training_reward     | 3.47     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.224    |
+| action_prob 1       | 0.2      |
+| action_prob 2       | 0.16     |
+| action_prob 3       | 0.416    |
+| current_exploration | 0.488    |
+| episode_length      | 255      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.142    |
+| frame_number        | 6.19e+05 |
+| q_val_action 0      | 2.46     |
+| q_val_action 1      | 2.35     |
+| q_val_action 2      | 2.13     |
+| q_val_action 3      | 3.08     |
+| td_loss             | 1.04     |
+| training_reward     | 3.54     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.195    |
+| action_prob 1       | 0.173    |
+| action_prob 2       | 0.225    |
+| action_prob 3       | 0.408    |
+| current_exploration | 0.484    |
+| episode_length      | 258      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.139    |
+| frame_number        | 6.23e+05 |
+| q_val_action 0      | 2.14     |
+| q_val_action 1      | 2.02     |
+| q_val_action 2      | 2.28     |
+| q_val_action 3      | 2.88     |
+| td_loss             | 1.04     |
+| training_reward     | 3.63     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.216    |
+| action_prob 2       | 0.125    |
+| action_prob 3       | 0.426    |
+| current_exploration | 0.479    |
+| episode_length      | 258      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.128    |
+| frame_number        | 6.28e+05 |
+| q_val_action 0      | 2.57     |
+| q_val_action 1      | 2.49     |
+| q_val_action 2      | 1.94     |
+| q_val_action 3      | 3.17     |
+| td_loss             | 1.05     |
+| training_reward     | 3.58     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.243    |
+| action_prob 1       | 0.23     |
+| action_prob 2       | 0.155    |
+| action_prob 3       | 0.372    |
+| current_exploration | 0.475    |
+| episode_length      | 258      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.12     |
+| frame_number        | 6.34e+05 |
+| q_val_action 0      | 2.47     |
+| q_val_action 1      | 2.42     |
+| q_val_action 2      | 2.03     |
+| q_val_action 3      | 2.9      |
+| td_loss             | 1.04     |
+| training_reward     | 3.67     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.27     |
+| action_prob 1       | 0.257    |
+| action_prob 2       | 0.139    |
+| action_prob 3       | 0.334    |
+| current_exploration | 0.47     |
+| episode_length      | 256      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.104    |
+| frame_number        | 6.39e+05 |
+| q_val_action 0      | 2.54     |
+| q_val_action 1      | 2.49     |
+| q_val_action 2      | 1.87     |
+| q_val_action 3      | 2.75     |
+| td_loss             | 1.05     |
+| training_reward     | 3.73     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.209    |
+| action_prob 2       | 0.222    |
+| action_prob 3       | 0.321    |
+| current_exploration | 0.465    |
+| episode_length      | 254      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.117    |
+| frame_number        | 6.44e+05 |
+| q_val_action 0      | 2.59     |
+| q_val_action 1      | 2.43     |
+| q_val_action 2      | 2.49     |
+| q_val_action 3      | 2.86     |
+| td_loss             | 1.04     |
+| training_reward     | 3.69     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.237    |
+| action_prob 1       | 0.262    |
+| action_prob 2       | 0.185    |
+| action_prob 3       | 0.317    |
+| current_exploration | 0.461    |
+| episode_length      | 258      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.114    |
+| frame_number        | 6.49e+05 |
+| q_val_action 0      | 2.32     |
+| q_val_action 1      | 2.42     |
+| q_val_action 2      | 2.07     |
+| q_val_action 3      | 2.61     |
+| td_loss             | 1.05     |
+| training_reward     | 3.74     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.248    |
+| action_prob 1       | 0.23     |
+| action_prob 2       | 0.171    |
+| action_prob 3       | 0.352    |
+| current_exploration | 0.456    |
+| episode_length      | 259      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.109    |
+| frame_number        | 6.54e+05 |
+| q_val_action 0      | 2.65     |
+| q_val_action 1      | 2.57     |
+| q_val_action 2      | 2.28     |
+| q_val_action 3      | 3        |
+| td_loss             | 1.03     |
+| training_reward     | 3.69     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.219    |
+| action_prob 1       | 0.233    |
+| action_prob 2       | 0.186    |
+| action_prob 3       | 0.361    |
+| current_exploration | 0.451    |
+| episode_length      | 259      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.0903   |
+| frame_number        | 6.6e+05  |
+| q_val_action 0      | 2.41     |
+| q_val_action 1      | 2.47     |
+| q_val_action 2      | 2.25     |
+| q_val_action 3      | 2.91     |
+| td_loss             | 1.04     |
+| training_reward     | 3.66     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.223    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.107    |
+| action_prob 3       | 0.426    |
+| current_exploration | 0.447    |
+| episode_length      | 260      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.111    |
+| frame_number        | 6.65e+05 |
+| q_val_action 0      | 2.63     |
+| q_val_action 1      | 2.72     |
+| q_val_action 2      | 1.9      |
+| q_val_action 3      | 3.28     |
+| td_loss             | 1.05     |
+| training_reward     | 3.61     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.195    |
+| action_prob 2       | 0.123    |
+| action_prob 3       | 0.445    |
+| current_exploration | 0.442    |
+| episode_length      | 263      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.113    |
+| frame_number        | 6.7e+05  |
+| q_val_action 0      | 2.45     |
+| q_val_action 1      | 2.25     |
+| q_val_action 2      | 1.79     |
+| q_val_action 3      | 3.08     |
+| td_loss             | 1.05     |
+| training_reward     | 3.63     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.207    |
+| action_prob 1       | 0.216    |
+| action_prob 2       | 0.0828   |
+| action_prob 3       | 0.494    |
+| current_exploration | 0.437    |
+| episode_length      | 265      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.111    |
+| frame_number        | 6.76e+05 |
+| q_val_action 0      | 2.48     |
+| q_val_action 1      | 2.52     |
+| q_val_action 2      | 1.56     |
+| q_val_action 3      | 3.35     |
+| td_loss             | 1.05     |
+| training_reward     | 3.77     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.241    |
+| action_prob 1       | 0.157    |
+| action_prob 2       | 0.127    |
+| action_prob 3       | 0.474    |
+| current_exploration | 0.432    |
+| episode_length      | 271      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.118    |
+| frame_number        | 6.81e+05 |
+| q_val_action 0      | 2.59     |
+| q_val_action 1      | 2.17     |
+| q_val_action 2      | 1.95     |
+| q_val_action 3      | 3.27     |
+| td_loss             | 1.05     |
+| training_reward     | 4.06     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.255    |
+| action_prob 1       | 0.204    |
+| action_prob 2       | 0.13     |
+| action_prob 3       | 0.411    |
+| current_exploration | 0.427    |
+| episode_length      | 275      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.102    |
+| frame_number        | 6.87e+05 |
+| q_val_action 0      | 2.5      |
+| q_val_action 1      | 2.28     |
+| q_val_action 2      | 1.83     |
+| q_val_action 3      | 2.98     |
+| td_loss             | 1.05     |
+| training_reward     | 4.11     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.26     |
+| action_prob 1       | 0.22     |
+| action_prob 2       | 0.114    |
+| action_prob 3       | 0.405    |
+| current_exploration | 0.422    |
+| episode_length      | 276      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.1      |
+| frame_number        | 6.92e+05 |
+| q_val_action 0      | 2.48     |
+| q_val_action 1      | 2.31     |
+| q_val_action 2      | 1.66     |
+| q_val_action 3      | 2.92     |
+| td_loss             | 1.04     |
+| training_reward     | 4.12     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.234    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.144    |
+| action_prob 3       | 0.381    |
+| current_exploration | 0.417    |
+| episode_length      | 277      |
+| evaluation_reward   | 8        |
+| expert_loss         | 0.109    |
+| frame_number        | 6.98e+05 |
+| q_val_action 0      | 2.27     |
+| q_val_action 1      | 2.3      |
+| q_val_action 2      | 1.79     |
+| q_val_action 3      | 2.76     |
+| td_loss             | 1.05     |
+| training_reward     | 4.17     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.201    |
+| action_prob 1       | 0.185    |
+| action_prob 2       | 0.136    |
+| action_prob 3       | 0.477    |
+| current_exploration | 0.412    |
+| episode_length      | 275      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.0892   |
+| frame_number        | 7.03e+05 |
+| q_val_action 0      | 2.36     |
+| q_val_action 1      | 2.28     |
+| q_val_action 2      | 1.97     |
+| q_val_action 3      | 3.22     |
+| td_loss             | 1.04     |
+| training_reward     | 4.15     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.136    |
+| action_prob 3       | 0.385    |
+| current_exploration | 0.407    |
+| episode_length      | 278      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.105    |
+| frame_number        | 7.09e+05 |
+| q_val_action 0      | 2.36     |
+| q_val_action 1      | 2.37     |
+| q_val_action 2      | 1.81     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.04     |
+| training_reward     | 4.28     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.25     |
+| action_prob 1       | 0.182    |
+| action_prob 2       | 0.201    |
+| action_prob 3       | 0.368    |
+| current_exploration | 0.402    |
+| episode_length      | 279      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.109    |
+| frame_number        | 7.15e+05 |
+| q_val_action 0      | 2.27     |
+| q_val_action 1      | 1.95     |
+| q_val_action 2      | 2.05     |
+| q_val_action 3      | 2.65     |
+| td_loss             | 1.05     |
+| training_reward     | 4.3      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.202    |
+| action_prob 2       | 0.151    |
+| action_prob 3       | 0.409    |
+| current_exploration | 0.397    |
+| episode_length      | 280      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.114    |
+| frame_number        | 7.21e+05 |
+| q_val_action 0      | 2.27     |
+| q_val_action 1      | 2.1      |
+| q_val_action 2      | 1.81     |
+| q_val_action 3      | 2.81     |
+| td_loss             | 1.05     |
+| training_reward     | 4.45     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.253    |
+| action_prob 1       | 0.183    |
+| action_prob 2       | 0.162    |
+| action_prob 3       | 0.402    |
+| current_exploration | 0.392    |
+| episode_length      | 276      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.11     |
+| frame_number        | 7.26e+05 |
+| q_val_action 0      | 2.49     |
+| q_val_action 1      | 2.16     |
+| q_val_action 2      | 2.04     |
+| q_val_action 3      | 2.95     |
+| td_loss             | 1.04     |
+| training_reward     | 4.38     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.226    |
+| action_prob 1       | 0.183    |
+| action_prob 2       | 0.196    |
+| action_prob 3       | 0.395    |
+| current_exploration | 0.387    |
+| episode_length      | 274      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.0805   |
+| frame_number        | 7.31e+05 |
+| q_val_action 0      | 2.35     |
+| q_val_action 1      | 2.14     |
+| q_val_action 2      | 2.2      |
+| q_val_action 3      | 2.9      |
+| td_loss             | 1.05     |
+| training_reward     | 4.24     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.214    |
+| action_prob 1       | 0.272    |
+| action_prob 2       | 0.19     |
+| action_prob 3       | 0.324    |
+| current_exploration | 0.382    |
+| episode_length      | 270      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.0996   |
+| frame_number        | 7.36e+05 |
+| q_val_action 0      | 2.43     |
+| q_val_action 1      | 2.66     |
+| q_val_action 2      | 2.31     |
+| q_val_action 3      | 2.84     |
+| td_loss             | 1.04     |
+| training_reward     | 4.05     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.211    |
+| action_prob 2       | 0.132    |
+| action_prob 3       | 0.419    |
+| current_exploration | 0.377    |
+| episode_length      | 272      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.0991   |
+| frame_number        | 7.42e+05 |
+| q_val_action 0      | 2.64     |
+| q_val_action 1      | 2.52     |
+| q_val_action 2      | 2.05     |
+| q_val_action 3      | 3.21     |
+| td_loss             | 1.05     |
+| training_reward     | 4.11     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.231    |
+| action_prob 2       | 0.152    |
+| action_prob 3       | 0.379    |
+| current_exploration | 0.372    |
+| episode_length      | 272      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.113    |
+| frame_number        | 7.48e+05 |
+| q_val_action 0      | 2.57     |
+| q_val_action 1      | 2.54     |
+| q_val_action 2      | 2.12     |
+| q_val_action 3      | 3.04     |
+| td_loss             | 1.04     |
+| training_reward     | 4        |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.255    |
+| action_prob 1       | 0.239    |
+| action_prob 2       | 0.127    |
+| action_prob 3       | 0.38     |
+| current_exploration | 0.367    |
+| episode_length      | 281      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.11     |
+| frame_number        | 7.54e+05 |
+| q_val_action 0      | 2.53     |
+| q_val_action 1      | 2.47     |
+| q_val_action 2      | 1.83     |
+| q_val_action 3      | 2.93     |
+| td_loss             | 1.06     |
+| training_reward     | 4.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.247    |
+| action_prob 1       | 0.17     |
+| action_prob 2       | 0.131    |
+| action_prob 3       | 0.452    |
+| current_exploration | 0.362    |
+| episode_length      | 283      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.0868   |
+| frame_number        | 7.59e+05 |
+| q_val_action 0      | 2.8      |
+| q_val_action 1      | 2.42     |
+| q_val_action 2      | 2.16     |
+| q_val_action 3      | 3.4      |
+| td_loss             | 1.05     |
+| training_reward     | 4.37     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.251    |
+| action_prob 1       | 0.207    |
+| action_prob 2       | 0.165    |
+| action_prob 3       | 0.377    |
+| current_exploration | 0.356    |
+| episode_length      | 288      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.107    |
+| frame_number        | 7.65e+05 |
+| q_val_action 0      | 2.8      |
+| q_val_action 1      | 2.6      |
+| q_val_action 2      | 2.38     |
+| q_val_action 3      | 3.2      |
+| td_loss             | 1.05     |
+| training_reward     | 4.46     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.228    |
+| action_prob 1       | 0.234    |
+| action_prob 2       | 0.133    |
+| action_prob 3       | 0.406    |
+| current_exploration | 0.352    |
+| episode_length      | 284      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.103    |
+| frame_number        | 7.71e+05 |
+| q_val_action 0      | 2.85     |
+| q_val_action 1      | 2.88     |
+| q_val_action 2      | 2.31     |
+| q_val_action 3      | 3.43     |
+| td_loss             | 1.05     |
+| training_reward     | 4.39     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.237    |
+| action_prob 1       | 0.289    |
+| action_prob 2       | 0.15     |
+| action_prob 3       | 0.324    |
+| current_exploration | 0.347    |
+| episode_length      | 282      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.139    |
+| frame_number        | 7.76e+05 |
+| q_val_action 0      | 2.87     |
+| q_val_action 1      | 3.06     |
+| q_val_action 2      | 2.41     |
+| q_val_action 3      | 3.18     |
+| td_loss             | 1.05     |
+| training_reward     | 4.42     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.255    |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.199    |
+| action_prob 3       | 0.309    |
+| current_exploration | 0.341    |
+| episode_length      | 281      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.126    |
+| frame_number        | 7.82e+05 |
+| q_val_action 0      | 2.94     |
+| q_val_action 1      | 2.87     |
+| q_val_action 2      | 2.7      |
+| q_val_action 3      | 3.13     |
+| td_loss             | 1.04     |
+| training_reward     | 4.33     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.245    |
+| action_prob 1       | 0.251    |
+| action_prob 2       | 0.211    |
+| action_prob 3       | 0.293    |
+| current_exploration | 0.336    |
+| episode_length      | 288      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.137    |
+| frame_number        | 7.88e+05 |
+| q_val_action 0      | 2.86     |
+| q_val_action 1      | 2.89     |
+| q_val_action 2      | 2.72     |
+| q_val_action 3      | 3.04     |
+| td_loss             | 1.05     |
+| training_reward     | 4.45     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.217    |
+| action_prob 1       | 0.246    |
+| action_prob 2       | 0.19     |
+| action_prob 3       | 0.347    |
+| current_exploration | 0.331    |
+| episode_length      | 282      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.113    |
+| frame_number        | 7.93e+05 |
+| q_val_action 0      | 2.52     |
+| q_val_action 1      | 2.65     |
+| q_val_action 2      | 2.39     |
+| q_val_action 3      | 2.99     |
+| td_loss             | 1.04     |
+| training_reward     | 4.27     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.2      |
+| action_prob 1       | 0.26     |
+| action_prob 2       | 0.175    |
+| action_prob 3       | 0.365    |
+| current_exploration | 0.325    |
+| episode_length      | 289      |
+| evaluation_reward   | 3        |
+| expert_loss         | 0.13     |
+| frame_number        | 7.99e+05 |
+| q_val_action 0      | 2.61     |
+| q_val_action 1      | 2.87     |
+| q_val_action 2      | 2.48     |
+| q_val_action 3      | 3.21     |
+| td_loss             | 1.05     |
+| training_reward     | 4.49     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.219    |
+| action_prob 1       | 0.258    |
+| action_prob 2       | 0.197    |
+| action_prob 3       | 0.326    |
+| current_exploration | 0.32     |
+| episode_length      | 293      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.109    |
+| frame_number        | 8.05e+05 |
+| q_val_action 0      | 2.65     |
+| q_val_action 1      | 2.81     |
+| q_val_action 2      | 2.54     |
+| q_val_action 3      | 3.04     |
+| td_loss             | 1.06     |
+| training_reward     | 4.57     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.234    |
+| action_prob 1       | 0.243    |
+| action_prob 2       | 0.147    |
+| action_prob 3       | 0.376    |
+| current_exploration | 0.315    |
+| episode_length      | 295      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.106    |
+| frame_number        | 8.11e+05 |
+| q_val_action 0      | 2.37     |
+| q_val_action 1      | 2.41     |
+| q_val_action 2      | 1.91     |
+| q_val_action 3      | 2.85     |
+| td_loss             | 1.05     |
+| training_reward     | 4.72     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.24     |
+| action_prob 1       | 0.245    |
+| action_prob 2       | 0.198    |
+| action_prob 3       | 0.316    |
+| current_exploration | 0.309    |
+| episode_length      | 297      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0807   |
+| frame_number        | 8.17e+05 |
+| q_val_action 0      | 2.46     |
+| q_val_action 1      | 2.48     |
+| q_val_action 2      | 2.27     |
+| q_val_action 3      | 2.73     |
+| td_loss             | 1.05     |
+| training_reward     | 4.81     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.256    |
+| action_prob 1       | 0.251    |
+| action_prob 2       | 0.147    |
+| action_prob 3       | 0.346    |
+| current_exploration | 0.304    |
+| episode_length      | 296      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0832   |
+| frame_number        | 8.23e+05 |
+| q_val_action 0      | 2.63     |
+| q_val_action 1      | 2.61     |
+| q_val_action 2      | 2.08     |
+| q_val_action 3      | 2.94     |
+| td_loss             | 1.05     |
+| training_reward     | 4.94     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.193    |
+| action_prob 1       | 0.258    |
+| action_prob 2       | 0.124    |
+| action_prob 3       | 0.425    |
+| current_exploration | 0.299    |
+| episode_length      | 290      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0853   |
+| frame_number        | 8.28e+05 |
+| q_val_action 0      | 2.51     |
+| q_val_action 1      | 2.79     |
+| q_val_action 2      | 2.06     |
+| q_val_action 3      | 3.29     |
+| td_loss             | 1.05     |
+| training_reward     | 4.83     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.199    |
+| action_prob 1       | 0.268    |
+| action_prob 2       | 0.161    |
+| action_prob 3       | 0.372    |
+| current_exploration | 0.294    |
+| episode_length      | 295      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0958   |
+| frame_number        | 8.35e+05 |
+| q_val_action 0      | 2.54     |
+| q_val_action 1      | 2.84     |
+| q_val_action 2      | 2.33     |
+| q_val_action 3      | 3.17     |
+| td_loss             | 1.05     |
+| training_reward     | 5        |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.18     |
+| action_prob 1       | 0.262    |
+| action_prob 2       | 0.134    |
+| action_prob 3       | 0.424    |
+| current_exploration | 0.288    |
+| episode_length      | 292      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0748   |
+| frame_number        | 8.41e+05 |
+| q_val_action 0      | 2.5      |
+| q_val_action 1      | 2.88     |
+| q_val_action 2      | 2.21     |
+| q_val_action 3      | 3.36     |
+| td_loss             | 1.04     |
+| training_reward     | 4.78     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.194    |
+| action_prob 1       | 0.257    |
+| action_prob 2       | 0.188    |
+| action_prob 3       | 0.361    |
+| current_exploration | 0.283    |
+| episode_length      | 290      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0691   |
+| frame_number        | 8.46e+05 |
+| q_val_action 0      | 2.49     |
+| q_val_action 1      | 2.77     |
+| q_val_action 2      | 2.46     |
+| q_val_action 3      | 3.11     |
+| td_loss             | 1.05     |
+| training_reward     | 4.83     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.189    |
+| action_prob 1       | 0.272    |
+| action_prob 2       | 0.125    |
+| action_prob 3       | 0.414    |
+| current_exploration | 0.278    |
+| episode_length      | 295      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0728   |
+| frame_number        | 8.52e+05 |
+| q_val_action 0      | 2.7      |
+| q_val_action 1      | 3.06     |
+| q_val_action 2      | 2.29     |
+| q_val_action 3      | 3.48     |
+| td_loss             | 1.05     |
+| training_reward     | 4.86     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.218    |
+| action_prob 1       | 0.27     |
+| action_prob 2       | 0.121    |
+| action_prob 3       | 0.391    |
+| current_exploration | 0.273    |
+| episode_length      | 297      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0755   |
+| frame_number        | 8.58e+05 |
+| q_val_action 0      | 2.81     |
+| q_val_action 1      | 3.02     |
+| q_val_action 2      | 2.22     |
+| q_val_action 3      | 3.39     |
+| td_loss             | 1.04     |
+| training_reward     | 4.76     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.216    |
+| action_prob 1       | 0.264    |
+| action_prob 2       | 0.164    |
+| action_prob 3       | 0.356    |
+| current_exploration | 0.267    |
+| episode_length      | 297      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0869   |
+| frame_number        | 8.64e+05 |
+| q_val_action 0      | 2.81     |
+| q_val_action 1      | 3.01     |
+| q_val_action 2      | 2.54     |
+| q_val_action 3      | 3.31     |
+| td_loss             | 1.05     |
+| training_reward     | 4.82     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.209    |
+| action_prob 1       | 0.232    |
+| action_prob 2       | 0.16     |
+| action_prob 3       | 0.399    |
+| current_exploration | 0.261    |
+| episode_length      | 300      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0861   |
+| frame_number        | 8.71e+05 |
+| q_val_action 0      | 3.04     |
+| q_val_action 1      | 3.14     |
+| q_val_action 2      | 2.78     |
+| q_val_action 3      | 3.69     |
+| td_loss             | 1.05     |
+| training_reward     | 5.04     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.275    |
+| action_prob 1       | 0.196    |
+| action_prob 2       | 0.151    |
+| action_prob 3       | 0.379    |
+| current_exploration | 0.256    |
+| episode_length      | 306      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0667   |
+| frame_number        | 8.77e+05 |
+| q_val_action 0      | 3.09     |
+| q_val_action 1      | 2.75     |
+| q_val_action 2      | 2.49     |
+| q_val_action 3      | 3.41     |
+| td_loss             | 1.05     |
+| training_reward     | 5.07     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.213    |
+| action_prob 1       | 0.239    |
+| action_prob 2       | 0.2      |
+| action_prob 3       | 0.348    |
+| current_exploration | 0.25     |
+| episode_length      | 307      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0805   |
+| frame_number        | 8.83e+05 |
+| q_val_action 0      | 3.06     |
+| q_val_action 1      | 3.18     |
+| q_val_action 2      | 3        |
+| q_val_action 3      | 3.55     |
+| td_loss             | 1.06     |
+| training_reward     | 5.11     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.213    |
+| action_prob 1       | 0.241    |
+| action_prob 2       | 0.2      |
+| action_prob 3       | 0.345    |
+| current_exploration | 0.245    |
+| episode_length      | 307      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0991   |
+| frame_number        | 8.89e+05 |
+| q_val_action 0      | 3.15     |
+| q_val_action 1      | 3.27     |
+| q_val_action 2      | 3.08     |
+| q_val_action 3      | 3.63     |
+| td_loss             | 1.06     |
+| training_reward     | 5.24     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.204    |
+| action_prob 1       | 0.268    |
+| action_prob 2       | 0.177    |
+| action_prob 3       | 0.351    |
+| current_exploration | 0.24     |
+| episode_length      | 304      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0751   |
+| frame_number        | 8.95e+05 |
+| q_val_action 0      | 3.12     |
+| q_val_action 1      | 3.39     |
+| q_val_action 2      | 2.98     |
+| q_val_action 3      | 3.66     |
+| td_loss             | 1.06     |
+| training_reward     | 5.07     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.223    |
+| action_prob 1       | 0.224    |
+| action_prob 2       | 0.158    |
+| action_prob 3       | 0.395    |
+| current_exploration | 0.234    |
+| episode_length      | 302      |
+| evaluation_reward   | 12       |
+| expert_loss         | 0.0929   |
+| frame_number        | 9.01e+05 |
+| q_val_action 0      | 3.25     |
+| q_val_action 1      | 3.26     |
+| q_val_action 2      | 2.91     |
+| q_val_action 3      | 3.82     |
+| td_loss             | 1.06     |
+| training_reward     | 4.97     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.213    |
+| action_prob 1       | 0.192    |
+| action_prob 2       | 0.201    |
+| action_prob 3       | 0.394    |
+| current_exploration | 0.228    |
+| episode_length      | 303      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0995   |
+| frame_number        | 9.07e+05 |
+| q_val_action 0      | 2.99     |
+| q_val_action 1      | 2.88     |
+| q_val_action 2      | 2.93     |
+| q_val_action 3      | 3.6      |
+| td_loss             | 1.07     |
+| training_reward     | 5.16     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.24     |
+| action_prob 2       | 0.169    |
+| action_prob 3       | 0.362    |
+| current_exploration | 0.223    |
+| episode_length      | 301      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0764   |
+| frame_number        | 9.13e+05 |
+| q_val_action 0      | 2.89     |
+| q_val_action 1      | 2.93     |
+| q_val_action 2      | 2.58     |
+| q_val_action 3      | 3.34     |
+| td_loss             | 1.06     |
+| training_reward     | 5.04     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.191    |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.172    |
+| action_prob 3       | 0.401    |
+| current_exploration | 0.217    |
+| episode_length      | 306      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0954   |
+| frame_number        | 9.19e+05 |
+| q_val_action 0      | 2.71     |
+| q_val_action 1      | 2.92     |
+| q_val_action 2      | 2.61     |
+| q_val_action 3      | 3.45     |
+| td_loss             | 1.06     |
+| training_reward     | 5.13     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.21     |
+| action_prob 1       | 0.239    |
+| action_prob 2       | 0.228    |
+| action_prob 3       | 0.323    |
+| current_exploration | 0.212    |
+| episode_length      | 309      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0952   |
+| frame_number        | 9.26e+05 |
+| q_val_action 0      | 2.94     |
+| q_val_action 1      | 3.08     |
+| q_val_action 2      | 3.03     |
+| q_val_action 3      | 3.38     |
+| td_loss             | 1.07     |
+| training_reward     | 5.3      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.243    |
+| action_prob 1       | 0.23     |
+| action_prob 2       | 0.198    |
+| action_prob 3       | 0.329    |
+| current_exploration | 0.206    |
+| episode_length      | 319      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.108    |
+| frame_number        | 9.33e+05 |
+| q_val_action 0      | 3.16     |
+| q_val_action 1      | 3.11     |
+| q_val_action 2      | 2.96     |
+| q_val_action 3      | 3.46     |
+| td_loss             | 1.07     |
+| training_reward     | 5.53     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.225    |
+| action_prob 1       | 0.244    |
+| action_prob 2       | 0.219    |
+| action_prob 3       | 0.311    |
+| current_exploration | 0.2      |
+| episode_length      | 311      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0881   |
+| frame_number        | 9.38e+05 |
+| q_val_action 0      | 3.14     |
+| q_val_action 1      | 3.22     |
+| q_val_action 2      | 3.11     |
+| q_val_action 3      | 3.46     |
+| td_loss             | 1.08     |
+| training_reward     | 5.4      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.204    |
+| action_prob 1       | 0.299    |
+| action_prob 2       | 0.153    |
+| action_prob 3       | 0.344    |
+| current_exploration | 0.195    |
+| episode_length      | 311      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0855   |
+| frame_number        | 9.44e+05 |
+| q_val_action 0      | 2.81     |
+| q_val_action 1      | 3.2      |
+| q_val_action 2      | 2.53     |
+| q_val_action 3      | 3.34     |
+| td_loss             | 1.07     |
+| training_reward     | 5.48     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.191    |
+| action_prob 1       | 0.284    |
+| action_prob 2       | 0.155    |
+| action_prob 3       | 0.37     |
+| current_exploration | 0.19     |
+| episode_length      | 311      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0857   |
+| frame_number        | 9.51e+05 |
+| q_val_action 0      | 2.85     |
+| q_val_action 1      | 3.25     |
+| q_val_action 2      | 2.64     |
+| q_val_action 3      | 3.51     |
+| td_loss             | 1.07     |
+| training_reward     | 5.34     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.214    |
+| action_prob 1       | 0.199    |
+| action_prob 2       | 0.262    |
+| action_prob 3       | 0.324    |
+| current_exploration | 0.184    |
+| episode_length      | 310      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.081    |
+| frame_number        | 9.57e+05 |
+| q_val_action 0      | 3.08     |
+| q_val_action 1      | 3.01     |
+| q_val_action 2      | 3.29     |
+| q_val_action 3      | 3.5      |
+| td_loss             | 1.06     |
+| training_reward     | 5.3      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.238    |
+| action_prob 1       | 0.228    |
+| action_prob 2       | 0.202    |
+| action_prob 3       | 0.332    |
+| current_exploration | 0.179    |
+| episode_length      | 298      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0658   |
+| frame_number        | 9.62e+05 |
+| q_val_action 0      | 3.18     |
+| q_val_action 1      | 3.13     |
+| q_val_action 2      | 3.01     |
+| q_val_action 3      | 3.51     |
+| td_loss             | 1.07     |
+| training_reward     | 5.06     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.26     |
+| action_prob 1       | 0.21     |
+| action_prob 2       | 0.203    |
+| action_prob 3       | 0.327    |
+| current_exploration | 0.173    |
+| episode_length      | 304      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0974   |
+| frame_number        | 9.69e+05 |
+| q_val_action 0      | 3.16     |
+| q_val_action 1      | 2.94     |
+| q_val_action 2      | 2.91     |
+| q_val_action 3      | 3.39     |
+| td_loss             | 1.07     |
+| training_reward     | 5.04     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.228    |
+| action_prob 1       | 0.23     |
+| action_prob 2       | 0.212    |
+| action_prob 3       | 0.329    |
+| current_exploration | 0.167    |
+| episode_length      | 317      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0844   |
+| frame_number        | 9.76e+05 |
+| q_val_action 0      | 2.86     |
+| q_val_action 1      | 2.87     |
+| q_val_action 2      | 2.79     |
+| q_val_action 3      | 3.23     |
+| td_loss             | 1.06     |
+| training_reward     | 5.2      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.255    |
+| action_prob 2       | 0.189    |
+| action_prob 3       | 0.323    |
+| current_exploration | 0.161    |
+| episode_length      | 317      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0813   |
+| frame_number        | 9.82e+05 |
+| q_val_action 0      | 2.94     |
+| q_val_action 1      | 3.03     |
+| q_val_action 2      | 2.73     |
+| q_val_action 3      | 3.27     |
+| td_loss             | 1.07     |
+| training_reward     | 5.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.237    |
+| action_prob 1       | 0.239    |
+| action_prob 2       | 0.167    |
+| action_prob 3       | 0.358    |
+| current_exploration | 0.155    |
+| episode_length      | 316      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0859   |
+| frame_number        | 9.88e+05 |
+| q_val_action 0      | 2.87     |
+| q_val_action 1      | 2.88     |
+| q_val_action 2      | 2.52     |
+| q_val_action 3      | 3.29     |
+| td_loss             | 1.06     |
+| training_reward     | 5.25     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.259    |
+| action_prob 1       | 0.235    |
+| action_prob 2       | 0.19     |
+| action_prob 3       | 0.315    |
+| current_exploration | 0.15     |
+| episode_length      | 325      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0877   |
+| frame_number        | 9.95e+05 |
+| q_val_action 0      | 2.99     |
+| q_val_action 1      | 2.89     |
+| q_val_action 2      | 2.68     |
+| q_val_action 3      | 3.18     |
+| td_loss             | 1.07     |
+| training_reward     | 5.46     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.253    |
+| action_prob 1       | 0.224    |
+| action_prob 2       | 0.215    |
+| action_prob 3       | 0.307    |
+| current_exploration | 0.144    |
+| episode_length      | 321      |
+| evaluation_reward   | 51       |
+| expert_loss         | 0.0781   |
+| frame_number        | 1e+06    |
+| q_val_action 0      | 2.97     |
+| q_val_action 1      | 2.85     |
+| q_val_action 2      | 2.81     |
+| q_val_action 3      | 3.17     |
+| td_loss             | 1.06     |
+| training_reward     | 5.33     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.236    |
+| action_prob 2       | 0.168    |
+| action_prob 3       | 0.366    |
+| current_exploration | 0.138    |
+| episode_length      | 316      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0958   |
+| frame_number        | 1.01e+06 |
+| q_val_action 0      | 2.86     |
+| q_val_action 1      | 2.89     |
+| q_val_action 2      | 2.56     |
+| q_val_action 3      | 3.33     |
+| td_loss             | 1.05     |
+| training_reward     | 5.33     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.258    |
+| action_prob 1       | 0.27     |
+| action_prob 2       | 0.201    |
+| action_prob 3       | 0.271    |
+| current_exploration | 0.133    |
+| episode_length      | 314      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0806   |
+| frame_number        | 1.01e+06 |
+| q_val_action 0      | 2.85     |
+| q_val_action 1      | 2.9      |
+| q_val_action 2      | 2.6      |
+| q_val_action 3      | 2.9      |
+| td_loss             | 1.07     |
+| training_reward     | 5.26     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.252    |
+| action_prob 1       | 0.244    |
+| action_prob 2       | 0.155    |
+| action_prob 3       | 0.349    |
+| current_exploration | 0.127    |
+| episode_length      | 320      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0767   |
+| frame_number        | 1.02e+06 |
+| q_val_action 0      | 2.99     |
+| q_val_action 1      | 2.96     |
+| q_val_action 2      | 2.51     |
+| q_val_action 3      | 3.32     |
+| td_loss             | 1.06     |
+| training_reward     | 5.29     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.235    |
+| action_prob 2       | 0.158    |
+| action_prob 3       | 0.378    |
+| current_exploration | 0.121    |
+| episode_length      | 318      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0806   |
+| frame_number        | 1.03e+06 |
+| q_val_action 0      | 2.95     |
+| q_val_action 1      | 2.98     |
+| q_val_action 2      | 2.58     |
+| q_val_action 3      | 3.45     |
+| td_loss             | 1.07     |
+| training_reward     | 5.2      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.233    |
+| action_prob 1       | 0.253    |
+| action_prob 2       | 0.151    |
+| action_prob 3       | 0.363    |
+| current_exploration | 0.115    |
+| episode_length      | 319      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0848   |
+| frame_number        | 1.03e+06 |
+| q_val_action 0      | 3.14     |
+| q_val_action 1      | 3.22     |
+| q_val_action 2      | 2.7      |
+| q_val_action 3      | 3.58     |
+| td_loss             | 1.06     |
+| training_reward     | 5.23     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.235    |
+| action_prob 1       | 0.205    |
+| action_prob 2       | 0.206    |
+| action_prob 3       | 0.354    |
+| current_exploration | 0.109    |
+| episode_length      | 331      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0968   |
+| frame_number        | 1.04e+06 |
+| q_val_action 0      | 2.9      |
+| q_val_action 1      | 2.76     |
+| q_val_action 2      | 2.77     |
+| q_val_action 3      | 3.31     |
+| td_loss             | 1.07     |
+| training_reward     | 5.38     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.229    |
+| action_prob 1       | 0.225    |
+| action_prob 2       | 0.175    |
+| action_prob 3       | 0.37     |
+| current_exploration | 0.102    |
+| episode_length      | 341      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0774   |
+| frame_number        | 1.05e+06 |
+| q_val_action 0      | 3.28     |
+| q_val_action 1      | 3.27     |
+| q_val_action 2      | 3.02     |
+| q_val_action 3      | 3.76     |
+| td_loss             | 1.07     |
+| training_reward     | 5.8      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.228    |
+| action_prob 1       | 0.246    |
+| action_prob 2       | 0.156    |
+| action_prob 3       | 0.37     |
+| current_exploration | 0.1      |
+| episode_length      | 349      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.102    |
+| frame_number        | 1.06e+06 |
+| q_val_action 0      | 3.14     |
+| q_val_action 1      | 3.21     |
+| q_val_action 2      | 2.76     |
+| q_val_action 3      | 3.62     |
+| td_loss             | 1.06     |
+| training_reward     | 6.12     |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.206    |
+| action_prob 1       | 0.296    |
+| action_prob 2       | 0.162    |
+| action_prob 3       | 0.336    |
+| current_exploration | 0.1      |
+| episode_length      | 352      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0999   |
+| frame_number        | 1.06e+06 |
+| q_val_action 0      | 3.09     |
+| q_val_action 1      | 3.45     |
+| q_val_action 2      | 2.85     |
+| q_val_action 3      | 3.58     |
+| td_loss             | 1.06     |
+| training_reward     | 6.1      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.178    |
+| action_prob 1       | 0.364    |
+| action_prob 2       | 0.175    |
+| action_prob 3       | 0.283    |
+| current_exploration | 0.1      |
+| episode_length      | 366      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0747   |
+| frame_number        | 1.07e+06 |
+| q_val_action 0      | 3.12     |
+| q_val_action 1      | 3.83     |
+| q_val_action 2      | 3.1      |
+| q_val_action 3      | 3.58     |
+| td_loss             | 1.06     |
+| training_reward     | 6.5      |
+----------------------------------
+----------------------------------
+| action_prob 0       | 0.209    |
+| action_prob 1       | 0.276    |
+| action_prob 2       | 0.171    |
+| action_prob 3       | 0.345    |
+| current_exploration | 0.1      |
+| episode_length      | 362      |
+| evaluation_reward   | 2        |
+| expert_loss         | 0.0853   |
+| frame_number        | 1.08e+06 |
+| q_val_action 0      | 3.22     |
+| q_val_action 1      | 3.5      |
+| q_val_action 2      | 3.02     |
+| q_val_action 3      | 3.73     |
+| td_loss             | 1.07     |
+| training_reward     | 6.56     |
+----------------------------------
