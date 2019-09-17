@@ -181,10 +181,11 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     target_q = generated_rewards + (gamma*double_q * (1-generated_terminal_flags))
 
     # Gradient descend step to update the parameters of the main network
-    loss, _ = session.run([main_dqn.loss, main_dqn.update],
-                          feed_dict={main_dqn.input:generated_states,
-                                     main_dqn.target_q:target_q,
-                                     main_dqn.action:generated_actions})
+    for i in range(2):
+        loss, _ = session.run([main_dqn.loss, main_dqn.update],
+                            feed_dict={main_dqn.input:generated_states,
+                                        main_dqn.target_q:target_q,
+                                        main_dqn.action:generated_actions})
 
     expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                  feed_dict={main_dqn.input:expert_states,

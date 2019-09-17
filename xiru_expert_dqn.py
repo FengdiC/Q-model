@@ -27,7 +27,6 @@ def argsparser():
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--checkpoint_file_path', type=str, default='None')
-    parser.add_argument('--special_tag', type=str, default='')
 
     parser.add_argument('--log_dir', help='the directory to save log file', default='logs/')
     parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/')
@@ -41,7 +40,7 @@ def argsparser():
     parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
-    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=6)
+    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
     parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
@@ -449,16 +448,16 @@ def get_minibatch(replay_buff):
     return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
         replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
-def test_q_values(sess, env, action_getter, dqn, input, output, batch_size,threshold_test=0.75):
-    #Test number of states with greater than 75% confidence
-    my_replay_memory = ReplayMemory(size=20000, batch_size=batch_size)  # (★)
+def test_q_values(sess, env, action_getter, input, output, threshold_test=0.9):
+    #Test number of states with greater than 90% confidence
+    my_replay_memory = utils.ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     env.reset(sess)
     accumulated_rewards = 0
     terminal_life_lost = True
     for i in range(20000):
         action = 1 if terminal_life_lost else action_getter.get_action(sess, 1000,
-                                                                        env.state,
-                                                                        dqn,
+                                                                        atari.state,
+                                                                        MAIN_DQN,
                                                                         evaluation=True)        #print("Action: ",action)
         # (5★)
         processed_new_frame, reward, terminal, terminal_life_lost, _ = env.step(sess, action)
@@ -478,7 +477,6 @@ def test_q_values(sess, env, action_getter, dqn, input, output, batch_size,thres
             count += 1
     print("Number of states: ", my_replay_memory.count)
     print("Number of certain actions: ", count)
-    return count/my_replay_memory.count
 
 def sample(args, DQN, name, save=True):
     tf.random.set_random_seed(args.seed)
@@ -535,10 +533,7 @@ def sample(args, DQN, name, save=True):
     sess.run(init)
     important_coef_name = ["num_traj", "seed", "lr"]
     important_coef_var = [args.num_sampled, args.seed, args.lr]
-    if not args.special_tag == "":
-        file_add = args.special_tag + "_"
-    else:
-        file_add = ""
+    file_add = ""
     for i in range(len(important_coef_name)):
         file_add += important_coef_name[i] + "_" + str(important_coef_var[i]) + "_"
     try:
@@ -659,13 +654,9 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
 
     important_coef_name = ["num_traj", "seed", "lr"]
     important_coef_var = [args.num_sampled, args.seed, args.lr]
-    if not args.special_tag == "":
-        file_add = args.special_tag + "_"
-    else:
-        file_add = ""
+    file_add = ""
     for i in range(len(important_coef_name)):
         file_add += important_coef_name[i] + "_" + str(important_coef_var[i]) + "_"
-    
     if expert:
         if args.expert_file_path != "None":
             dataset = pickle.load(open(args.expert_dir + args.expert_file_path + args.expert_file + "_" + str(args.num_sampled), "rb"))
@@ -714,7 +705,6 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
             bc_loss.append(expert_loss)
             if i % (pretrain_iters//4) == 0 and i > 0:
                 print(np.mean(bc_loss[-pretrain_iters//4:]), i)
-                confidence = test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
 
     eval_rewards = [0]
     frame_number = 0
@@ -770,7 +760,7 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
             episode_length_list.append(episode_length)
 
             # Output the progress:
-            if len(rewards) % 25 == 0:
+            if len(rewards) % 20 == 0:
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
@@ -790,10 +780,9 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
                 if expert:
                     if frame_number < REPLAY_MEMORY_START_SIZE:
                         logger.record_tabular("expert_loss", 0)
-                        logger.record_tabular("expert_overconfidence:", confidence)
                     else:
                         logger.record_tabular("expert_loss", np.mean(expert_loss_list[-100:]))
-                        logger.record_tabular("expert_overconfidence:", test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS))
+                        test_q_values(sess, atari, action_getter, DQN.input, DQN.action_prob_expert)
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 logger.dumpkvs()
