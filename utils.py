@@ -812,11 +812,6 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
                 # with other environments, you might want to change this...
                 if terminal_life_lost:
                     action = 1
-                elif args.stochastic_exploration == "True":
-                    action = action_getter.get_stochastic_action(sess,
-                                                            atari.state,
-                                                            MAIN_DQN,
-                                                            evaluation=True)
                 else:
                     action = action_getter.get_action(sess, frame_number,
                                                             atari.state,
