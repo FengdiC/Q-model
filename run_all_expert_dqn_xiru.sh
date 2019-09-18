@@ -1,9 +1,9 @@
 #!/bin/bash
 $special=$1
 declare -a Environments=("BreakoutDeterministic-v4" "SeaquestDeterministic-v4" )
-declare -a Expert=(5 30 150 )
-declare -a bc_lr=(5 30 150 )
-declare -a max_ent_coef=(0.5 1 2 )
+declare -a Expert=(5 150 )
+declare -a bc_lr=(0.001 0.0002 0.00005 )
+declare -a max_ent_coef=(0.5 1 2)
 
 # Iterate the string array using for loop
 for val in ${Environments[@]}; do
