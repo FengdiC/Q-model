@@ -146,7 +146,7 @@ def argsparser():
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.001)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
-    parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
+    parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     return parser.parse_args()
 
 args = argsparser()

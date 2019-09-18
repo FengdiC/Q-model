@@ -50,11 +50,10 @@ def argsparser():
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
 
-
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
-    parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
+    parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     return parser.parse_args()
 
 class Resize:
@@ -360,8 +359,8 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
 class Atari:
     """Wrapper for the environment provided by gym"""
 
-    def __init__(self, envName, stochastic, no_op_steps=10, agent_history_length=4):
-        if stochastic == "True":
+    def __init__(self, envName, stochastic_environment, no_op_steps=10, agent_history_length=4):
+        if stochastic_environment == "True":
             self.env = gym.make(envName, frameskip=[2, 6])
         else:
             self.env = gym.make(envName)
@@ -542,7 +541,7 @@ def sample(args, DQN, name, save=True):
     LEARNING_RATE = args.lr         # Set to 0.00025 in Pong for quicker results.
                                     # Hessel et al. 2017 used 0.0000625
     BS = args.batch_size
-    atari = Atari(args.env_id, args.stochastic, NO_OP_STEPS)
+    atari = Atari(args.env_id, args.stochastic_environment, NO_OP_STEPS)
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
 
@@ -665,7 +664,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                                     # Hessel et al. 2017 used 0.0000625
     BS = args.batch_size
 
-    atari = Atari(args.env_id, args.stochastic, NO_OP_STEPS)
+    atari = Atari(args.env_id, args.stochastic_environment, NO_OP_STEPS)
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     if expert:
