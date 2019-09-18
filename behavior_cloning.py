@@ -55,12 +55,12 @@ class DQN:
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-        self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-        self.d = tf.layers.flatten(self.conv4)
-        self.dense = tf.layers.dense(inputs = self.d,units = 1024,
+        # self.conv4 = tf.layers.conv2d(
+        #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+        #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+        #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+        self.d = tf.layers.flatten(self.conv3)
+        self.dense = tf.layers.dense(inputs = self.d,units = 512,
                                      kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
 
         # Splitting into value and advantage stream
@@ -85,8 +85,8 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        #self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
-        self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
+        #self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob * tf.log(self.action_prob + 0.000001), axis=1))
         self.behavior_cloning_loss += max_ent_coefficient * self.regularization
 
@@ -140,7 +140,7 @@ def argsparser():
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
     parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
-    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=512)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.001)

@@ -73,7 +73,10 @@ class DQN:
                                          axis=1)
         #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
         self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
-        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
+
+        _, self.generated_action_preference = self.build_graph(self.generated_input, hidden, n_actions, reuse=True)
+        self.generated_action_prob = tf.nn.softmax(self.generated_action_preference)
+        self.regularization = tf.reduce_mean(tf.reduce_sum(self.generated_action_prob * tf.log(self.generated_action_prob),axis=1))
         self.behavior_cloning_loss += max_ent_coef * self.regularization
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.bc_learning_rate)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
@@ -101,11 +104,11 @@ class DQN:
                 inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
                 kernel_initializer=tf.variance_scaling_initializer(scale=2),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
-            self.conv4 = tf.layers.conv2d(
-                inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
-            self.d = tf.layers.flatten(self.conv4)
+            # self.conv4 = tf.layers.conv2d(
+            #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
+            self.d = tf.layers.flatten(self.conv3)
             self.dense = tf.layers.dense(inputs = self.d,units = hidden,activation=tf.tanh,
                                          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5", reuse=reuse)
             q_values = tf.layers.dense(
@@ -125,29 +128,27 @@ class DQN:
                 inputs=self.expert_conv2, filters=64, kernel_size=[3, 3], strides=1,
                 kernel_initializer=tf.variance_scaling_initializer(scale=2),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
-            self.expert_conv4 = tf.layers.conv2d(
-                inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
-            self.expert_d = tf.layers.flatten(self.expert_conv4)
+            # self.expert_conv4 = tf.layers.conv2d(
+            #     inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
+            self.expert_d = tf.layers.flatten(self.expert_conv3)
             self.expert_dense = tf.layers.dense(inputs =self.expert_d,units = hidden,activation=tf.tanh,
                                          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5", reuse=reuse)
             action_preference = tf.layers.dense(
                 inputs=self.expert_dense, units=n_actions,activation=tf.identity,
                 kernel_initializer=tf.variance_scaling_initializer(scale=2), name='action_preference', reuse=reuse)
         return q_values, action_preference
-
 def train_bc(session, dataset, replay_dataset, main_dqn, pretrain=False):
     states, actions, _, _, _, weights = utils.get_minibatch(dataset)
     gen_states_1, _, _, _, _ = replay_dataset.get_minibatch() #Generated trajectories
     gen_states_2, _, _, _, _ = replay_dataset.get_minibatch() #Generated trajectories
     gen_states = np.concatenate([gen_states_1, gen_states_2], axis=0)
-    expert_loss, _ = session.run([main_dqn.behavior_cloning_loss, main_dqn.bc_update],
+    expert_loss, reg, _ = session.run([main_dqn.behavior_cloning_loss, main_dqn.action_prob, main_dqn.bc_update],
                               feed_dict={main_dqn.input: states,
                                          main_dqn.expert_action: actions,
                                          main_dqn.expert_weights: weights,
                                          main_dqn.generated_input: gen_states})
-
     return expert_loss
 
 def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
@@ -209,7 +210,7 @@ np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 if args.task == "train":
-    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=60001)
+    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=args.pretrain_bc_iter)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
 elif args.task == "log":

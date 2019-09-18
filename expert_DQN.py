@@ -101,11 +101,11 @@ class DQN:
                 inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
                 kernel_initializer=tf.variance_scaling_initializer(scale=2),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
-            self.conv4 = tf.layers.conv2d(
-                inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
-            self.d = tf.layers.flatten(self.conv4)
+            # self.conv4 = tf.layers.conv2d(
+            #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
+            self.d = tf.layers.flatten(self.conv3)
             self.dense = tf.layers.dense(inputs = self.d,units = hidden,activation=tf.tanh,
                                          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5", reuse=reuse)
             q_values = tf.layers.dense(
@@ -125,11 +125,11 @@ class DQN:
                 inputs=self.expert_conv2, filters=64, kernel_size=[3, 3], strides=1,
                 kernel_initializer=tf.variance_scaling_initializer(scale=2),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3', reuse=reuse)
-            self.expert_conv4 = tf.layers.conv2d(
-                inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
-            self.expert_d = tf.layers.flatten(self.expert_conv4)
+            # self.expert_conv4 = tf.layers.conv2d(
+            #     inputs=self.expert_conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4', reuse=reuse)
+            self.expert_d = tf.layers.flatten(self.expert_conv3)
             self.expert_dense = tf.layers.dense(inputs =self.expert_d,units = hidden,activation=tf.tanh,
                                          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5", reuse=reuse)
             action_preference = tf.layers.dense(
@@ -209,7 +209,7 @@ np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 if args.task == "train":
-    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=60001)
+    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=args.pretrain_bc_iter)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
 elif args.task == "log":

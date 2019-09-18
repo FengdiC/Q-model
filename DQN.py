@@ -55,12 +55,12 @@ class DQN:
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-        self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-        self.d = tf.layers.flatten(self.conv4)
-        self.dense = tf.layers.dense(inputs = self.d,units = 1024,
+        # self.conv4 = tf.layers.conv2d(
+        #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+        #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+        #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+        self.d = tf.layers.flatten(self.conv3)
+        self.dense = tf.layers.dense(inputs = self.d,units = hidden,
                                      kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
 
         # Splitting into value and advantage stream

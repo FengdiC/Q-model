@@ -42,12 +42,13 @@ def argsparser():
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
     parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=6)
-    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
+    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=512)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.001)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
+    parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
 
 
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
@@ -453,7 +454,7 @@ def get_minibatch(replay_buff):
     return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
         replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
-def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_size, num_expert=100):
+def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_size, num_expert=40):
     #Test number of states with greater than 75% confidence
     my_replay_memory = ReplayMemory(size=20000, batch_size=batch_size)  # (★)
     env.reset(sess)
@@ -485,15 +486,16 @@ def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_s
         count += np.max(values[i])
     expert_over_confidence = count/(num_expert * states.shape[0])
     print("Expert Average Max: ", expert_over_confidence)
-
     env.reset(sess)
     count = 0
-    for i in range(my_replay_memory.count):
+    for i in range(math.ceil(my_replay_memory.count//batch_size) * 5):
         states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
         values = sess.run(output, feed_dict={input: states})
-        count += np.max(values)
-    print("Generated Average Max: ", count/my_replay_memory.count)
-    return count/my_replay_memory.count, expert_over_confidence
+        for j in range(values.shape[0]):
+            count += np.max(values[i])
+    generated_over_confidence = math.ceil(my_replay_memory.count//batch_size) * 5
+    print("Generated Average Max: ", generated_over_confidence)
+    return generated_over_confidence, expert_over_confidence
 
 def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args):
     frame_num = 0
