@@ -138,5 +138,7 @@ if args.task == "train":
     utils.train(args, DQN, learn, "dqn")
 elif args.task == "evaluate":
     utils.sample(args, DQN, "dqn", save=False)
+elif args.task == "log":
+    utils.generate_figures("dqn")
 else:
     utils.sample(args, DQN, "dqn")

@@ -144,42 +144,6 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                             main_dqn.target_q:expert_q})
     return loss,expert_loss
 
-import argparse
-
-
-def argsparser():
-    parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_dir', type=str, default='expert_dist_dqn_data/')
-    parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/expert_dist_dqn/')
-    parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/expert_dist_dqn/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/expert_dist_dqn/')
-    parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
-    parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
-    parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=100000)
-    parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=10000)
-    parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
-    parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
-    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
-    parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
-    parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
-    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
-    parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
-    parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
-    parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
-    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.00001)
-    parser.add_argument('--stochastic_exploration', type=str, default="False")
-    parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
-    parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
-    parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
-    parser.add_argument('--load_model_dir', type=str, default='models/')
-    parser.add_argument('--load_expert_data', type=str, default='data/')
-
-    return parser.parse_args()
-
 args = utils.argsparser()
 tf.random.set_random_seed(args.seed)
 np.random.seed(args.seed)
@@ -190,5 +154,7 @@ if args.task == "train":
     utils.train(args, DQN, learn, "basic_fengdi_dist_expert_dqn", expert=True)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "basic_fengdi_dist_expert_dqn", save=False)
+elif args.task == "log":
+    utils.generate_figures("basic_fengdi_dist_expert_dqn")
 else:
     utils.sample(args, DQN, "basic_fengdi_dist_expert_dqn")

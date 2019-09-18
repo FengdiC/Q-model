@@ -70,7 +70,8 @@ class DQN:
         self.expert_prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
+        #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
+        self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
@@ -78,12 +79,6 @@ class DQN:
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
-        # _, self.generated_action_preference = self.build_graph(self.generated_input, hidden, n_actions, reuse=True)
-        # self.action_prob_generated = tf.nn.softmax(self.generated_action_preference)
-        # self.generated_data_loss = tf.reduce_mean(self.action_prob_generated * tf.log(self.action_prob_generated  +0.00001))# + a l2 reg to prevent overtraining too much
-        # self.expert_loss = self.expert_data_loss + self.generated_data_loss
-        # self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        # self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=expert_vars)
 
         self.action_prob = self.action_prob_q
         self.best_action = tf.argmax(self.action_prob, 1)
@@ -181,7 +176,7 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     target_q = generated_rewards + (gamma*double_q * (1-generated_terminal_flags))
 
     # Gradient descend step to update the parameters of the main network
-    for i in range(2):
+    for i in range(1):
         loss, _ = session.run([main_dqn.loss, main_dqn.update],
                             feed_dict={main_dqn.input:generated_states,
                                         main_dqn.target_q:target_q,
@@ -204,5 +199,7 @@ if args.task == "train":
     utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, pretrain=True)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
+elif args.task == "log":
+    utils.generate_figures("expert_dist_dqn")
 else:
     utils.sample(args, DQN, "expert_dist_dqn")

@@ -78,6 +78,7 @@ class DQN:
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.best_action = tf.argmax(self.q_values, 1)
         self.action_prob = tf.nn.softmax(self.q_values)
+        self.action_prob_expert = self.action_prob
 
         self.expert_action = tf.placeholder(shape=[None], dtype =tf.int32)
         self.expert_weights = tf.placeholder(shape=[None], dtype =tf.float32)
@@ -233,6 +234,7 @@ def train(args):
             logger.record_tabular("q_val action {0}".format(i), q_vals[0, i])
         print("Current Frame: ",frame_number)
         print("TD Loss: ", np.mean(loss_list[-100:]))
+        utils.test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
 
         #Evaluation ...
         gif = True

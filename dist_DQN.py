@@ -143,5 +143,7 @@ if args.task == "train":
     utils.train(args, DQN, learn, "dist_dqn")
 elif args.task == "evaluate":
     utils.sample(args, DQN, "dist_dqn", save=False)
+elif args.task == "log":
+    utils.generate_figures("dist_dqn")
 else:
     utils.sample(args, DQN, "dist_dqn")
