@@ -1,5 +1,5 @@
 #!/bin/bash
-$special=$1
+special=$1
 declare -a Environments=("BreakoutDeterministic-v4" "SeaquestDeterministic-v4" )
 declare -a Expert=(5 150 )
 declare -a bc_lr=(0.001 0.0002 0.00005 )
