@@ -18,7 +18,7 @@ class DQN:
     """Implements a Deep Q Network"""
 
     def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001,
-                 frame_height=84, frame_width=84, agent_history_length=4):
+                 frame_height=84, frame_width=84, agent_history_length=4, max_ent_coefficient=1.0):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -85,10 +85,13 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
-        #self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        #self.loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
+        self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob * tf.log(self.action_prob + 0.000001), axis=1))
+        self.behavior_cloning_loss += max_ent_coefficient * self.regularization
+
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.update = self.optimizer.minimize(self.loss)
+        self.update = self.optimizer.minimize(self.behavior_cloning_loss)
 
 
 def learn(session, dataset, main_dqn, target_dqn, batch_size, gamma):
@@ -110,7 +113,7 @@ def learn(session, dataset, main_dqn, target_dqn, batch_size, gamma):
     #max_val = np.max(dataset.reward_per_mini_batch)
     states, actions, _, _, _, weights = utils.get_minibatch(dataset)
     #weights = np.copy(weights)/max_val
-    loss, _ = session.run([main_dqn.loss, main_dqn.update],
+    loss, _ = session.run([main_dqn.behavior_cloning_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.expert_action:actions,
                                      main_dqn.expert_weights:weights})
@@ -140,7 +143,7 @@ def argsparser():
     parser.add_argument('--hidden', type=int, help='Max Episode Length', default=1024)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
-    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.001)
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic', type=str, choices=['True', 'False'], default='True')
@@ -232,9 +235,9 @@ def train(args):
         q_vals = sess.run(MAIN_DQN.action_prob, feed_dict={MAIN_DQN.input: fixed_state})
         for i in range(atari.env.action_space.n):
             logger.record_tabular("q_val action {0}".format(i), q_vals[0, i])
+        utils.test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
         print("Current Frame: ",frame_number)
         print("TD Loss: ", np.mean(loss_list[-100:]))
-        utils.test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
 
         #Evaluation ...
         gif = True

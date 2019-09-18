@@ -16,7 +16,7 @@ import utils
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma =0.99,
+    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, bc_learning_rate=0.001, max_ent_coef=1.0, gamma =0.99,
                          frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
@@ -31,6 +31,7 @@ class DQN:
         self.n_actions = n_actions
         self.hidden = hidden
         self.learning_rate = learning_rate
+        self.bc_learning_rate = bc_learning_rate
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
@@ -72,9 +73,12 @@ class DQN:
                                          axis=1)
         #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
         self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
-        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
-        self.behavior_cloning_loss += self.regularization
-        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert + 0.000001), axis=1))
+        self.behavior_cloning_loss += max_ent_coef * self.regularization
+
+        #self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
+        #self.behavior_cloning_loss += self.regularization
+        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.bc_learning_rate)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
         self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
@@ -208,7 +212,7 @@ np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 if args.task == "train":
-    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=20001)
+    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=60001)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
 elif args.task == "log":

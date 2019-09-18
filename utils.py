@@ -46,6 +46,10 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
+    parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.001)
+    parser.add_argument('--mat_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
+
+
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
@@ -475,12 +479,12 @@ def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_s
     for i in range(num_expert):
         states, actions, rewards, new_states, terminal_flags = dataset.get_minibatch()
         states_list.append(states)
-    states = np.concatenate(states_list, axis=0)
-    values = sess.run(output, feed_dict={input: states})
-    for i in range(num_expert):
+    combined_states = np.concatenate(states_list, axis=0)
+    values = sess.run(output, feed_dict={input: combined_states})
+    for i in range(num_expert * states.shape[0]):
         count += np.max(values[i])
-    expert_over_confidence = count/num_expert
-    print("Expert Average Max: ", count/my_replay_memory.count)
+    expert_over_confidence = count/(num_expert * states.shape[0])
+    print("Expert Average Max: ", expert_over_confidence)
 
     env.reset(sess)
     count = 0
@@ -539,6 +543,7 @@ def sample(args, DQN, name, save=True):
     atari = Atari(args.env_id, args.stochastic, NO_OP_STEPS)
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
+
     with tf.variable_scope('mainDQN'):
         MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
     with tf.variable_scope('targetDQN'):
@@ -661,10 +666,16 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     atari = Atari(args.env_id, args.stochastic, NO_OP_STEPS)
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
-    with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
-    with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+    if expert:
+        with tf.variable_scope('mainDQN'):
+            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE, bc_learning_rate=args.lr_bc, max_ent_coef=args.mat_ent_coef_bc)  # (★★)
+        with tf.variable_scope('targetDQN'):
+            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+    else:
+        with tf.variable_scope('mainDQN'):
+            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
+        with tf.variable_scope('targetDQN'):
+            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
