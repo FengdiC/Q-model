@@ -47,7 +47,7 @@ def argsparser():
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.001)
-    parser.add_argument('--mat_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
+    parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
 
 
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
@@ -668,7 +668,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     # main DQN and target DQN networks:
     if expert:
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE, bc_learning_rate=args.lr_bc, max_ent_coef=args.mat_ent_coef_bc)  # (★★)
+            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE, bc_learning_rate=args.lr_bc, max_ent_coef=args.max_ent_coef_bc)  # (★★)
         with tf.variable_scope('targetDQN'):
             TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
     else:
@@ -695,8 +695,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     sess.run(init)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
 
-    important_coef_name = ["num_traj", "seed", "lr"]
-    important_coef_var = [args.num_sampled, args.seed, args.lr]
+    important_coef_name = ["num_traj", "seed", "lr", "lr_bc", "max_ent"]
+    important_coef_var = [args.num_sampled, args.seed, args.lr, args.lr_bc, args.max_ent_coef_bc]
     if not args.special_tag == "":
         file_add = args.special_tag + "_"
     else:
