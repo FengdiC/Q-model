@@ -8,3 +8,5 @@ fi
 echo $test
 echo $what
 echo "please"
+
+python $1

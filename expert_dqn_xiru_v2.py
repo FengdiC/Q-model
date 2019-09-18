@@ -73,9 +73,8 @@ class DQN:
                                          axis=1)
         #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
         self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
-        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=10 * self.learning_rate)
-        #self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
-        #self.behavior_cloning_loss += self.regularization
+        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
+        self.behavior_cloning_loss += max_ent_coef * self.regularization
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.bc_learning_rate)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
