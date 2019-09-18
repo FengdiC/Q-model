@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -a Environments=("BreakoutDeterministic-v4" "AsterixDeterministic-v4" "QbertDeterministic-v4" "SeaquestDeterministic-v4" )
+declare -a Environments=("BreakoutDeterministic-v4" "AsterixDeterministic-v4" "QbertDeterministic-v4" "SeaquestDeterministic-v4" "AsteroidsDeterministic-v4" )
 declare -a Expert=(1 5 30 )
 
 # Iterate the string array using for loop
