@@ -449,7 +449,7 @@ def get_minibatch(replay_buff):
     return np.transpose(replay_buff.states, axes=(0, 2, 3, 1)), replay_buff.actions[replay_buff.indices], replay_buff.rewards[
         replay_buff.indices], np.transpose(replay_buff.new_states, axes=(0, 2, 3, 1)), replay_buff.terminal_flags[replay_buff.indices], replay_buff.reward_weight[replay_buff.indices]
 
-def test_q_values(sess, env, action_getter, dqn, input, output, batch_size,threshold_test=0.75):
+def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_size, num_expert=100):
     #Test number of states with greater than 75% confidence
     my_replay_memory = ReplayMemory(size=20000, batch_size=batch_size)  # (★)
     env.reset(sess)
@@ -469,16 +469,52 @@ def test_q_values(sess, env, action_getter, dqn, input, output, batch_size,thres
         accumulated_rewards += reward
         if terminal:
             break
+    count = 0
+    #Sample random states
+    states_list = []
+    for i in range(num_expert):
+        states, actions, rewards, new_states, terminal_flags = dataset.get_minibatch()
+        states_list.append(states)
+    states = np.concatenate(states_list, axis=0)
+    values = sess.run(output, feed_dict={input: states})
+    for i in range(num_expert):
+        count += np.max(values[i])
+    expert_over_confidence = count/num_expert
+    print("Expert Average Max: ", count/my_replay_memory.count)
+
     env.reset(sess)
     count = 0
     for i in range(my_replay_memory.count):
         states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
         values = sess.run(output, feed_dict={input: states})
-        if np.max(values) >= threshold_test:
-            count += 1
-    print("Number of states: ", my_replay_memory.count)
-    print("Number of certain actions: ", count)
-    return count/my_replay_memory.count
+        count += np.max(values)
+    print("Generated Average Max: ", count/my_replay_memory.count)
+    return count/my_replay_memory.count, expert_over_confidence
+
+def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args):
+    frame_num = 0
+    while frame_num < replay_buf_size:
+        atari.reset(sess)
+        for _ in range(max_eps):
+            # (4★)
+            if args.stochastic_exploration == "True":
+                action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+            else:
+                action = action_getter.get_action(sess, 0, atari.state, MAIN_DQN)
+            # print("Action: ",action)
+            # (5★)
+            processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+            # (7★) Store transition in the replay memory
+            my_replay_memory.add_experience(action=action,
+                                            frame=processed_new_frame[:, :, 0],
+                                            reward=reward,
+                                            terminal=terminal_life_lost)
+            frame_num += 1
+            if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:
+                print(frame_num)
+            if terminal:
+                break
+
 
 def sample(args, DQN, name, save=True):
     tf.random.set_random_seed(args.seed)
@@ -486,21 +522,11 @@ def sample(args, DQN, name, save=True):
     np.random.seed(args.seed)
     # Control parameters
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
-    EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
-    EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
-    NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
-                                    # According to Mnih et al. 2015 this is measured in the number of
-                                    # parameter updates (every four actions), however, in the
-                                    # DeepMind code, it is clearly measured in the number
-                                    # of actions the agent choses
-    DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
                                     # before the agent starts learning
     MAX_FRAMES = args.max_frames            # Total number of frames the agent sees
-    MEMORY_SIZE = args.replay_mem_size            # Number of transitions stored in the replay memory
     NO_OP_STEPS = args.no_op_steps                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                     # evaluation episode
-    UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     HIDDEN = args.hidden                    # Number of filters in the final convolutional layer. The output
                                     # has the shape (1,1,1024) which is split into two streams. Both
                                     # the advantage stream and value stream have the shape
@@ -602,9 +628,10 @@ def sample(args, DQN, name, save=True):
                 break
     print("Average Reward: ", np.mean(reward_list))
     if save:
-        pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"))
+        pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"), protocol=4)
 
-def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=10001):
+
+def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001):
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
@@ -701,25 +728,24 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
     if not os.path.exists(args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs(args.expert_dir + "/" + name + "/" + args.env_id + "/")
 
-    if expert and pretrain:
+    build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
+    frame_number = REPLAY_MEMORY_START_SIZE
+
+    if expert and not bc_training is None:
         #Pretrain system .... 
         bc_loss = []
         print("Pretraining ....")
         for i in tqdm(range(pretrain_iters)):
-            states, actions, _, _, _, weights = get_minibatch(dataset)
-            expert_loss, _ = sess.run([MAIN_DQN.behavior_cloning_loss,MAIN_DQN.bc_update],
-                                feed_dict={MAIN_DQN.input:states,
-                                        MAIN_DQN.expert_action:actions,
-                                        MAIN_DQN.expert_weights:weights})
+            expert_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
             bc_loss.append(expert_loss)
             if i % (pretrain_iters//4) == 0 and i > 0:
                 print(np.mean(bc_loss[-pretrain_iters//4:]), i)
-                confidence = test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
+                test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
 
     eval_rewards = [0]
-    frame_number = 0
     rewards = []
     loss_list = []
+    bc_loss_list = []
     expert_loss_list = []
     episode_length_list = []
     epoch = 0
@@ -753,6 +779,8 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
 
                 if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                     if expert:
+                        bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
+                        bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
                                     BS, gamma=DISCOUNT_FACTOR)  # (8★)
                         expert_loss_list.append(expert_loss)
@@ -790,10 +818,15 @@ def train(args, DQN, learn, name, expert=False, pretrain=False, pretrain_iters=1
                 if expert:
                     if frame_number < REPLAY_MEMORY_START_SIZE:
                         logger.record_tabular("expert_loss", 0)
-                        logger.record_tabular("expert_overconfidence:", confidence)
+                        logger.record_tabular("generated_overconfidence:", 0)
+                        logger.record_tabular("expert_overconfidence:", 0)
+                        logger.record_tabular("bc_loss", 0)
                     else:
                         logger.record_tabular("expert_loss", np.mean(expert_loss_list[-100:]))
-                        logger.record_tabular("expert_overconfidence:", test_q_values(sess, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS))
+                        generated_overconfidence, expert_overconfidence = test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
+                        logger.record_tabular("generated_overconfidence:", generated_overconfidence)
+                        logger.record_tabular("expert_overconfidence:", expert_overconfidence)
+                        logger.record_tabular("bc_loss", np.mean(bc_loss_list[-100:]))
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 logger.dumpkvs()
