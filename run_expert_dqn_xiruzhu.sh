@@ -21,5 +21,6 @@ then
 fi
 module load cuda cudnn
 source ../tensorflow/bin/activate
-python3 expert_DQN.py --env_id=$env_id --checkpoint_index=$checkpoint_index --seed=$seed --expert_file=$expert_file --num_sampled=$num_sampled --special_tag=$special --bc_lr=$bc_lr --mat_ent_coef_bc=$max_ent_coef
+python3 expert_dqn_xiru_v1.py --env_id=$env_id --checkpoint_index=$checkpoint_index --seed=$seed --expert_file=$expert_file --num_sampled=$num_sampled --special_tag=$special --lr_bc=$bc_lr --max_ent_coef_bc=$max_ent_coef
+
 
