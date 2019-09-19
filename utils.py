@@ -41,12 +41,13 @@ def argsparser():
     parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
-    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=6)
+    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
     parser.add_argument('--hidden', type=int, help='Max Episode Length', default=512)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.0001)
+    parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
 
@@ -192,6 +193,7 @@ class ReplayMemory:
         self.current = 0
         self.max_reward = 1
         self.min_reward = 0
+        self.total_count = 0
 
         # Pre-allocate memory
         self.actions = np.empty(self.size, dtype=np.int32)
@@ -227,6 +229,7 @@ class ReplayMemory:
         self.terminal_flags[self.current] = terminal
         self.count = max(self.count, self.current + 1)
         self.current = (self.current + 1) % self.size
+        self.total_count += 1
 
     def _get_state(self, index):
         if self.count is 0:
@@ -808,7 +811,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                             bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
                             bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                    BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                                    BS, DISCOUNT_FACTOR, args)  # (8★)
                         expert_loss_list.append(expert_loss)
                     else:
                         loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
@@ -824,7 +827,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
             episode_length_list.append(episode_length)
 
             # Output the progress:
-            if len(rewards) % 2 == 0:
+            if len(rewards) % 25 == 0:
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))

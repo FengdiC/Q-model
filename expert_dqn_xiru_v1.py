@@ -153,7 +153,7 @@ def train_bc(session, dataset, replay_dataset, main_dqn, pretrain=False):
 
     return expert_loss
 
-def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
+def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:states
         session: A tensorflow sesson object

@@ -80,7 +80,7 @@ class DQN:
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.bc_learning_rate)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
-        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
+        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1) * self.decay)
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
@@ -152,7 +152,7 @@ def train_bc(session, dataset, replay_dataset, main_dqn, pretrain=False):
 
     return expert_loss
 
-def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
+def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:states
         session: A tensorflow sesson object
@@ -201,7 +201,8 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                  feed_dict={main_dqn.input:expert_states,
                                             main_dqn.generated_input:generated_states,
                                             main_dqn.expert_action:expert_actions,
-                                            main_dqn.expert_weights:weights})
+                                            main_dqn.expert_weights:weights,
+                                            main_dqn.decay:np.exp(-replay_memory.total_count/args.decay_rate) + np.zeros((expert_states.shape[0],))})
     return loss,expert_loss
 
 args = utils.argsparser()
