@@ -648,7 +648,7 @@ def sample(args, DQN, name, save=True):
         pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"), protocol=4)
 
 
-def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001):
+def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001, only_pretrain=True):
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
@@ -804,8 +804,9 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
 
                 if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                     if expert:
-                        bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
-                        bc_loss_list.append(bc_loss)
+                        if not only_pretrain:
+                            bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
+                            bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
                                     BS, gamma=DISCOUNT_FACTOR)  # (8★)
                         expert_loss_list.append(expert_loss)
@@ -823,7 +824,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
             episode_length_list.append(episode_length)
 
             # Output the progress:
-            if len(rewards) % 25 == 0:
+            if len(rewards) % 2 == 0:
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
@@ -853,7 +854,11 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                         generated_overconfidence, expert_overconfidence = test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
                         logger.record_tabular("generated_overconfidence:", generated_overconfidence)
                         logger.record_tabular("expert_overconfidence:", expert_overconfidence)
-                        logger.record_tabular("bc_loss", np.mean(bc_loss_list[-100:]))
+                        if not only_pretrain:
+                            logger.record_tabular("bc_loss", np.mean(bc_loss_list[-100:]))
+                        else:
+                            logger.record_tabular("bc_loss", 0)
+
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 logger.dumpkvs()
