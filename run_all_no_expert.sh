@@ -17,5 +17,5 @@ declare -a Environments=("BreakoutDeterministic-v4" "SeaquestDeterministic-v4" "
 # Iterate the string array using for loop
 for val in ${Environments[@]}; do
     echo $val
-    sbatch --gres=gpu:1 --cpus-per-task=2 --account=rrg-dpmeger --mem=64G --time=23:55:00 ./run_script.sh $python_script $val -1 0 "expert_data.pkl" $exp $special $lr $coef
+    sbatch --gres=gpu:1 --cpus-per-task=2 --account=rrg-dpmeger --mem=64G --time=23:55:00 ./run_script.sh $python_script $val -1 0 "expert_data.pkl" 1 $special $lr $coef
 done
