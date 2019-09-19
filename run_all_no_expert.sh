@@ -12,7 +12,7 @@ then
 	exit 1
 fi
 
-declare -a Environments=("BreakoutDeterministic-v4" "SeaquestDeterministic-v4" )
+declare -a Environments=("BreakoutDeterministic-v4" "SeaquestDeterministic-v4" "MontezumaRevengeDeterministic-v4" "MsPacman-Deterministic-v4" "QbertDeterministic-v4" )
 
 # Iterate the string array using for loop
 for val in ${Environments[@]}; do
