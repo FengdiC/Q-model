@@ -87,12 +87,11 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                   axis=1)
-        self.behavior_cloning_loss = tf.reduce_mean(
-            -tf.log(self.prob + 0.00001))  # + a l2 reg to prevent overtraining too much
-        # self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.prob + 0.00001) * self.expert_weights)  # + a l2 reg to prevent overtraining too much
+        #self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.regularization = tf.reduce_mean(
             tf.reduce_sum(self.action_prob * tf.log(self.action_prob + 0.000001), axis=1))
-        self.behavior_cloning_loss += max_ent_coefficient * self.regularization
+        self.behavior_cloning_loss += max_ent_coefficient #* self.regularization
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.update = self.optimizer.minimize(self.behavior_cloning_loss)
@@ -208,10 +207,13 @@ def train(args):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     dataset = pickle.load(open("data/" + args.expert_file + "_" + str(args.num_sampled), "rb"))
+    dataset.min_reward = 0
+    dataset.max_reward = 1
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                        replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                        max_frames=MAX_FRAMES,
                                        eps_initial=args.initial_exploration)
+
     utils.generate_weights(dataset)
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
@@ -264,7 +266,7 @@ def train(args):
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
+                action = 1 if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4" else action_getter.get_action(sess, frame_number,
                                                                                atari.state,
                                                                                MAIN_DQN,
                                                                                evaluation=True)

@@ -46,7 +46,7 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
-    parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.001)
+    parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.0001)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
 
@@ -441,7 +441,9 @@ def generate_weights(replay_buff):
                 min_val = accumulated_reward
             accumulated_reward = 0
             prev_index = i
-    replay_buff.reward_weight = (replay_buff.reward_weight - min_val)/(max_val - min_val)
+    replay_buff.reward_weight = np.exp((replay_buff.reward_weight - max_val)* 0.1)
+    #ln(x) = ln(exp(weight)) - ln(exp(max))
+    #e^(ln(exp(weight)) - ln(exp(max))) = x
 
 def get_minibatch(replay_buff):
     """
