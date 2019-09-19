@@ -190,6 +190,8 @@ class ReplayMemory:
         self.batch_size = batch_size
         self.count = 0
         self.current = 0
+        self.max_reward = 1
+        self.min_reward = 0
 
         # Pre-allocate memory
         self.actions = np.empty(self.size, dtype=np.int32)
@@ -215,6 +217,10 @@ class ReplayMemory:
         """
         if frame.shape != (self.frame_height, self.frame_width):
             raise ValueError('Dimension of frame is wrong!')
+        if reward > self.max_reward:
+            self.max_reward = reward
+        if reward < self.min_reward:
+            self.min_reward = reward
         self.actions[self.current] = action
         self.frames[self.current, ...] = frame
         self.rewards[self.current] = reward
@@ -255,8 +261,8 @@ class ReplayMemory:
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
 
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
-            self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], (self.rewards[
+            self.indices] - self.min_reward)/(self.max_reward - self.min_reward), np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
 
 
 #Note path to csv
@@ -551,7 +557,7 @@ def sample(args, DQN, name, save=True):
         MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
     with tf.variable_scope('targetDQN'):
         TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
-
+    
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -609,7 +615,8 @@ def sample(args, DQN, name, save=True):
         episode_reward_sum = 0
         frames_for_gif = []
         for _ in range(MAX_EPISODE_LENGTH):
-            action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+            
+            action = 1 if terminal_live_lost and args.env_id == "BreakoutDeterministic-v4" else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
                                                                            evaluation=True)
             processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
@@ -714,6 +721,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
         else:
             dataset = pickle.load(open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "rb"))
             print("2. Loaded Data ... ", args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled))
+        dataset.min_reward = 0
+        dataset.max_reward = 1
         generate_weights(dataset)
     try:
         if args.checkpoint_file_path != "None":
@@ -816,6 +825,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
+                logger.record_tabular("max_reward", my_replay_memory.max_reward)
+                logger.record_tabular("min_reward", my_replay_memory.min_reward)
                 if frame_number < REPLAY_MEMORY_START_SIZE:
                     logger.record_tabular("td_loss",0)
                 else:
@@ -857,7 +868,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                if terminal_life_lost:
+                if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
                     action = 1
                 else:
                     action = action_getter.get_action(sess, frame_number,
