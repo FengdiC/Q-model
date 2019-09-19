@@ -20,6 +20,32 @@ if [ -z "$seed" ]
 then
 	seed=0
 fi
+
+if [ -z "$expert_file" ]
+then
+	expert_file=""
+fi
+
+if [ -z "$num_sampled" ]
+then
+	num_sampled=1
+fi
+
+if [ -z "$special" ]
+then
+	special=""
+fi
+
+if [ -z "$bc_lr" ]
+then
+	bc_lr=0.0001
+fi
+
+if [ -z "$max_ent_coef" ]
+then
+	max_ent_coef=1.0
+fi
+
 echo $python_script $env_id $checkpoint_index $seed $expert_file $num_sampled $special $bc_lr $max_ent_coef
 
 module load cuda cudnn

@@ -487,12 +487,14 @@ def test_q_values(sess, dataset, env, action_getter, dqn, input, output, batch_s
     print("Expert Average Max: ", expert_over_confidence)
     env.reset(sess)
     count = 0
+    iter = 0
     for i in range(math.ceil(my_replay_memory.count//batch_size) * 5):
         states, actions, rewards, new_states, terminal_flags = my_replay_memory.get_minibatch()
         values = sess.run(output, feed_dict={input: states})
         for j in range(values.shape[0]):
-            count += np.max(values[i])
-    generated_over_confidence = math.ceil(my_replay_memory.count//batch_size) * 5
+            count += np.max(values[j])
+            iter += 1
+    generated_over_confidence = count/iter
     print("Generated Average Max: ", generated_over_confidence)
     return generated_over_confidence, expert_over_confidence
 
@@ -696,8 +698,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     sess.run(init)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
 
-    important_coef_name = ["num_traj", "seed", "lr", "lr_bc", "max_ent"]
-    important_coef_var = [args.num_sampled, args.seed, args.lr, args.lr_bc, args.max_ent_coef_bc]
+    important_coef_name = ["num_traj", "seed", "lr", "lr_bc", "max_ent", "stochastic_env"]
+    important_coef_var = [args.num_sampled, args.seed, args.lr, args.lr_bc, args.max_ent_coef_bc, args.stochastic_environment]
     if not args.special_tag == "":
         file_add = args.special_tag + "_"
     else:

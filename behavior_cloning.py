@@ -85,8 +85,8 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
-        #self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.prob+0.00001))# + a l2 reg to prevent overtraining too much
+        self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.q_values, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob * tf.log(self.action_prob + 0.000001), axis=1))
         self.behavior_cloning_loss += max_ent_coefficient * self.regularization
 
@@ -180,7 +180,7 @@ HIDDEN = args.hidden                    # Number of filters in the final convolu
 LEARNING_RATE = args.lr         # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = args.batch_size
-atari = utils.Atari(args.env_id, args.stochastic, NO_OP_STEPS)
+atari = utils.Atari(args.env_id, args.stochastic_environment, NO_OP_STEPS)
 atari.env.seed(args.seed)
 print("The environment has the following {} actions: {}".format(atari.env.action_space.n,
                                                                 atari.env.unwrapped.get_action_meanings()))
