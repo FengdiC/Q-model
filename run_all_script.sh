@@ -23,7 +23,7 @@ for val in ${Environments[@]}; do
 	    for lr in ${bc_lr[@]}; do
 	        for coef in ${max_ent_coef[@]}; do
                 echo $val $exp $lr $coef
-                sbatch --gres=gpu:1 --cpus-per-task=2 --account=rrg-dpmeger --mem=64G --time=2:00:00 ./run_dqn.sh $python_script $val -1 0 "expert_data.pkl" $exp $special $lr $coef
+                sbatch --gres=gpu:1 --cpus-per-task=2 --account=rrg-dpmeger --mem=64G --time=2:00:00 ./run_script.sh $python_script $val -1 0 "expert_data.pkl" $exp $special $lr $coef
             done
         done
 	done
