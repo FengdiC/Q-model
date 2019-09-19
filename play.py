@@ -25,7 +25,7 @@ def display_arr(screen, arr, video_size, transpose):
     screen.blit(pyg_img, (0, 0))
 
 
-def play(env, transpose=True, fps=30, zoom=None, callback=None, keys_to_action=None):
+def play(env, args, transpose=True, fps=30, zoom=None, callback=None, keys_to_action=None):
     """Allows one to play the game using keyboard.
     To simply play the game use:
         play(gym.make("Pong-v4"))
@@ -117,9 +117,7 @@ def play(env, transpose=True, fps=30, zoom=None, callback=None, keys_to_action=N
                                           frame=obs[:, :, 0],
                                           reward=rew,
                                           terminal=terminal)
-
-            pickle.dump(replay_mem, open("human_trajectories.pkl", "wb"), protocol=4)
-
+            pickle.dump(replay_mem, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
         else:
             action = keys_to_action.get(tuple(sorted(pressed_keys)), 0)
             obs, rew, env_done, terminal, frame = env.step(sess, action)
@@ -193,7 +191,7 @@ def main():
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, zoom=2, fps=60)
+    play(env, args, zoom=4, fps=13)
 
 
 if __name__ == '__main__':
