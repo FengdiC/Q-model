@@ -187,25 +187,25 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     target_q = generated_rewards + (gamma*double_q * (1-generated_terminal_flags))
 
     # Gradient descend step to update the parameters of the main network
-    loss_list = []
+    loss_total = 0
     for i in range(args.td_iterations):
         loss, _ = session.run([main_dqn.loss, main_dqn.update],
                             feed_dict={main_dqn.input:generated_states,
                                         main_dqn.target_q:target_q,
                                         main_dqn.action:generated_actions})
-        loss_list.append(loss)
-    loss = np.concatenate(loss_list)
+        loss_total += loss
+    loss_total/args.td_iterations
 
-    expert_loss_list = []
+    expert_loss_total = 0
     for i in range(args.expert_iterations):
         expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                      feed_dict={main_dqn.input:expert_states,
                                                 main_dqn.generated_input:generated_states,
                                                 main_dqn.expert_action:expert_actions,
                                                 main_dqn.expert_weights:weights})
-        expert_loss_list.append(expert_loss)
-    expert_loss = np.concatenate(expert_loss_list)
-    return loss,expert_loss
+        expert_loss_total += expert_loss
+    expert_loss_total/args.expert_iterations
+    return loss_total, expert_loss_total
 
 args = utils.argsparser()
 tf.random.set_random_seed(args.seed)
