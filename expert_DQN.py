@@ -80,7 +80,7 @@ class DQN:
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
         self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate*0.5)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
         self.action_prob = self.action_prob_q

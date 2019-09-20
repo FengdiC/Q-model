@@ -169,6 +169,25 @@ class ActionGetter:
             return np.random.randint(0, self.n_actions)
         return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
+    def get_bc_action(self, session, state, main_dqn):
+        """
+        Args:
+            session: A tensorflow session object
+            frame_number: Integer, number of the current frame
+            state: A (96, 96, 4) sequence of frames of an Atari game in grayscale
+            main_dqn: A DQN object
+            evaluation: A boolean saying whether the agent is being evaluated
+        Returns:
+            An integer between 0 and n_actions - 1 determining the action the agent perfoms next
+        """
+        action_prob = session.run(main_dqn.action_prob_expert, feed_dict={main_dqn.input: [state]})[0]
+        rand = np.random.uniform(0, 1)
+        accumulated_val = 0
+        for i in range(action_prob.shape[0]):
+            accumulated_val += action_prob[i]
+            if rand < accumulated_val:
+                return i
+
 
 class ReplayMemory:
     """Replay Memory that stores the last size=1,000,000 transitions"""
@@ -609,7 +628,7 @@ def sample(args, DQN, name, save=True):
         episode_reward_sum = 0
         frames_for_gif = []
         for _ in range(MAX_EPISODE_LENGTH):
-            action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+            action = 1 if terminal_live_lost and False else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
                                                                            evaluation=True)
             processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
@@ -749,13 +768,49 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
         #Pretrain system .... 
         bc_loss = []
         print("Pretraining ....")
-        for i in tqdm(range(pretrain_iters)):
+        for i in range(pretrain_iters):
             expert_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
             bc_loss.append(expert_loss)
-            if i % (pretrain_iters//4) == 0 and i > 0:
-                print(np.mean(bc_loss[-pretrain_iters//4:]), i)
+            if i % (pretrain_iters//8) == 0 and i > 0:
+                print(np.mean(bc_loss[-100:]), i)
                 test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
-
+                print("Evaluating Model.... ")
+                evaluate_frame_number = 0
+                frames_for_gif = []
+                eval_rewards = []
+                gif = True
+                while evaluate_frame_number < EVAL_STEPS:
+                    terminal_life_lost = atari.reset(sess, evaluation=True)
+                    episode_reward_sum = 0
+                    for _ in range(MAX_EPISODE_LENGTH):
+                        # Fire (action 1), when a life was lost or the game just started,
+                        # so that the agent does not stand around doing nothing. When playing
+                        # with other environments, you might want to change this...
+                        if terminal_life_lost and False:
+                            action = 1
+                        else:
+                            action = action_getter.get_bc_action(sess,
+                                                              atari.state,
+                                                              MAIN_DQN)
+                        processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+                        evaluate_frame_number += 1
+                        episode_reward_sum += reward
+                        if gif:
+                            frames_for_gif.append(new_frame)
+                        if terminal:
+                            eval_rewards.append(episode_reward_sum)
+                            gif = False  # Save only the first game of the evaluation as a gif
+                            break
+                    if len(eval_rewards) % 10 == 0:
+                        print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
+                print("\n\n\n-------------------------------------------")
+                print("Evaluation score:\n", np.mean(eval_rewards))
+                print("-------------------------------------------\n\n\n")
+                try:
+                    generate_gif(frame_number, frames_for_gif, eval_rewards[0],
+                                 args.gif_dir + "/" + name + "/" + args.env_id + "/" + file_add)
+                except IndexError:
+                    print("No evaluation game finished")
     eval_rewards = [0]
     rewards = []
     loss_list = []
@@ -792,7 +847,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                                                 terminal=terminal_life_lost)
 
                 if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
-                    if expert:
+                    if expert and frame_number > REPLAY_MEMORY_START_SIZE*5:
                         bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
                         bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
@@ -857,7 +912,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                if terminal_life_lost:
+                if terminal_life_lost and False:
                     action = 1
                 else:
                     action = action_getter.get_action(sess, frame_number,
