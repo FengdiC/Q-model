@@ -83,7 +83,7 @@ class DQN:
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_expert)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
-        self.action_prob = self.action_prob_q
+        self.action_prob = self.action_prob_q * self.action_prob_expert
         self.best_action = tf.argmax(self.action_prob, 1)
 
     def build_graph(self, input, hidden, n_actions, reuse=False):
@@ -194,12 +194,12 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                         main_dqn.target_q:target_q,
                                         main_dqn.action:generated_actions})
 
-    expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
-                                 feed_dict={main_dqn.input:expert_states,
-                                            main_dqn.generated_input:generated_states,
-                                            main_dqn.expert_action:expert_actions,
-                                            main_dqn.expert_weights:weights})
-    return loss,expert_loss
+    # expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
+    #                              feed_dict={main_dqn.input:expert_states,
+    #                                         main_dqn.generated_input:generated_states,
+    #                                         main_dqn.expert_action:expert_actions,
+    #                                         main_dqn.expert_weights:weights})
+    return loss, 0#expert_loss
 
 args = utils.argsparser()
 tf.random.set_random_seed(args.seed)

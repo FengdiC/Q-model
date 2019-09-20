@@ -82,7 +82,7 @@ class DQN:
             axis=1)
 
         # Parameter updates
-        self.loss = tf.reduce_mean(math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)) - math.gamma(1+gamma))
+        self.loss = tf.reduce_mean(args.alpha_coef * math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)) - math.gamma(1+gamma))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 

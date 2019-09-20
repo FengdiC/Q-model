@@ -50,6 +50,7 @@ def argsparser():
     parser.add_argument('--lr_expert', type=float, help='Max Episode Length', default=0.00001)
     parser.add_argument('--td_iterations', type=int, help='Max Episode Length', default=1)
     parser.add_argument('--expert_iterations', type=int, help='Max Episode Length', default=1)
+    parser.add_argument('--alpha_coef', type=float, help='Max Episode Length', default=1.0)
 
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
@@ -658,6 +659,7 @@ def sample(args, DQN, name, save=True):
 
 
 def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001, only_pretrain=True):
+    print("Learning Rate: ", args.lr)
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
@@ -782,40 +784,40 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     expert_loss_list = []
     episode_length_list = []
     epoch = 0
-
-    gif = True
-    frames_for_gif = []
-    eval_rewards = []
-    evaluate_frame_number = 0
-    print("Evaluating Pretrained Model.... ")
-    while evaluate_frame_number < EVAL_STEPS:
-        terminal_life_lost = atari.reset(sess, evaluation=True)
-        episode_reward_sum = 0
-        for _ in range(MAX_EPISODE_LENGTH):
-            # Fire (action 1), when a life was lost or the game just started,
-            # so that the agent does not stand around doing nothing. When playing
-            # with other environments, you might want to change this...
-            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
-                action = 1
-            else:
-                action = action_getter.get_action(sess, frame_number,
-                                                  atari.state,
-                                                  MAIN_DQN,
-                                                  evaluation=True)
-            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
-            evaluate_frame_number += 1
-            episode_reward_sum += reward
-            if gif:
-                frames_for_gif.append(new_frame)
-            if terminal:
-                eval_rewards.append(episode_reward_sum)
-                gif = False  # Save only the first game of the evaluation as a gif
-                break
-        if len(eval_rewards) % 10 == 0:
-            print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
-    print("\n\n\n-------------------------------------------")
-    print("Evaluation score:\n", np.mean(eval_rewards))
-    print("-------------------------------------------\n\n\n")
+    if expert and not bc_training is None:
+        gif = True
+        frames_for_gif = []
+        eval_rewards = []
+        evaluate_frame_number = 0
+        print("Evaluating Pretrained Model.... ")
+        while evaluate_frame_number < EVAL_STEPS:
+            terminal_life_lost = atari.reset(sess, evaluation=True)
+            episode_reward_sum = 0
+            for _ in range(MAX_EPISODE_LENGTH):
+                # Fire (action 1), when a life was lost or the game just started,
+                # so that the agent does not stand around doing nothing. When playing
+                # with other environments, you might want to change this...
+                if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+                    action = 1
+                else:
+                    action = action_getter.get_action(sess, frame_number,
+                                                    atari.state,
+                                                    MAIN_DQN,
+                                                    evaluation=True)
+                processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+                evaluate_frame_number += 1
+                episode_reward_sum += reward
+                if gif:
+                    frames_for_gif.append(new_frame)
+                if terminal:
+                    eval_rewards.append(episode_reward_sum)
+                    gif = False  # Save only the first game of the evaluation as a gif
+                    break
+            if len(eval_rewards) % 10 == 0:
+                print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
+        print("\n\n\n-------------------------------------------")
+        print("Evaluation score:\n", np.mean(eval_rewards))
+        print("-------------------------------------------\n\n\n")
 
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
