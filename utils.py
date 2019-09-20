@@ -20,17 +20,17 @@ import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_dir', type=str, default='data/')
+    parser.add_argument('--expert_dir', type=str, default='Q-model/data/')
     parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
     parser.add_argument('--expert_file_path', type=str, default='None')
 
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='Q-model/models/')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--checkpoint_file_path', type=str, default='None')
     parser.add_argument('--special_tag', type=str, default='')
 
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/')
+    parser.add_argument('--log_dir', help='the directory to save log file', default='Q-model/logs/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='Q-model/gifs/')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
@@ -903,14 +903,14 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
 
                 if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                     if expert and frame_number > REPLAY_MEMORY_START_SIZE*5:
-                        bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
-                        bc_loss_list.append(bc_loss)
+                        # bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
+                        # bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
                                     BS, DISCOUNT_FACTOR, args)  # (8★)
                         expert_loss_list.append(expert_loss)
                     else:
-                        loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                    BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                        loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
+                                    BS, DISCOUNT_FACTOR, args,no_expert=True)  # (8★)  # (8★)
                     loss_list.append(loss)
                 if frame_number % NETW_UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                     network_updater.update_networks(sess)  # (9★)

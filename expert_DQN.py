@@ -148,7 +148,7 @@ def train_bc(session, dataset, replay_dataset, main_dqn, pretrain=False):
 
     return expert_loss
 
-def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, args):
+def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, args,no_expert=False):
     """
     Args:states
         session: A tensorflow sesson object
@@ -197,14 +197,15 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     loss_total/args.td_iterations
 
     expert_loss_total = 0
-    for i in range(args.expert_iterations):
-        expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
+    if not no_expert:
+        for i in range(args.expert_iterations):
+            expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                      feed_dict={main_dqn.input:expert_states,
                                                 main_dqn.generated_input:generated_states,
                                                 main_dqn.expert_action:expert_actions,
                                                 main_dqn.expert_weights:weights})
-        expert_loss_total += expert_loss
-    expert_loss_total/args.expert_iterations
+            expert_loss_total += expert_loss
+        expert_loss_total= expert_loss_total/args.expert_iterations
     return loss_total, expert_loss_total
 
 args = utils.argsparser()
