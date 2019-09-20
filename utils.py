@@ -818,7 +818,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
         print("\n\n\n-------------------------------------------")
         print("Evaluation score:\n", np.mean(eval_rewards))
         print("-------------------------------------------\n\n\n")
-
+    eval_rewards = [0]
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
         epoch_frame = 0
