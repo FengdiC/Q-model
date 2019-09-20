@@ -823,6 +823,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
         print("Training Model ...")
         epoch_frame = 0
         start_time = time.time()
+        print_countdown = 0
         while epoch_frame < EVAL_FREQUENCY:
             atari.reset(sess)
             episode_reward_sum = 0
@@ -840,6 +841,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 epoch_frame += 1
                 episode_reward_sum += reward
                 episode_length += 1
+                print_countdown += 1
 
                 # (7★) Store transition in the replay memory
                 my_replay_memory.add_experience(action=action,
@@ -869,7 +871,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
             episode_length_list.append(episode_length)
 
             # Output the progress:
-            if len(rewards) % 25 == 0:
+            if print_countdown > 10000:
+                print_countdown = 0
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
