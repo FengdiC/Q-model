@@ -16,7 +16,7 @@ import utils
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, bc_learning_rate=0.001, max_ent_coef=1.0,gamma =0.99,
+    def __init__(self, args, n_actions=4, hidden=1024, max_ent_coef=1.0, gamma =0.99,
                          frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
@@ -30,8 +30,6 @@ class DQN:
         """
         self.n_actions = n_actions
         self.hidden = hidden
-        self.learning_rate = learning_rate
-        self.bc_learning_rate = bc_learning_rate
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
@@ -62,7 +60,7 @@ class DQN:
 
         # Parameter updates
         self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)) - math.gamma(1+gamma))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss, var_list=q_value_vars)
 
 
@@ -78,11 +76,11 @@ class DQN:
         self.generated_action_prob = tf.nn.softmax(self.generated_action_preference)
         self.regularization = tf.reduce_mean(tf.reduce_sum(self.generated_action_prob * tf.log(self.generated_action_prob),axis=1))
         self.behavior_cloning_loss += max_ent_coef * self.regularization
-        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=self.bc_learning_rate)
+        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_bc)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
         self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_expert)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
         self.action_prob = self.action_prob_q
@@ -151,7 +149,7 @@ def train_bc(session, dataset, replay_dataset, main_dqn, pretrain=False):
                                          main_dqn.generated_input: gen_states})
     return expert_loss
 
-def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma):
+def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:states
         session: A tensorflow sesson object
@@ -210,7 +208,7 @@ np.random.seed(args.seed)
 tf.reset_default_graph()
 # Control parameters
 if args.task == "train":
-    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=args.pretrain_bc_iter)
+    utils.train(args, DQN, learn, "expert_dist_dqn", expert=True, bc_training=train_bc, pretrain_iters=args.pretrain_bc_iter, only_pretrain=False)
 elif args.task == "evaluate":
     utils.sample(args, DQN, "expert_dist_dqn", save=False)
 elif args.task == "log":

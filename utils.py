@@ -41,12 +41,18 @@ def argsparser():
     parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--no_op_steps', type=int, help='Max Episode Length', default=10)
-    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=6)
+    parser.add_argument('--update_freq', type=int, help='Max Episode Length', default=4)
     parser.add_argument('--hidden', type=int, help='Max Episode Length', default=512)
     parser.add_argument('--batch_size', type=int, help='Max Episode Length', default=32)
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
-    parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.001)
+    parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.0001)
+    parser.add_argument('--lr_expert', type=float, help='Max Episode Length', default=0.00001)
+    parser.add_argument('--td_iterations', type=int, help='Max Episode Length', default=1)
+    parser.add_argument('--expert_iterations', type=int, help='Max Episode Length', default=1)
+
+
+    parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
 
@@ -209,6 +215,9 @@ class ReplayMemory:
         self.batch_size = batch_size
         self.count = 0
         self.current = 0
+        self.max_reward = 1
+        self.min_reward = 0
+        self.total_count = 0
 
         # Pre-allocate memory
         self.actions = np.empty(self.size, dtype=np.int32)
@@ -234,12 +243,17 @@ class ReplayMemory:
         """
         if frame.shape != (self.frame_height, self.frame_width):
             raise ValueError('Dimension of frame is wrong!')
+        if reward > self.max_reward:
+            self.max_reward = reward
+        if reward < self.min_reward:
+            self.min_reward = reward
         self.actions[self.current] = action
         self.frames[self.current, ...] = frame
         self.rewards[self.current] = reward
         self.terminal_flags[self.current] = terminal
         self.count = max(self.count, self.current + 1)
         self.current = (self.current + 1) % self.size
+        self.total_count += 1
 
     def _get_state(self, index):
         if self.count is 0:
@@ -274,8 +288,8 @@ class ReplayMemory:
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
 
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], self.rewards[
-            self.indices], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[self.indices], (self.rewards[
+            self.indices] - self.min_reward)/(self.max_reward - self.min_reward), np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[self.indices]
 
 
 #Note path to csv
@@ -296,9 +310,10 @@ def log_data(path, image_path):
                 for i in range(len(line)):
                     data[i].append(float(line[i]))
     plt.plot(data[convert_dict["frame_number"]], data[convert_dict["training_reward"]])
+    plt.plot(data[convert_dict["frame_number"]], data[convert_dict["evaluation_reward"]])
     plt.title("Frame num vs training Rewards")
     plt.xlabel("Frame number")
-    plt.ylabel("Training Rewards");
+    plt.ylabel("Rewards");
     plt.savefig(image_path + 'training_reward.png')
     plt.close()
 
@@ -454,7 +469,9 @@ def generate_weights(replay_buff):
                 min_val = accumulated_reward
             accumulated_reward = 0
             prev_index = i
-    replay_buff.reward_weight = (replay_buff.reward_weight - min_val)/(max_val - min_val)
+    replay_buff.reward_weight = np.exp((replay_buff.reward_weight - max_val)* 0.1)
+    #ln(x) = ln(exp(weight)) - ln(exp(max))
+    #e^(ln(exp(weight)) - ln(exp(max))) = x
 
 def get_minibatch(replay_buff):
     """
@@ -570,7 +587,7 @@ def sample(args, DQN, name, save=True):
         MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
     with tf.variable_scope('targetDQN'):
         TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
-
+    
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -628,7 +645,8 @@ def sample(args, DQN, name, save=True):
         episode_reward_sum = 0
         frames_for_gif = []
         for _ in range(MAX_EPISODE_LENGTH):
-            action = 1 if terminal_live_lost and False else action_getter.get_action(sess, 0, atari.state,
+            
+            action = 1 if terminal_live_lost and args.env_id == "BreakoutDeterministic-v4" else action_getter.get_action(sess, 0, atari.state,
                                                                            MAIN_DQN,
                                                                            evaluation=True)
             processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
@@ -658,7 +676,7 @@ def sample(args, DQN, name, save=True):
         pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"), protocol=4)
 
 
-def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001):
+def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001, only_pretrain=True):
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
@@ -690,14 +708,14 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     # main DQN and target DQN networks:
     if expert:
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE, bc_learning_rate=args.lr_bc, max_ent_coef=args.max_ent_coef_bc)  # (★★)
+            MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, max_ent_coef=args.max_ent_coef_bc)  # (★★)
         with tf.variable_scope('targetDQN'):
-            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+            TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
     else:
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
+            MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
         with tf.variable_scope('targetDQN'):
-            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+            TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -733,6 +751,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
         else:
             dataset = pickle.load(open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "rb"))
             print("2. Loaded Data ... ", args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled))
+        dataset.min_reward = 0
+        dataset.max_reward = 1
         generate_weights(dataset)
     try:
         if args.checkpoint_file_path != "None":
@@ -818,6 +838,41 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     expert_loss_list = []
     episode_length_list = []
     epoch = 0
+
+    gif = True
+    frames_for_gif = []
+    eval_rewards = []
+    evaluate_frame_number = 0
+    print("Evaluating Pretrained Model.... ")
+    while evaluate_frame_number < EVAL_STEPS:
+        terminal_life_lost = atari.reset(sess, evaluation=True)
+        episode_reward_sum = 0
+        for _ in range(MAX_EPISODE_LENGTH):
+            # Fire (action 1), when a life was lost or the game just started,
+            # so that the agent does not stand around doing nothing. When playing
+            # with other environments, you might want to change this...
+            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+                action = 1
+            else:
+                action = action_getter.get_action(sess, frame_number,
+                                                  atari.state,
+                                                  MAIN_DQN,
+                                                  evaluation=True)
+            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+            evaluate_frame_number += 1
+            episode_reward_sum += reward
+            if gif:
+                frames_for_gif.append(new_frame)
+            if terminal:
+                eval_rewards.append(episode_reward_sum)
+                gif = False  # Save only the first game of the evaluation as a gif
+                break
+        if len(eval_rewards) % 10 == 0:
+            print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
+    print("\n\n\n-------------------------------------------")
+    print("Evaluation score:\n", np.mean(eval_rewards))
+    print("-------------------------------------------\n\n\n")
+
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
         epoch_frame = 0
@@ -851,7 +906,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                         bc_loss = bc_training(sess, dataset, my_replay_memory, MAIN_DQN)
                         bc_loss_list.append(bc_loss)
                         loss, expert_loss = learn(sess, dataset, my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                    BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                                    BS, DISCOUNT_FACTOR, args)  # (8★)
                         expert_loss_list.append(expert_loss)
                     else:
                         loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
@@ -871,6 +926,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 # logger.log("Runing frame number {0}".format(frame_number))
                 logger.record_tabular("frame_number",frame_number)
                 logger.record_tabular("training_reward",np.mean(rewards[-100:]))
+                logger.record_tabular("max_reward", my_replay_memory.max_reward)
+                logger.record_tabular("min_reward", my_replay_memory.min_reward)
                 if frame_number < REPLAY_MEMORY_START_SIZE:
                     logger.record_tabular("td_loss",0)
                 else:
@@ -895,7 +952,11 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                         generated_overconfidence, expert_overconfidence = test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
                         logger.record_tabular("generated_overconfidence:", generated_overconfidence)
                         logger.record_tabular("expert_overconfidence:", expert_overconfidence)
-                        logger.record_tabular("bc_loss", np.mean(bc_loss_list[-100:]))
+                        if not only_pretrain:
+                            logger.record_tabular("bc_loss", np.mean(bc_loss_list[-100:]))
+                        else:
+                            logger.record_tabular("bc_loss", 0)
+
                 print("Completion: ", str(epoch_frame)+"/"+str(EVAL_FREQUENCY))
                 print("Current Frame: ",frame_number)
                 logger.dumpkvs()
@@ -912,7 +973,7 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                if terminal_life_lost and False:
+                if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
                     action = 1
                 else:
                     action = action_getter.get_action(sess, frame_number,

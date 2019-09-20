@@ -34,6 +34,7 @@ class DQN:
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
 
+        self.decay = tf.placeholder(shape=[None], dtype=tf.float32)
         self.input = tf.placeholder(shape=[None, self.frame_height,
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
@@ -71,15 +72,12 @@ class DQN:
                                          axis=1)
         #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
         self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
-        self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert + 0.000001), axis=1))
-        self.behavior_cloning_loss += max_ent_coef * self.regularization
-
+        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_bc)
         #self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
         #self.behavior_cloning_loss += self.regularization
-        self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_bc)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
-        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
+        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1) * self.decay)
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_expert)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
@@ -200,7 +198,8 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
                                  feed_dict={main_dqn.input:expert_states,
                                             main_dqn.generated_input:generated_states,
                                             main_dqn.expert_action:expert_actions,
-                                            main_dqn.expert_weights:weights})
+                                            main_dqn.expert_weights:weights,
+                                            main_dqn.decay:np.exp(-replay_memory.total_count/args.decay_rate) + np.zeros((expert_states.shape[0],))})
     return loss,expert_loss
 
 args = utils.argsparser()
