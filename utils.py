@@ -813,7 +813,9 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 break
         if len(eval_rewards) % 10 == 0:
             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
-
+    print("\n\n\n-------------------------------------------")
+    print("Evaluation score:\n", np.mean(eval_rewards))
+    print("-------------------------------------------\n\n\n")
 
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
