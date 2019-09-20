@@ -718,8 +718,8 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     sess.run(init)
     fixed_state = np.expand_dims(atari.fixed_state(sess),axis=0)
 
-    important_coef_name = ["num_traj", "seed", "lr", "lr_bc", "max_ent", "stochastic_env"]
-    important_coef_var = [args.num_sampled, args.seed, args.lr, args.lr_bc, args.max_ent_coef_bc, args.stochastic_environment]
+    important_coef_name = ["num_traj", "seed", "lr", "lr_bc", "alpha", "stochastic_env"]
+    important_coef_var = [args.num_sampled, args.seed, args.lr, args.alpha_coef, args.max_ent_coef_bc, args.stochastic_environment]
     if not args.special_tag == "":
         file_add = args.special_tag + "_"
     else:
