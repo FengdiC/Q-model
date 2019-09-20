@@ -47,6 +47,8 @@ def argsparser():
     parser.add_argument('--gamma', type=float, help='Max Episode Length', default=0.99)
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.0001)
+    parser.add_argument('--lr_expert', type=float, help='Max Episode Length', default=0.00001)
+
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
@@ -286,9 +288,10 @@ def log_data(path, image_path):
                 for i in range(len(line)):
                     data[i].append(float(line[i]))
     plt.plot(data[convert_dict["frame_number"]], data[convert_dict["training_reward"]])
+    plt.plot(data[convert_dict["frame_number"]], data[convert_dict["evaluation_reward"]])
     plt.title("Frame num vs training Rewards")
     plt.xlabel("Frame number")
-    plt.ylabel("Training Rewards");
+    plt.ylabel("Rewards");
     plt.savefig(image_path + 'training_reward.png')
     plt.close()
 
@@ -683,14 +686,14 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
     # main DQN and target DQN networks:
     if expert:
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE, bc_learning_rate=args.lr_bc, max_ent_coef=args.max_ent_coef_bc)  # (★★)
+            MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, max_ent_coef=args.max_ent_coef_bc)  # (★★)
         with tf.variable_scope('targetDQN'):
-            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+            TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
     else:
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)  # (★★)
+            MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
         with tf.variable_scope('targetDQN'):
-            TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)  # (★★)
+            TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -770,13 +773,45 @@ def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters
                 print(np.mean(bc_loss[-pretrain_iters//4:]), i)
                 test_q_values(sess, dataset, atari, action_getter, MAIN_DQN, MAIN_DQN.input, MAIN_DQN.action_prob_expert, BS)
 
-    eval_rewards = [0]
     rewards = []
     loss_list = []
     bc_loss_list = []
     expert_loss_list = []
     episode_length_list = []
     epoch = 0
+
+    gif = True
+    frames_for_gif = []
+    eval_rewards = []
+    evaluate_frame_number = 0
+    print("Evaluating Pretrained Model.... ")
+    while evaluate_frame_number < EVAL_STEPS:
+        terminal_life_lost = atari.reset(sess, evaluation=True)
+        episode_reward_sum = 0
+        for _ in range(MAX_EPISODE_LENGTH):
+            # Fire (action 1), when a life was lost or the game just started,
+            # so that the agent does not stand around doing nothing. When playing
+            # with other environments, you might want to change this...
+            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+                action = 1
+            else:
+                action = action_getter.get_action(sess, frame_number,
+                                                  atari.state,
+                                                  MAIN_DQN,
+                                                  evaluation=True)
+            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+            evaluate_frame_number += 1
+            episode_reward_sum += reward
+            if gif:
+                frames_for_gif.append(new_frame)
+            if terminal:
+                eval_rewards.append(episode_reward_sum)
+                gif = False  # Save only the first game of the evaluation as a gif
+                break
+        if len(eval_rewards) % 10 == 0:
+            print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(EVAL_STEPS))
+
+
     while frame_number < MAX_FRAMES:
         print("Training Model ...")
         epoch_frame = 0

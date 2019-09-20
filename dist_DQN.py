@@ -16,7 +16,7 @@ import utils
 import pickle
 class DQN:
     """Implements a Deep Q Network"""
-    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001, gamma=0.99,
+    def __init__(self, args, n_actions=4, hidden=1024, gamma=0.99,
                  frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
@@ -30,7 +30,6 @@ class DQN:
         """
         self.n_actions = n_actions
         self.hidden = hidden
-        self.learning_rate = learning_rate
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
@@ -84,7 +83,7 @@ class DQN:
 
         # Parameter updates
         self.loss = tf.reduce_mean(math.gamma(1 + gamma) * tf.math.exp(tf.losses.huber_loss(self.Q, self.target_q)) - math.gamma(1+gamma))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob,
@@ -93,9 +92,6 @@ class DQN:
         self.best_Q = tf.reduce_sum(tf.multiply(self.q_values,
                                                 tf.one_hot(self.best_action, self.n_actions, dtype=tf.float32)),
                                     axis=1)
-        self.expert_loss = -tf.log(self.prob + 0.001)
-        self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate * 0.25)
-        self.expert_update = self.expert_optimizer.minimize(self.expert_loss)
 
 
 def learn(session, replay_memory, main_dqn, target_dqn, batch_size, gamma):

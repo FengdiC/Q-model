@@ -17,7 +17,7 @@ import utils
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, n_actions=4, hidden=1024, learning_rate=0.00001,
+    def __init__(self, args, n_actions=4, hidden=1024,
                  frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
@@ -31,7 +31,6 @@ class DQN:
         """
         self.n_actions = n_actions
         self.hidden = hidden
-        self.learning_rate = learning_rate
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
@@ -91,7 +90,7 @@ class DQN:
                                axis=1)
         # Parameter updates
         self.loss = tf.reduce_mean(tf.losses.huber_loss(labels=self.target_q, predictions=self.Q))
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
 def learn(session, replay_memory, main_dqn, target_dqn, batch_size, gamma):

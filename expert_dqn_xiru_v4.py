@@ -30,7 +30,6 @@ class DQN:
         """
         self.n_actions = n_actions
         self.hidden = hidden
-        self.learning_rate = learning_rate
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.agent_history_length = agent_history_length
