@@ -48,6 +48,9 @@ def argsparser():
     parser.add_argument('--lr', type=float, help='Max Episode Length', default=0.0000625)
     parser.add_argument('--lr_bc', type=float, help='Max Episode Length', default=0.0001)
     parser.add_argument('--lr_expert', type=float, help='Max Episode Length', default=0.00001)
+    parser.add_argument('--td_iterations', type=int, help='Max Episode Length', default=1)
+    parser.add_argument('--expert_iterations', type=int, help='Max Episode Length', default=1)
+
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)

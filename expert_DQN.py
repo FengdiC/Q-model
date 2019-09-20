@@ -69,8 +69,8 @@ class DQN:
         self.expert_prob = tf.reduce_sum(tf.multiply(self.action_prob_expert,
                                               tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)),
                                          axis=1)
-        self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
-        #self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
+        #self.behavior_cloning_loss = tf.reduce_mean(-tf.log(self.expert_prob  +0.00001))# + a l2 reg to prevent overtraining too much
+        self.behavior_cloning_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.action_preference, labels=tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)))
         #self.regularization = tf.reduce_mean(tf.reduce_sum(self.action_prob_expert * tf.log(self.action_prob_expert),axis=1))
         #self.behavior_cloning_loss += self.regularization
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_bc)
@@ -187,17 +187,24 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
     target_q = generated_rewards + (gamma*double_q * (1-generated_terminal_flags))
 
     # Gradient descend step to update the parameters of the main network
-    for i in range(1):
+    loss_list = []
+    for i in range(args.td_iterations):
         loss, _ = session.run([main_dqn.loss, main_dqn.update],
                             feed_dict={main_dqn.input:generated_states,
                                         main_dqn.target_q:target_q,
                                         main_dqn.action:generated_actions})
+        loss_list.append(loss)
+    loss = np.concatenate(loss_list)
 
-    expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
-                                 feed_dict={main_dqn.input:expert_states,
-                                            main_dqn.generated_input:generated_states,
-                                            main_dqn.expert_action:expert_actions,
-                                            main_dqn.expert_weights:weights})
+    expert_loss_list = []
+    for i in range(args.expert_iterations):
+        expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
+                                     feed_dict={main_dqn.input:expert_states,
+                                                main_dqn.generated_input:generated_states,
+                                                main_dqn.expert_action:expert_actions,
+                                                main_dqn.expert_weights:weights})
+        expert_loss_list.append(expert_loss)
+    expert_loss = np.concatenate(expert_loss_list)
     return loss,expert_loss
 
 args = utils.argsparser()
