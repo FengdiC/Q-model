@@ -386,6 +386,7 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
         frames_for_gif[idx] = resize(frame_idx, (420, 320, 3),
                                      preserve_range=True, order=0).astype(np.uint8)
 
+    #imageio.mimsave(f'{path}{"ATARI_frame_{0}_reward_{1}.gif".format(frame_number, reward)}',frames_for_gif, duration=1 / 30)
     imageio.mimsave(f'{path}{"ATARI_frame_{0}_reward_{1}.gif".format(frame_number, reward)}',
                     frames_for_gif, duration=1 / 30)
 
@@ -676,7 +677,7 @@ def sample(args, DQN, name, save=True):
         pickle.dump(my_replay_memory, open(args.expert_dir + "/" + name + "/" + args.env_id + "/" + args.expert_file + "_" + str(args.num_sampled), "wb"), protocol=4)
 
 
-def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=60001, only_pretrain=True):
+def train(args, DQN, learn, name, expert=False, bc_training=None, pretrain_iters=30001, only_pretrain=True):
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
