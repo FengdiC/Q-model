@@ -42,6 +42,7 @@ class DQN:
                                     dtype=tf.float32)
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.curr_q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.expert_weights = tf.placeholder(shape=[None], dtype=tf.float32)
 
         self.q_values, self.action_preference = self.build_graph(self.input, hidden, n_actions)
@@ -59,7 +60,7 @@ class DQN:
                 q_value_vars.append(v)
 
         # Parameter updates
-        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q)) - math.gamma(1+gamma))
+        self.loss = tf.reduce_mean(math.gamma(1+gamma)*tf.math.exp(tf.losses.huber_loss(self.Q,self.target_q))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss, var_list=q_value_vars)
 
@@ -76,7 +77,8 @@ class DQN:
         self.bc_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_bc)
         self.bc_update =self.bc_optimizer.minimize(self.behavior_cloning_loss, var_list=expert_vars)
 
-        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))
+        self.expert_loss = tf.reduce_mean(tf.reduce_sum(-tf.log(self.action_prob_q + 0.00001) * self.action_prob_expert, axis=1))+
+                           tf.math.exp(tf.huber_loss(self.Q - self.curr_q))
         self.expert_optimizer = tf.train.AdamOptimizer(learning_rate=args.lr_expert)
         self.expert_update =self.expert_optimizer.minimize(self.expert_loss, var_list=q_value_vars)
 
@@ -198,12 +200,15 @@ def learn(session, dataset, replay_memory, main_dqn, target_dqn, batch_size, gam
 
     expert_loss_total = 0
     if not no_expert:
+        q_values = session.run(main_dqn.Q, feed_dict={main_dqn.input: generated_new_states,
+                                                      main_dqn.action:expert_actions})
         for i in range(args.expert_iterations):
             expert_loss, _ = session.run([main_dqn.expert_loss,main_dqn.expert_update],
                                      feed_dict={main_dqn.input:expert_states,
                                                 main_dqn.generated_input:generated_states,
                                                 main_dqn.expert_action:expert_actions,
-                                                main_dqn.expert_weights:weights})
+                                                main_dqn.expert_weights:weights,
+                                                main_dqn.curr_q:q_values})
             expert_loss_total += expert_loss
         expert_loss_total= expert_loss_total/args.expert_iterations
     return loss_total, expert_loss_total
