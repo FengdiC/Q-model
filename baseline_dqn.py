@@ -190,24 +190,25 @@ def train(name="dqn", priority=True):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
     if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
        my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
-
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
 
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    #utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True)
+    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
     episode_time_list = []
+    episode_expert_list = []
 
     print_iter = 25
     last_eval = 0
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority)
+        eps_rw, eps_len, eps_loss, eps_time, expert_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority)
         episode_reward_list.append(eps_rw)
         episode_len_list.append(eps_len)
         episode_loss_list.append(eps_loss)
         episode_time_list.append(eps_time)
+        episode_expert_list.append(expert_ratio)
 
         frame_number += eps_len
         eps_number += 1
@@ -218,6 +219,7 @@ def train(name="dqn", priority=True):
             print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
             print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
             print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
+            print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
             print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
             print("Current Exploration: ", action_getter.get_eps(frame_number))
             print("Frame Number: ", frame_number)

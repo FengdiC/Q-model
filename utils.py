@@ -52,17 +52,17 @@ def argsparser():
 
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.7)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.5)
-    parser.add_argument('--expert_weight', type=float, help='Max Episode Length', default=0.1)
+    parser.add_argument('--expert_weight', type=float, help='Max Episode Length', default=1.0)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
-    parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=60001)
+    parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=10000)
 
 
-    parser.add_argument('--LAMBDA', type=float, help='Lambda 1 for expert', default=0.05)
+    parser.add_argument('--LAMBDA', type=float, help='Lambda 1 for expert', default=0.2)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
-    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.2)
+    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.005)
 
 
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
@@ -194,6 +194,8 @@ class ActionGetter:
             #print(index, rand, action_prob)
         return index
 
+    def get_random_action(self):
+        return np.random.randint(0, self.n_actions)
 
     def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
         """
@@ -215,7 +217,7 @@ class ActionGetter:
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope_2 * frame_number + self.intercept_2
         if np.random.uniform(0, 1) < eps:
-            return np.random.randint(0, self.n_actions)
+            return self.get_random_action()
         return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
 
@@ -322,12 +324,15 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
                     frames_for_gif, duration=1 / 30)
 
 
-def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False):
+def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
     frames_for_gif = []
     eval_rewards = []
     evaluate_frame_number = 0
     total_reward = 0
-    print("Evaluating Initial Model.... ")
+    if random:
+        print("Random Action Evaluation Baseline .... ")
+    else:
+        print("Evaluating Current Models .... ")
     while evaluate_frame_number < eval_steps:
         terminal_life_lost, _ = atari.reset(sess, evaluation=True)
         episode_reward_sum = 0
@@ -338,10 +343,14 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
             if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
                 action = 1
             else:
-                action = action_getter.get_action(sess, frame_num,
-                                                  atari.state,
-                                                  MAIN_DQN,
-                                                  evaluation=True)
+                if not random:
+                    action = action_getter.get_action(sess, frame_num,
+                                                      atari.state,
+                                                      MAIN_DQN,
+                                                      evaluation=True)
+                else:
+                    action = action_getter.get_random_action()
+
             processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
             evaluate_frame_number += 1
             episode_reward_sum += reward
@@ -357,7 +366,6 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     eval_rewards.append(episode_reward_sum)
     print("\n\n\n-------------------------------------------")
     print("Evaluation score:\n", np.mean(eval_rewards))
-    print("Evaluation Score/Step:\n", total_reward/evaluate_frame_number)
     print("-------------------------------------------\n\n\n")
     try:
         generate_gif(frame_num, frames_for_gif, eval_rewards[0],
@@ -371,13 +379,14 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
+    expert_ratio = []
 
     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = args.batch_size
     terminal = False
-    for _ in range(eps_length):
+    for j in range(eps_length):
         # (4�?
         if not pretrain:
             if args.stochastic_exploration == "True":
@@ -392,23 +401,27 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_length += 1
 
             # (7�? Store transition in the replay memory
-            replay_buffer.add(obs_t=current_frame[:, :, 0], action=action, reward=reward, done=terminal_life_lost)
+            replay_buffer.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             current_frame = next_frame
-
         if frame_num % UPDATE_FREQ == 0 or pretrain:
+            if pretrain and j % 1000 is 0:
+                print("Pretraining ... ", j)
             states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
             n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
 
             loss = learn(sess, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
             replay_buffer.update_priorities(idxes, loss, expert_idxes, expert_weight=args.expert_weight)
+            expert_ratio.append(np.sum(expert_idxes) / BS)
             episode_loss.append(loss)
+
         if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
             print("UPDATING Network ... ")
             network_updater.update_networks(sess)  # (9�?
         if terminal:
             break
-
-    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time
+    if pretrain:
+        print("Loss: ", np.mean(episode_loss))
+    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, expert_ratio
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
     start_time = time.time()
@@ -416,6 +429,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
+    expert_ratio = []
 
     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
@@ -438,7 +452,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             episode_length += 1
 
             # (7�? Store transition in the replay memory
-            replay_buffer.add(obs_t=current_frame[:, :, 0], action=action, reward=reward, done=terminal_life_lost)
+            replay_buffer.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             current_frame = next_frame
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
@@ -446,16 +460,17 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 episode_loss.append(loss)
+                expert_ratio.append(1)
             else:
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, expert_weight=args.expert_weight)
-
+                expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
+
         if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
             print("UPDATING Network ... ")
             network_updater.update_networks(sess)  # (9�?
         if terminal:
             break
-
-    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time
+    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, expert_ratio

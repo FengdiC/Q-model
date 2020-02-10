@@ -15,8 +15,7 @@ import PriorityBuffer
 
 def softargmax(x, beta=1e10):
   x = tf.convert_to_tensor(x)
-  x_range = tf.range(x.shape.as_list()[-1], dtype=x.dtype)
-  return tf.reduce_sum(tf.nn.softmax(x*beta) * x_range, axis=-1)
+  return tf.nn.softmax(x*beta)
 
 class DQN:
     """Implements a Deep Q Network"""
@@ -48,15 +47,15 @@ class DQN:
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
         # self.conv4 = tf.layers.conv2d(
         #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
@@ -71,10 +70,10 @@ class DQN:
         self.advantagestream = tf.layers.flatten(self.advantagestream)
         self.advantage = tf.layers.dense(
             inputs=self.advantagestream, units=self.n_actions,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+            kernel_initializer=tf.variance_scaling_initializer(scale=0.1), name="advantage")
         self.value = tf.layers.dense(
             inputs=self.valuestream, units=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+            kernel_initializer=tf.variance_scaling_initializer(scale=0.1), name='value')
 
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
@@ -126,7 +125,9 @@ class DQN:
         #JEQ = max_{a in A}(Q(s,a) + l(a_e, a)) - Q(s, a_e)
         q_plus_margin = self.q_values + expert_act_one_hot
         q_plus_margin *= self.args.dqfd_margin
-        max_q_plus_margin = softargmax(q_plus_margin)
+        max_q_plus_margin = tf.reduce_sum(softargmax(q_plus_margin) * q_plus_margin, axis=1)
+        self.q_plus_margin = q_plus_margin
+        self.max_q_plus_margin = max_q_plus_margin
         jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
         return jeq
 
@@ -139,6 +140,10 @@ class DQN:
         for v in t_vars:
             if 'bias' not in v.name:
                 l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = l_jeq
 
         loss_per_sample = l_dq + l_n_dq + l_jeq
         loss = (tf.reduce_mean(loss_per_sample) + l2_reg_loss) * self.args.LAMBDA
@@ -163,13 +168,17 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, expert_
     n_step_q_vals, n_step_act = session.run([target_dqn.q_values,target_dqn.one_hot_action], feed_dict={target_dqn.input:n_step_states, target_dqn.action:n_step_actions})
     n_step_q_vals = np.mean(n_step_q_vals * n_step_act, axis=1)
     target_n_q = n_step_rewards + last_step_gamma * not_terminal * n_step_q_vals
+
+    #print(target_q)
     # Gradient descend step to update the parameters of the main network
-    loss, _ = session.run([main_dqn.loss_per_sample, main_dqn.update],
+    loss, l2, l_dq, l_n_dq, l_jeq, max_q_plus_margin, q_plus_margin, _ = session.run([main_dqn.loss_per_sample, main_dqn.l2_reg_loss, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.max_q_plus_margin, main_dqn.q_plus_margin, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
                                      main_dqn.target_n_q: target_n_q,
                                      main_dqn.expert_state:expert_idxes})
+    # for i in range(batch_size):
+    #     print(i, target_n_q[i], target_q[i], loss[i])
     return loss
 
 
@@ -240,20 +249,22 @@ def train(name="dqfd", priority=True):
 
     #Pretrain step ...
     utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True)
-    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True)
+    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
     episode_time_list = []
+    episode_expert_list = []
 
     print_iter = 25
     last_eval = 0
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, learn)
+        eps_rw, eps_len, eps_loss, eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn)
         episode_reward_list.append(eps_rw)
         episode_len_list.append(eps_len)
         episode_loss_list.append(eps_loss)
         episode_time_list.append(eps_time)
+        episode_expert_list.append(exp_ratio)
 
         frame_number += eps_len
         eps_number += 1
@@ -264,6 +275,7 @@ def train(name="dqfd", priority=True):
             print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
             print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
             print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
+            print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
             print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
             print("Current Exploration: ", action_getter.get_eps(frame_number))
             print("Frame Number: ", frame_number)

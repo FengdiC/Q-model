@@ -173,7 +173,7 @@ class ReplayBuffer(object):
         self.indices = np.empty(self.batch_size, dtype=np.int32)
 
 
-    def add_expert(self, obs_t, action, reward, done, expert=True):
+    def add_expert(self, obs_t, reward, action, done, expert=True):
         self.actions[self.expert_idx] = action
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
@@ -185,11 +185,10 @@ class ReplayBuffer(object):
         self._next_idx = max(self._next_idx, self.expert_idx)
         self.count = min(self._maxsize, self.count + 1)
 
-
     def __len__(self):
         return self.count
 
-    def add(self, obs_t, action, reward, done):
+    def add(self, obs_t, reward, action, done):
         self.actions[self._next_idx] = action
         self.frames[self._next_idx] = obs_t
         self.rewards[self._next_idx] = reward
@@ -269,9 +268,14 @@ class ReplayBuffer(object):
         num_data = len(data['frames'])
         print("Loading Expert Data ... ")
         for i in range(num_data):
-            self.add(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i], expert=True)
+            self.add_expert(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i])
+            print(self.rewards[i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
+
+
+
+
 
     def sample(self, batch_size, expert=False):
         """Sample a batch of experiences.
@@ -476,6 +480,16 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             selected_actions.append(self.actions[n_step_idx])
         selected_actions = np.array(selected_actions)
         return n_step_rewards, np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, last_step_gamma, not_terminal
+
+
+    def load_expert_data(self, path):
+        data = pickle.load(open(path, 'rb'))
+        num_data = len(data['frames'])
+        print("Loading Expert Data ... ")
+        for i in range(num_data):
+            self.add(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i], expert=True)
+            #print(data['reward'][i], np.sum(data['terminal']))
+        print(self.count, "Expert Data loaded ... ")
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, expert_weight=1):
