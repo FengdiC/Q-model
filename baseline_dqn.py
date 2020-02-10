@@ -17,7 +17,7 @@ class DQN:
     """Implements a Deep Q Network"""
 
     def __init__(self, args, n_actions=4, hidden=1024,
-                 frame_height=84, frame_width=84, agent_history_length=4):
+                 frame_height=84, frame_width=84, agent_history_length=4, name="dqn"):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -155,9 +155,9 @@ def train(name="dqn", priority=True):
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  #
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="mainDQN")  #
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # 
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="targetDQN")  #
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')

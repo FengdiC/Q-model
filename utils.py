@@ -62,6 +62,7 @@ def argsparser():
     parser.add_argument('--LAMBDA', type=float, help='Lambda 1 for expert', default=0.05)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
+    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.2)
 
 
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
@@ -365,6 +366,51 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     except IndexError:
         print("No evaluation game finished")
 
+def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False):
+    start_time = time.time()
+    terminal_life_lost, current_frame = atari.reset(sess, evaluation=True)
+    episode_reward_sum = 0
+    episode_length = 0
+    episode_loss = []
+
+    NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
+    DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
+    UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
+    BS = args.batch_size
+    terminal = False
+    for _ in range(eps_length):
+        # (4�?
+        if not pretrain:
+            if args.stochastic_exploration == "True":
+                action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+            else:
+                action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
+            # print("Action: ",action)
+            # (5�?
+            next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+            frame_num += 1
+            episode_reward_sum += reward
+            episode_length += 1
+
+            # (7�? Store transition in the replay memory
+            replay_buffer.add(obs_t=current_frame[:, :, 0], action=action, reward=reward, done=terminal_life_lost)
+            current_frame = next_frame
+
+        if frame_num % UPDATE_FREQ == 0 or pretrain:
+            states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+            n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
+
+            loss = learn(sess, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
+            replay_buffer.update_priorities(idxes, loss, expert_idxes, expert_weight=args.expert_weight)
+            episode_loss.append(loss)
+        if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
+            print("UPDATING Network ... ")
+            network_updater.update_networks(sess)  # (9�?
+        if terminal:
+            break
+
+    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time
+
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
     start_time = time.time()
     terminal_life_lost, current_frame = atari.reset(sess, evaluation=True)
@@ -376,6 +422,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = args.batch_size
+    terminal = False
 
     for _ in range(eps_length):
         # (4�?

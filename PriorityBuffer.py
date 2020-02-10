@@ -264,6 +264,15 @@ class ReplayBuffer(object):
             idxes.append(index)
         return idxes
 
+    def load_expert_data(self, path):
+        data = pickle.load(open(path, 'rb'))
+        num_data = len(data['frames'])
+        print("Loading Expert Data ... ")
+        for i in range(num_data):
+            self.add(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i], expert=True)
+            #print(data['reward'][i], np.sum(data['terminal']))
+        print(self.count, "Expert Data loaded ... ")
+
     def sample(self, batch_size, expert=False):
         """Sample a batch of experiences.
         Parameters
@@ -293,9 +302,9 @@ class ReplayBuffer(object):
             self.states[i] =  self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
 
-        idxes = np.array(idxes)
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes - 1], \
-               self.rewards[idxes - 1], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes - 1]
+        idxes = np.array(idxes) - 1
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
+               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes]
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -437,19 +446,37 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
 
-        idxes = np.array(idxes)
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes - 1], \
-               self.rewards[idxes - 1], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes - 1], \
-               weights, idxes, expert_idxes
+        idxes = np.array(idxes) - 1
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
+               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes], \
+               weights, idxes + 1, expert_idxes
 
-    def load_expert_data(self, path):
-        data = pickle.load(open(path, 'rb'))
-        num_data = len(data['frames'])
-        print("Loading Expert Data ... ")
-        for i in range(num_data):
-            self.add(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i], expert=True)
-            #print(data['reward'][i], np.sum(data['terminal']))
-        print("Expert Data loaded ... ")
+    def compute_n_step_target_q(self, idxes, num_steps, gamma):
+        idxes = idxes - 1
+        not_terminal = np.ones((idxes.shape[0],), dtype=np.int32)
+        last_step_gamma = np.zeros((idxes.shape[0],), dtype=np.float32)
+        n_step_rewards = np.zeros((idxes.shape[0],), dtype=np.float32)
+        selected_actions = []
+        for i in range(idxes.shape[0]):
+            idx = idxes[i]
+            n_step_idx = min(self.count, idx + num_steps)
+            if n_step_idx >= self.expert_idx and idx < self.expert_idx:
+                n_step_idx = self.expert_idx - 1
+            if n_step_idx >= self._next_idx and idx  < self._next_idx:
+                n_step_idx = self._next_idx - 1
+            if np.sum(self.terminal_flags[idx:n_step_idx]) > 0:
+                n_step_idx = idx + np.argmax(self.terminal_flags[idx:n_step_idx])
+                not_terminal[i] = 0
+            accum_gamma = 1
+            for j in range(idx, n_step_idx):
+                n_step_rewards[i] += accum_gamma * self.rewards[j]
+                accum_gamma *= gamma
+            last_step_gamma[i] = accum_gamma
+            self.states[i] = self._get_state(n_step_idx)
+            selected_actions.append(self.actions[n_step_idx])
+        selected_actions = np.array(selected_actions)
+        return n_step_rewards, np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, last_step_gamma, not_terminal
+
 
     def update_priorities(self, idxes, priorities, expert_idxes, expert_weight=1):
         """Update priorities of sampled transitions.

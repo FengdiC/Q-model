@@ -22,7 +22,7 @@ class DQN:
     """Implements a Deep Q Network"""
 
     def __init__(self, args, n_actions=4, hidden=1024,
-                 frame_height=84, frame_width=84, agent_history_length=4):
+                 frame_height=84, frame_width=84, agent_history_length=4, name="dqn"):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -45,9 +45,28 @@ class DQN:
                                     dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = (self.input - 127.5)/127.5
-        self.raw_output = self.build_layers(self.inputscaled)
+        # Convolutional layers
+        self.conv1 = tf.layers.conv2d(
+            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+        self.conv2 = tf.layers.conv2d(
+            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+        self.conv3 = tf.layers.conv2d(
+            inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+        # self.conv4 = tf.layers.conv2d(
+        #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+        #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+        #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+        self.d = tf.layers.flatten(self.conv3)
+        self.dense = tf.layers.dense(inputs = self.d,units = hidden,
+                                     kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
         # Splitting into value and advantage stream
-        self.valuestream, self.advantagestream = tf.split(self.raw_output,2,-1)
+        self.valuestream, self.advantagestream = tf.split(self.dense,2,-1)
         self.valuestream = tf.layers.flatten(self.valuestream)
         self.advantagestream = tf.layers.flatten(self.advantagestream)
         self.advantage = tf.layers.dense(
@@ -64,15 +83,16 @@ class DQN:
 
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.target_n_q = tf.placeholder(shape=[None], dtype=tf.float32)
-        self.target_expert_q = tf.placeholder(shape=[None], dtype=tf.float32)
-
-        self.expert_action = tf.placeholder(shape=[None], dtype=tf.int32)
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
+        self.expert_state = tf.placeholder(shape=[None], dtype=tf.float32)
         # # Action that was performed
         # # Q value of the action that was performed
-        self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
-                               axis=1)
-        self.loss, self.loss_per_sample = self.dqfd_loss()
+        self.one_hot_action = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
+
+        self.Q = tf.reduce_sum(tf.multiply(self.q_values, self.one_hot_action), axis=1)
+
+        MAIN_DQN_VARS = tf.trainable_variables(scope=name)
+        self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         # Parameter updates
         # self.loss_per_sample = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
         # self.loss = tf.reduce_mean(self.loss_per_sample)
@@ -80,104 +100,80 @@ class DQN:
         self.update = self.optimizer.minimize(self.loss)
 
 
-
-    def build_layers(self, state, units_1=24, units_2=24):
-        with tf.variable_scope('select_net') as scope:
-            c_names = ['select_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
-            w_i = tf.random_uniform_initializer(-0.1, 0.1)
-            b_i = tf.constant_initializer(0.1)
-            reg = tf.contrib.layers.l2_regularizer(scale=0.2)  # Note: only parameters in select-net need L2
-            a_d = self.n_actions
-            with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [a_d, units_1], initializer=w_i, collections=c_names, regularizer=reg)
-                b1 = tf.get_variable('b1', [1, units_1], initializer=b_i, collections=c_names, regularizer=reg)
-                dense1 = tf.nn.relu(tf.matmul(state, w1) + b1)
-            with tf.variable_scope('l2'):
-                w2 = tf.get_variable('w2', [units_1, units_2], initializer=w_i, collections=c_names, regularizer=reg)
-                b2 = tf.get_variable('b2', [1, units_2], initializer=b_i, collections=c_names, regularizer=reg)
-                dense2 = tf.nn.relu(tf.matmul(dense1, w2) + b2)
-            with tf.variable_scope('l3'):
-                w3 = tf.get_variable('w3', [units_2, a_d], initializer=w_i, collections=c_names, regularizer=reg)
-                b3 = tf.get_variable('b3', [1, a_d], initializer=b_i, collections=c_names, regularizer=reg)
-                dense3 = tf.matmul(dense2, w3) + b3
-            return dense3
-
-    def loss_l(self, ae, a):
-        return 0.0 if ae == a else 0.8
+    # def build_layers(self, state, units_1=24, units_2=24):
+    #     with tf.variable_scope('select_net') as scope:
+    #         c_names = ['select_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
+    #         w_i = tf.random_uniform_initializer(-0.1, 0.1)
+    #         b_i = tf.constant_initializer(0.1)
+    #         reg = tf.contrib.layers.l2_regularizer(scale=0.2)  # Note: only parameters in select-net need L2
+    #         a_d = self.n_actions
+    #         with tf.variable_scope('l1'):
+    #             w1 = tf.get_variable('w1', [a_d, units_1], initializer=w_i, collections=c_names, regularizer=reg)
+    #             b1 = tf.get_variable('b1', [1, units_1], initializer=b_i, collections=c_names, regularizer=reg)
+    #             dense1 = tf.nn.relu(tf.matmul(state, w1) + b1)
+    #         with tf.variable_scope('l2'):
+    #             w2 = tf.get_variable('w2', [units_1, units_2], initializer=w_i, collections=c_names, regularizer=reg)
+    #             b2 = tf.get_variable('b2', [1, units_2], initializer=b_i, collections=c_names, regularizer=reg)
+    #             dense2 = tf.nn.relu(tf.matmul(dense1, w2) + b2)
+    #         with tf.variable_scope('l3'):
+    #             w3 = tf.get_variable('w3', [units_2, a_d], initializer=w_i, collections=c_names, regularizer=reg)
+    #             b3 = tf.get_variable('b3', [1, a_d], initializer=b_i, collections=c_names, regularizer=reg)
+    #             dense3 = tf.matmul(dense2, w3) + b3
+    #         return dense3
 
     def loss_jeq(self):
-        expert_act_one_hot = tf.one_hot(self.expert_action, self.n_actions, dtype=tf.float32)
-
+        expert_act_one_hot = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
         #JEQ = max_{a in A}(Q(s,a) + l(a_e, a)) - Q(s, a_e)
         q_plus_margin = self.q_values + expert_act_one_hot
         q_plus_margin *= self.args.dqfd_margin
         max_q_plus_margin = softargmax(q_plus_margin)
-        jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_expert_q, reduction=tf.losses.Reduction.NONE)
+        jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
         return jeq
 
-    def dqfd_loss(self):
+    def dqfd_loss(self, t_vars):
         l_dq = tf.losses.huber_loss(self.Q, self.target_q, reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(self.Q, self.target_n_q, reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
-        l_l2 = tf.reduce_sum([tf.reduce_mean(reg_l) for reg_l in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)])
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+
         loss_per_sample = l_dq + l_n_dq + l_jeq
-        loss = (tf.reduce_mean(loss_per_sample) + l_l2) * self.args.LAMBDA
+        loss = (tf.reduce_mean(loss_per_sample) + l2_reg_loss) * self.args.LAMBDA
         return loss, loss_per_sample
 
 
-
-def learn(session, states, actions, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma, args, expert=False):
-    generated_states = (states - 127.5)/127.5
-    generated_new_states = (new_states - 127.5)/127.5
-
-
-    y_batch = np.zeros((batch_size, actions.shape[1]))
-
-
-
-def learn(session, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, main_dqn, target_dqn, batch_size, gamma, args):
-    """
-    Args:states
-        session: A tensorflow sesson object
-        replay_memory: A ReplayMemory object
-        main_dqn: A DQN object
-        target_dqn: A DQN object
-        batch_size: Integer, Batch size
-        gamma: Float, discount factor for the Bellman equation
-    Returns:
-        loss: The loss of the minibatch, for tensorboard
-    Draws a minibatch from the replay memory, calculates the
-    target Q-value that the prediction Q-value is regressed to.
-    Then a parameter update is performed on the main DQN.
-    """
+def learn(session, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     # Draw a minibatch from the replay memory
-    #weight = 1 - np.exp(policy_weight)/(np.exp(expert_weight) + np.exp(policy_weight))
-    generated_states = (generated_states - 127.5)/127.5
-    generated_new_states = (generated_new_states - 127.5)/127.5
-
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:generated_new_states})
+    # states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
+    # The main network estimates which action is best (in the next
+    # state s', new_states is passed!)
+    # for every transition in the minibatch
+    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:generated_new_states})
+    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
-
-    target_q = generated_rewards + (gamma*double_q * (1-generated_terminal_flags))
+    # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
+    # if the game is over, targetQ=rewards
+    target_q = rewards + (gamma*double_q * (1-terminal_flags))
+    #Now compute target_n_q
+    n_step_q_vals, n_step_act = session.run([target_dqn.q_values,target_dqn.one_hot_action], feed_dict={target_dqn.input:n_step_states, target_dqn.action:n_step_actions})
+    n_step_q_vals = np.mean(n_step_q_vals * n_step_act, axis=1)
+    target_n_q = n_step_rewards + last_step_gamma * not_terminal * n_step_q_vals
     # Gradient descend step to update the parameters of the main network
-    loss_total = 0
-    for i in range(args.td_iterations):
-        loss, est_q, _ = session.run([main_dqn.loss_per_sample, main_dqn.Q, main_dqn.update],
-                            feed_dict={main_dqn.input:generated_states,
-                                        main_dqn.target_q:target_q,
-                                        main_dqn.action:generated_actions})
-        # for j in range(batch_size):
-        #     print(j, loss[j], est_q[j], target_q[j])
-        # quit()
-        loss_total += loss
-    loss_total/args.td_iterations
-    return loss_total
+    loss, _ = session.run([main_dqn.loss_per_sample, main_dqn.update],
+                          feed_dict={main_dqn.input:states,
+                                     main_dqn.target_q:target_q,
+                                     main_dqn.action:actions,
+                                     main_dqn.target_n_q: target_n_q,
+                                     main_dqn.expert_state:expert_idxes})
+    return loss
 
 
-def train(name="dqfd", priority=False):
+def train(name="dqfd", priority=True):
     args = utils.argsparser()
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
@@ -204,9 +200,9 @@ def train(name="dqfd", priority=False):
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="mainDQN")  #
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN)  # (★★)
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="targetDQN")  #
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -238,14 +234,13 @@ def train(name="dqfd", priority=False):
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
 
-    #if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-        #my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
-
-    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
+    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
+        my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    #utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
 
     #Pretrain step ...
-    #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
-    #utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True)
+    utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True)
+    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
@@ -254,7 +249,7 @@ def train(name="dqfd", priority=False):
     print_iter = 25
     last_eval = 0
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, learn, priority=priority)
+        eps_rw, eps_len, eps_loss, eps_time = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, learn)
         episode_reward_list.append(eps_rw)
         episode_len_list.append(eps_len)
         episode_loss_list.append(eps_loss)
