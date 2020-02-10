@@ -206,7 +206,6 @@ class ActionGetter:
         Returns:
             An integer between 0 and n_actions - 1 determining the action the agent perfoms next
         """
-        state = (state - 127.5)/127.5
         if evaluation:
             eps = self.eps_evaluation
         elif frame_number < self.replay_memory_start_size:

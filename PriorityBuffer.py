@@ -506,3 +506,4 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self._it_min[idx] = (new_priority) ** self._alpha
             self._max_priority = max(self._max_priority, priority)
             count += 1
+
