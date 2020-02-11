@@ -43,19 +43,20 @@ class DQN:
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
         # Normalizing the input
-        self.inputscaled = (self.input - 127.5)/127.5
+        #self.inputscaled = (self.input - 127.5)/127.5
+        self.inputscaled = self.input
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=0.1),
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
         # self.conv4 = tf.layers.conv2d(
         #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
@@ -70,10 +71,10 @@ class DQN:
         self.advantagestream = tf.layers.flatten(self.advantagestream)
         self.advantage = tf.layers.dense(
             inputs=self.advantagestream, units=self.n_actions,
-            kernel_initializer=tf.variance_scaling_initializer(scale=0.1), name="advantage")
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
         self.value = tf.layers.dense(
             inputs=self.valuestream, units=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=0.1), name='value')
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
 
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
@@ -165,9 +166,11 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, expert_
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q * (1-terminal_flags))
     #Now compute target_n_q
-    n_step_q_vals, n_step_act = session.run([target_dqn.q_values,target_dqn.one_hot_action], feed_dict={target_dqn.input:n_step_states, target_dqn.action:n_step_actions})
-    n_step_q_vals = np.mean(n_step_q_vals * n_step_act, axis=1)
-    target_n_q = n_step_rewards + last_step_gamma * not_terminal * n_step_q_vals
+
+
+    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
+    double_n_q = q_vals[range(batch_size), n_step_actions]
+    target_n_q = n_step_rewards + last_step_gamma * double_n_q * not_terminal
 
     #print(target_q)
     # Gradient descend step to update the parameters of the main network

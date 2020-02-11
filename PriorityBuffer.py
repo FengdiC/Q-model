@@ -173,17 +173,18 @@ class ReplayBuffer(object):
         self.indices = np.empty(self.batch_size, dtype=np.int32)
 
 
-    def add_expert(self, obs_t, reward, action, done, expert=True):
+    def add_expert(self, obs_t, reward, action, done):
         self.actions[self.expert_idx] = action
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
         self.terminal_flags[self.expert_idx] = done
+
+        self.count = min(self._maxsize, self.count + 1)
         self.expert_idx = (self.expert_idx + 1)
         if self.expert_idx > self._maxsize:
             print("Dataset too small, cannot add more expert actions .... ")
             quit()
         self._next_idx = max(self._next_idx, self.expert_idx)
-        self.count = min(self._maxsize, self.count + 1)
 
     def __len__(self):
         return self.count
@@ -268,8 +269,7 @@ class ReplayBuffer(object):
         num_data = len(data['frames'])
         print("Loading Expert Data ... ")
         for i in range(num_data):
-            self.add_expert(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i])
-            print(self.rewards[i])
+            self.add(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
 
@@ -305,10 +305,12 @@ class ReplayBuffer(object):
         for i, idx in enumerate(idxes):
             self.states[i] =  self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
+        self.states = (self.states - 127.5)/127.5
+        self.new_states = (self.new_states - 127.5)/127.5
 
-        idxes = np.array(idxes) - 1
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
-               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes]
+        idxes = np.array(idxes)
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes - 1], \
+               self.rewards[idxes - 1], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes]
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -342,12 +344,14 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def add(self, *args, **kwargs):
         """See ReplayBuffer.store_effect"""
-        if "expert" in kwargs and kwargs["expert"]:
-            idx = self.expert_idx
-            super().add_expert(*args, **kwargs)
-        else:
-            idx = self._next_idx
-            super().add(*args, **kwargs)
+        idx = self._next_idx
+        super().add(*args, **kwargs)
+        self._it_sum[idx] = self._max_priority ** self._alpha
+        self._it_min[idx] = self._max_priority ** self._alpha
+
+    def add_expert(self, *args, **kwargs):
+        idx = self.expert_idx
+        super().add_expert(*args, **kwargs)
         self._it_sum[idx] = self._max_priority ** self._alpha
         self._it_min[idx] = self._max_priority ** self._alpha
 
@@ -449,10 +453,12 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         for i, idx in enumerate(idxes):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
+        self.states = (self.states - 127.5)/127.5
+        self.new_states = (self.new_states - 127.5)/127.5
 
         idxes = np.array(idxes) - 1
         return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
-               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes], \
+               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes + 1], \
                weights, idxes + 1, expert_idxes
 
     def compute_n_step_target_q(self, idxes, num_steps, gamma):
@@ -477,6 +483,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 accum_gamma *= gamma
             last_step_gamma[i] = accum_gamma
             self.states[i] = self._get_state(n_step_idx)
+            self.states = (self.states - 127.5) / 127.5
+
             selected_actions.append(self.actions[n_step_idx])
         selected_actions = np.array(selected_actions)
         return n_step_rewards, np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, last_step_gamma, not_terminal
@@ -487,9 +495,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         num_data = len(data['frames'])
         print("Loading Expert Data ... ")
         for i in range(num_data):
-            self.add(data['frames'][i], data['reward'][i], data['actions'][i], data['terminal'][i], expert=True)
+            self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
+        print("Priority Buffer")
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, expert_weight=1):

@@ -38,8 +38,8 @@ class DQN:
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
         # Normalizing the input
-        self.inputscaled = (self.input - 127.5)/127.5
-
+        #self.inputscaled = (self.input - 127.5)/127.5
+        self.inputscaled = self.input
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
@@ -108,6 +108,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
     target Q-value that the prediction Q-value is regressed to.
     Then a parameter update is performed on the main DQN.
     """
+    #print(np.max(states), actions, rewards)
     # Draw a minibatch from the replay memory
     # states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
     # The main network estimates which action is best (in the next
@@ -122,7 +123,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q * (1-terminal_flags))
     # Gradient descend step to update the parameters of the main network
-    loss, _ = session.run([main_dqn.loss_per_sample, main_dqn.update],
+    loss, q_val, q_values, _ = session.run([main_dqn.loss_per_sample, main_dqn.Q, main_dqn.q_values, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
@@ -165,6 +166,7 @@ def train(name="dqn", priority=True):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
+    print("Was here", priority)
     if priority:
         my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha)  #
     else:
@@ -188,12 +190,14 @@ def train(name="dqn", priority=True):
         os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
-    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-       my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    # if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
+    #    my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
-
+    
+    # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(3558509))
+    # print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(3558509))
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
+    #utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []

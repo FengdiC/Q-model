@@ -179,6 +179,7 @@ class ActionGetter:
 
 
     def get_stochastic_action(self, session, state, main_dqn, evaluation=False):
+        state = (state - 127.5)/127.5
         if evaluation:
             return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
         else:
@@ -208,6 +209,7 @@ class ActionGetter:
         Returns:
             An integer between 0 and n_actions - 1 determining the action the agent perfoms next
         """
+        state = (state - 127.5)/127.5
         if evaluation:
             eps = self.eps_evaluation
         elif frame_number < self.replay_memory_start_size:
@@ -299,8 +301,7 @@ def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, ma
             # (5�?
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             # (7�? Store transition in the replay memory
-
-            my_replay_memory.add(obs_t=current_frame[:, :, 0], action=action, reward=reward, done=terminal_life_lost)
+            my_replay_memory.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             current_frame = next_frame
             frame_num += 1
             if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:
@@ -421,7 +422,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             break
     if pretrain:
         print("Loss: ", np.mean(episode_loss))
-    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, expert_ratio
+    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
     start_time = time.time()
@@ -473,4 +474,4 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             network_updater.update_networks(sess)  # (9�?
         if terminal:
             break
-    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, expert_ratio
+    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
