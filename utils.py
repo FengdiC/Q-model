@@ -290,7 +290,7 @@ class Atari:
 def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args):
     frame_num = 0
     while frame_num < replay_buf_size:
-        _, current_frame = atari.reset(sess)
+        _, _ = atari.reset(sess)
         for _ in range(max_eps):
             # (4�?
             if args.stochastic_exploration == "True":
@@ -301,8 +301,7 @@ def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, ma
             # (5�?
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             # (7�? Store transition in the replay memory
-            my_replay_memory.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-            current_frame = next_frame
+            my_replay_memory.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             frame_num += 1
             if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:
                 print(frame_num)
@@ -376,7 +375,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
 
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False):
     start_time = time.time()
-    terminal_life_lost, current_frame = atari.reset(sess, evaluation=True)
+    terminal_life_lost, _ = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
@@ -402,7 +401,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_length += 1
 
             # (7�? Store transition in the replay memory
-            replay_buffer.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             current_frame = next_frame
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if pretrain and j % 1000 is 0:
@@ -426,7 +425,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
     start_time = time.time()
-    terminal_life_lost, current_frame = atari.reset(sess, evaluation=True)
+    terminal_life_lost, _ = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
@@ -439,7 +438,6 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
     terminal = False
 
     for _ in range(eps_length):
-        # (4�?
         if not pretrain:
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
@@ -453,8 +451,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             episode_length += 1
 
             # (7�? Store transition in the replay memory
-            replay_buffer.add(obs_t=current_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-            current_frame = next_frame
+            replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:

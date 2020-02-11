@@ -308,9 +308,9 @@ class ReplayBuffer(object):
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
 
-        idxes = np.array(idxes)
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes - 1], \
-               self.rewards[idxes - 1], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes]
+        idxes = np.array(idxes) - 1
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
+               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes]
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -449,17 +449,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 expert_idxes.append(0)
         expert_idxes = np.array(expert_idxes)
 
-
+        idxes = np.array(idxes)
+        selected_actions = self.actions[idxes - 1]
+        selected_rewards =self.rewards[idxes - 1]
+        selected_terminal = self.terminal_flags[idxes - 1]
         for i, idx in enumerate(idxes):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
-
-        idxes = np.array(idxes) - 1
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
-               self.rewards[idxes], np.transpose(self.new_states, axes=(0, 2, 3, 1)), self.terminal_flags[idxes + 1], \
-               weights, idxes + 1, expert_idxes
+        return np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, \
+               selected_rewards, np.transpose(self.new_states, axes=(0, 2, 3, 1)), selected_terminal, \
+               weights, idxes, expert_idxes
 
     def compute_n_step_target_q(self, idxes, num_steps, gamma):
         idxes = idxes - 1

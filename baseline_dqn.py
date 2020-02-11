@@ -127,6 +127,11 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
+    # for i in range(batch_size):
+    #     print(i, loss[i], q_val[i], target_q[i], terminal_flags[i])
+    #
+    # if np.sum(terminal_flags) > 0:
+    #     quit()
     return loss
     
 def train(name="dqn", priority=True):
@@ -193,8 +198,8 @@ def train(name="dqn", priority=True):
        my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
     
-    # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(3558509))
-    # print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(3558509))
+    #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(451183))
+    #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(451183))
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
     utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
     episode_reward_list = []
