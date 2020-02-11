@@ -179,7 +179,7 @@ class ActionGetter:
 
 
     def get_stochastic_action(self, session, state, main_dqn, evaluation=False):
-        state = (state - 127.5)/127.5
+        #state = (state - 127.5)/127.5
         if evaluation:
             return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
         else:
@@ -209,7 +209,7 @@ class ActionGetter:
         Returns:
             An integer between 0 and n_actions - 1 determining the action the agent perfoms next
         """
-        state = (state - 127.5)/127.5
+        #state = (state - 127.5)/127.5
         if evaluation:
             eps = self.eps_evaluation
         elif frame_number < self.replay_memory_start_size:

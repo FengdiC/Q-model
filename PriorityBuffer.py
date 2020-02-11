@@ -305,8 +305,8 @@ class ReplayBuffer(object):
         for i, idx in enumerate(idxes):
             self.states[i] =  self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
-        self.states = (self.states - 127.5)/127.5
-        self.new_states = (self.new_states - 127.5)/127.5
+        # self.states = (self.states - 127.5)/127.5
+        # self.new_states = (self.new_states - 127.5)/127.5
 
         idxes = np.array(idxes)
         return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes - 1], \
@@ -453,8 +453,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         for i, idx in enumerate(idxes):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
-        self.states = (self.states - 127.5)/127.5
-        self.new_states = (self.new_states - 127.5)/127.5
+        # self.states = (self.states - 127.5)/127.5
+        # self.new_states = (self.new_states - 127.5)/127.5
 
         idxes = np.array(idxes) - 1
         return np.transpose(self.states, axes=(0, 2, 3, 1)), self.actions[idxes], \
@@ -483,7 +483,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 accum_gamma *= gamma
             last_step_gamma[i] = accum_gamma
             self.states[i] = self._get_state(n_step_idx)
-            self.states = (self.states - 127.5) / 127.5
+            # self.states = (self.states - 127.5) / 127.5
 
             selected_actions.append(self.actions[n_step_idx])
         selected_actions = np.array(selected_actions)

@@ -43,8 +43,8 @@ class DQN:
                                            self.frame_width, self.agent_history_length],
                                     dtype=tf.float32)
         # Normalizing the input
-        #self.inputscaled = (self.input - 127.5)/127.5
-        self.inputscaled = self.input
+        self.inputscaled = (self.input - 127.5)/127.5
+        #self.inputscaled = self.input
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
