@@ -409,7 +409,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         return res
 
     def sample(self, batch_size, beta, expert=False):
-        """Sample a batch of experiences.
+        """Sample a batch of experiences
         compared to ReplayBuffer.sample
         it also returns importance weights and idxes
         of sampled experiences.
