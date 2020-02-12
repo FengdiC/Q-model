@@ -50,7 +50,7 @@ def argsparser():
     parser.add_argument('--td_iterations', type=int, help='Max Episode Length', default=1)
     parser.add_argument('--expert_iterations', type=int, help='Max Episode Length', default=1)
 
-    parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.7)
+    parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.5)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.5)
     parser.add_argument('--expert_weight', type=float, help='Max Episode Length', default=1.0)
 

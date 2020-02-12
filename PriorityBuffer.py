@@ -227,8 +227,8 @@ class ReplayBuffer(object):
                 continue
             if index >= self._next_idx and index - self.agent_history_length < self._next_idx:
                 continue
-            # if np.sum(self.terminal_flags[index - self.agent_history_length - 1:index - 1]) > 0:
-            #     continue
+            if np.sum(self.terminal_flags[index - self.agent_history_length - 1:index - 1]) > 0:
+                continue
             idxes.append(index)
 
         # frame_indices = np.zeros((batch_size, self.agent_history_length + 1), dtype=np.uint32)
@@ -259,8 +259,8 @@ class ReplayBuffer(object):
                 continue
             if index >= 0 and index - self.agent_history_length < self._next_idx:
                 continue
-            # if np.sum(self.terminal_flags[index - self.agent_history_length - 1:index - 1]) > 0:
-            #     continue
+            if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+                 continue
             idxes.append(index)
         return idxes
 
@@ -308,16 +308,17 @@ class ReplayBuffer(object):
         selected_rewards =self.rewards[idxes]
         selected_terminal = self.terminal_flags[idxes]
         for i, idx in enumerate(idxes):
-            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-                terminal_idx = idx - self.agent_history_length + np.argmax(self.terminal_flags[idx - self.agent_history_length:idx])
-                selected_actions[i] = self.actions[terminal_idx]
-                selected_rewards[i] = self.rewards[terminal_idx]
-                selected_terminal[i] = self.terminal_flags[terminal_idx]
-                self.states[i] = self._get_state(terminal_idx)
-                self.new_states[i] = self._get_state(terminal_idx)
-            else:
-                self.states[i] = self._get_state(idx - 1)
-                self.new_states[i] = self._get_state(idx)
+            
+            #if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+            #    terminal_idx = idx - self.agent_history_length + np.argmax(self.terminal_flags[idx - self.agent_history_length:idx])
+            #    selected_actions[i] = self.actions[terminal_idx]
+            #    selected_rewards[i] = self.rewards[terminal_idx]
+            #    selected_terminal[i] = self.terminal_flags[terminal_idx]
+            #    self.states[i] = self._get_state(terminal_idx)
+            #    self.new_states[i] = self._get_state(terminal_idx)
+            #else:
+            self.states[i] = self._get_state(idx - 1)
+            self.new_states[i] = self._get_state(idx)
         # for i, idx in enumerate(idxes):
         #     self.states[i] =  self._get_state(idx - 1)
         #     self.new_states[i] = self._get_state(idx)
@@ -383,8 +384,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 continue
             if idx >= self._next_idx and idx - self.agent_history_length < self._next_idx:
                 continue
-            # if np.sum(self.terminal_flags[idx - self.agent_history_length - 1:idx - 1]) > 0:
-            #     continue
+            if np.sum(self.terminal_flags[idx - self.agent_history_length - 1:idx - 1]) > 0:
+                continue
             res.append(idx)
             i += 1
         return res
@@ -401,8 +402,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 continue
             if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
                 continue
-            # if np.sum(self.terminal_flags[idx - self.agent_history_length:idx - 1]) > 0:
-            #     continue
+            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+                continue
             res.append(idx)
             i += 1
         return res
@@ -468,16 +469,16 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         selected_rewards =self.rewards[idxes]
         selected_terminal = self.terminal_flags[idxes]
         for i, idx in enumerate(idxes):
-            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-                terminal_idx = idx - self.agent_history_length + np.argmax(self.terminal_flags[idx - self.agent_history_length:idx])
-                selected_actions[i] = self.actions[terminal_idx]
-                selected_rewards[i] = self.rewards[terminal_idx]
-                selected_terminal[i] = self.terminal_flags[terminal_idx]
-                self.states[i] = self._get_state(terminal_idx)
-                self.new_states[i] = self._get_state(terminal_idx)
-            else:
-                self.states[i] = self._get_state(idx - 1)
-                self.new_states[i] = self._get_state(idx)
+            #if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+            #    terminal_idx = idx - self.agent_history_length + np.argmax(self.terminal_flags[idx - self.agent_history_length:idx])
+            #    selected_actions[i] = self.actions[terminal_idx]
+            #    selected_rewards[i] = self.rewards[terminal_idx]
+            #    selected_terminal[i] = self.terminal_flags[terminal_idx]
+            #    self.states[i] = self._get_state(terminal_idx)
+            #    self.new_states[i] = self._get_state(terminal_idx)
+            #else:
+            self.states[i] = self._get_state(idx - 1)
+            self.new_states[i] = self._get_state(idx)
 
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
@@ -545,9 +546,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             priority = max(priority, 0)
             assert 0 <= idx < self.count
             if expert_idxes[count] == 1:
-                new_priority = priority * expert_weight * 0.99 + 0.01
+                new_priority = priority * expert_weight * 0.95 + 0.05
             else:
-                new_priority = priority * 0.99 + 0.01
+                new_priority = priority * 0.95 + 0.05
             #print(idx, new_priority, expert_idxes[count], count)
             self._it_sum[idx] = (new_priority) ** self._alpha
             self._it_min[idx] = (new_priority) ** self._alpha

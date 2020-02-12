@@ -200,7 +200,7 @@ def train(name="dqn", priority=True):
     #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(552302))
     #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(552302))
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    #utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
