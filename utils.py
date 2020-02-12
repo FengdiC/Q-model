@@ -220,8 +220,12 @@ class ActionGetter:
             eps = self.slope_2 * frame_number + self.intercept_2
         if np.random.uniform(0, 1) < eps:
             return self.get_random_action()
-        return session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
+        #print("Was here .... ")
+        result, q_vals = session.run([main_dqn.best_action, main_dqn.q_values], feed_dict={main_dqn.input: [state]})
+        # result = result[0]
+        # print(result, q_vals)
+        return result
 
 class Atari:
     """Wrapper for the environment provided by gym"""
@@ -402,7 +406,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
 
             # (7�? Store transition in the replay memory
             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-            current_frame = next_frame
+            #current_frame = next_frame
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if pretrain and j % 1000 is 0:
                 print("Pretraining ... ", j)

@@ -128,8 +128,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
     # for i in range(batch_size):
-    #     print(i, loss[i], q_val[i], target_q[i], terminal_flags[i])
-    #
+    #     print(i, loss[i], q_val[i], target_q[i], rewards[i], terminal_flags[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
     return loss
@@ -194,14 +193,14 @@ def train(name="dqn", priority=True):
         os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
-    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-       my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    # if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
+    #    my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
     
-    #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(451183))
-    #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(451183))
+    #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(552302))
+    #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(552302))
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=True)
+    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
@@ -211,7 +210,7 @@ def train(name="dqn", priority=True):
     print_iter = 25
     last_eval = 0
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time, expert_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority)
+        eps_rw, eps_len, eps_loss, eps_time, expert_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority, pretrain=False)
         episode_reward_list.append(eps_rw)
         episode_len_list.append(eps_len)
         episode_loss_list.append(eps_loss)
