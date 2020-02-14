@@ -502,7 +502,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         selected_actions = []
         for i in range(idxes.shape[0]):
             idx = idxes[i]
-            n_step_idx = min(self.count, idx + num_steps)
+            n_step_idx = min(self.count-1, idx + num_steps)
             if n_step_idx >= self.expert_idx and idx < self.expert_idx:
                 n_step_idx = self.expert_idx - 1
             if n_step_idx >= self._next_idx and idx  < self._next_idx:

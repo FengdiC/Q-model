@@ -59,7 +59,7 @@ def argsparser():
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=10000)
 
 
-    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=0.1)
+    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
