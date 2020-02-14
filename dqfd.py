@@ -125,12 +125,11 @@ class DQN:
     def loss_jeq(self):
         expert_act_one_hot = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
         #JEQ = max_{a in A}(Q(s,a) + l(a_e, a)) - Q(s, a_e)
-        q_plus_margin = self.q_values + expert_act_one_hot
-        q_plus_margin *= self.args.dqfd_margin
+        q_plus_margin = self.q_values + (1-expert_act_one_hot)*self.args.dqfd_margin
         max_q_plus_margin = tf.reduce_sum(softargmax(q_plus_margin) * q_plus_margin, axis=1)
         self.q_plus_margin = q_plus_margin
         self.max_q_plus_margin = max_q_plus_margin
-        jeq = (max_q_plus_margin - self.target_q) * self.expert_state#tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
+        jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
         return jeq
 
     def dqfd_loss(self, t_vars):
