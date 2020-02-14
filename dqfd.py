@@ -85,6 +85,7 @@ class DQN:
         self.target_n_q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
         self.expert_state = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.pretrain = tf.placeholder(shape=[None], dtype=tf.float32)
         # # Action that was performed
         # # Q value of the action that was performed
         self.one_hot_action = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
@@ -129,7 +130,7 @@ class DQN:
         max_q_plus_margin = tf.reduce_sum(softargmax(q_plus_margin) * q_plus_margin, axis=1)
         self.q_plus_margin = q_plus_margin
         self.max_q_plus_margin = max_q_plus_margin
-        jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
+        jeq = (max_q_plus_margin - self.target_q) * self.expert_state#tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
         return jeq
 
     def dqfd_loss(self, t_vars):
@@ -146,8 +147,8 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + l_n_dq + l_jeq
-        loss = (tf.reduce_mean(loss_per_sample) + l2_reg_loss) * self.args.LAMBDA
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
+        loss = tf.reduce_mean(loss_per_sample) + l2_reg_loss
         return loss, loss_per_sample
 
 
@@ -171,17 +172,18 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, expert_
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
     double_n_q = q_vals[range(batch_size), n_step_actions]
     target_n_q = n_step_rewards + last_step_gamma * double_n_q * not_terminal
-
+    #print(expert_idxes)
     #print(target_q)
     # Gradient descend step to update the parameters of the main network
-    loss, l2, l_dq, l_n_dq, l_jeq, max_q_plus_margin, q_plus_margin, _ = session.run([main_dqn.loss_per_sample, main_dqn.l2_reg_loss, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.max_q_plus_margin, main_dqn.q_plus_margin, main_dqn.update],
+    loss, l2, l_dq, l_n_dq, l_jeq, max_q_plus_margin, q_plus_margin, Q, _ = session.run([main_dqn.loss_per_sample, main_dqn.l2_reg_loss, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.max_q_plus_margin, main_dqn.q_plus_margin, main_dqn.Q, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
                                      main_dqn.target_n_q: target_n_q,
                                      main_dqn.expert_state:expert_idxes})
-    # for i in range(batch_size):
-    #     print(i, target_n_q[i], target_q[i], loss[i])
+    # if np.random.uniform() < 0.01:
+    #     for i in range(batch_size):
+    #         print(i, loss[i], target_q[i], target_n_q[i], Q[i], l_dq[i], l_n_dq[i], l_jeq[i])
     return loss
 
 

@@ -50,8 +50,8 @@ def argsparser():
     parser.add_argument('--td_iterations', type=int, help='Max Episode Length', default=1)
     parser.add_argument('--expert_iterations', type=int, help='Max Episode Length', default=1)
 
-    parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.5)
-    parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.5)
+    parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.4)
+    parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.6)
     parser.add_argument('--expert_weight', type=float, help='Max Episode Length', default=1.0)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
@@ -59,10 +59,11 @@ def argsparser():
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=10000)
 
 
-    parser.add_argument('--LAMBDA', type=float, help='Lambda 1 for expert', default=0.2)
+    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=0.1)
+    parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
+    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
-    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.005)
 
 
     parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
@@ -408,9 +409,12 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             #current_frame = next_frame
         if frame_num % UPDATE_FREQ == 0 or pretrain:
-            if pretrain and j % 1000 is 0:
-                print("Pretraining ... ", j)
-            states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+            if pretrain and j % 1000 is 0 and j > 0:
+                print("Pretraining ... ", j, "Loss: ", np.mean(episode_loss[-1000:]))
+            if pretrain:
+                states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
+            else:
+                states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
             n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
 
             loss = learn(sess, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
@@ -424,7 +428,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
         if terminal:
             break
     if pretrain:
-        print("Loss: ", np.mean(episode_loss))
+        print("Loss: ", np.mean(episode_loss[-1000:]))
     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):

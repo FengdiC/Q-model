@@ -408,7 +408,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             i += 1
         return res
 
-    def sample(self, batch_size, beta, expert=False):
+    def sample(self, batch_size, beta, expert=False, random=False):
         """Sample a batch of experiences
         compared to ReplayBuffer.sample
         it also returns importance weights and idxes
@@ -440,21 +440,27 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             Array of shape (batch_size,) and dtype np.int32
             idexes in buffer of sampled experiences
         """
+
         assert beta > 0
         if not expert:
             idxes = self._sample_proportional(batch_size)
         else:
             idxes = self._sample_expert_proportional(batch_size)
 
-        weights = []
-        p_min = self._it_min.min() / self._it_sum.sum()
-        max_weight = (p_min * self.count) ** (-beta)
+        if random:
+            weights = []
+            idxes = super()._get_indices(batch_size)
+        else:
+            weights = []
+            p_min = self._it_min.min() / self._it_sum.sum()
+            max_weight = (p_min * self.count) ** (-beta)
 
-        for idx in idxes:
-            p_sample = self._it_sum[idx] / self._it_sum.sum()
-            weight = (p_sample * self.count) ** (-beta)
-            weights.append(weight / max_weight)
-        weights = np.array(weights)
+            for idx in idxes:
+                p_sample = self._it_sum[idx] / self._it_sum.sum()
+                weight = (p_sample * self.count) ** (-beta)
+                weights.append(weight / max_weight)
+            weights = np.array(weights)
+
 
         expert_idxes = []
         for i in range(batch_size):

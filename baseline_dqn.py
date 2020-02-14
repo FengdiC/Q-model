@@ -193,14 +193,14 @@ def train(name="dqn", priority=True):
         os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
-    # if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-    #    my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
+       my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
     
     #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(552302))
     #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(552302))
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    #utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
