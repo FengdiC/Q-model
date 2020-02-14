@@ -174,6 +174,7 @@ class ReplayBuffer(object):
 
 
     def add_expert(self, obs_t, reward, action, done):
+        reward = np.sign(reward) * np.log(1+np.abs(reward))
         self.actions[self.expert_idx] = action
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
@@ -190,6 +191,7 @@ class ReplayBuffer(object):
         return self.count
 
     def add(self, obs_t, reward, action, done):
+        reward = np.sign(reward) * np.log(1+np.abs(reward))
         self.actions[self._next_idx] = action
         self.frames[self._next_idx] = obs_t
         self.rewards[self._next_idx] = reward

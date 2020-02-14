@@ -5,6 +5,7 @@ import argparse
 from gym import logger
 import pickle
 import utils
+import PriorityBuffer
 
 try:
     matplotlib.use('TkAgg')
@@ -75,7 +76,6 @@ def play(env, args, transpose=True, fps=30, zoom=None, callback=None, keys_to_ac
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    data_list = []
     obs = env.reset(sess)
     rendered = env.env.render(mode='rgb_array')
 
@@ -101,23 +101,33 @@ def play(env, args, transpose=True, fps=30, zoom=None, callback=None, keys_to_ac
     clock = pygame.time.Clock()
     count = 0
     num_traj = 0
+    data_list = []
+
+    current_data = {}
+    current_data["frames"] = []
+    current_data["reward"] = []
+    current_data["actions"] = []
+    current_data["terminal"] = []
+
     while running:
         if env_done and count > 0:
             env_done = False
             num_traj += 1
             obs = env.reset(sess)
             print(num_traj, count)
-            replay_mem = utils.ReplayMemory(len(data_list))
+
             for i in range(len(data_list)):
                 action = data_list[i][0]
                 obs = data_list[i][1]
                 rew = data_list[i][2]
                 terminal = data_list[i][3]
-                replay_mem.add_experience(action=action,
-                                          frame=obs[:, :, 0],
-                                          reward=rew,
-                                          terminal=terminal)
-            pickle.dump(replay_mem, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+                current_data["frames"].append(obs)
+                current_data["reward"].append(rew)
+                current_data["actions"].append(action)
+                current_data["terminal"].append(terminal)
+                #replay_mem.add(obs[:, :, 0], action, rew, terminal)
+            pickle.dump(current_data, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            data_list = [] 
         else:
             action = keys_to_action.get(tuple(sorted(pressed_keys)), 0)
             obs, rew, env_done, terminal, frame = env.step(sess, action)
@@ -187,11 +197,11 @@ class PlayPlot(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='BreakoutDeterministic-v4', help='Define Environment')
+    parser.add_argument('--env', type=str, default='SeaquestDeterministic-v4', help='Define Environment')
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=4, fps=13)
+    play(env, args, zoom=3, fps=60)
 
 
 if __name__ == '__main__':
