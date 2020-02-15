@@ -26,7 +26,7 @@ def display_arr(screen, arr, video_size, transpose):
     screen.blit(pyg_img, (0, 0))
 
 
-def play(env, args, transpose=True, fps=30, zoom=None, callback=None, keys_to_action=None):
+def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_action=None):
     """Allows one to play the game using keyboard.
     To simply play the game use:
         play(gym.make("Pong-v4"))
@@ -201,7 +201,7 @@ def main():
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=60)
+    play(env, args, zoom=3, fps=11)
 
 
 if __name__ == '__main__':
