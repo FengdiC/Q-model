@@ -277,7 +277,7 @@ class Atari:
         Performs an action and observes the reward and terminal state from the environment
         """
         new_frame, reward, terminal, info = self.env.step(action)  # (5�?
-
+        
         if info['ale.lives'] < self.last_lives:
             terminal_life_lost = True
         else:

@@ -160,17 +160,17 @@ class ReplayBuffer(object):
         self.count = 0
 
         # Pre-allocate memory
-        self.actions = np.empty(self._maxsize, dtype=np.int32)
-        self.rewards = np.empty(self._maxsize, dtype=np.float32)
-        self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
-        self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
+        self.actions = np.zeros(self._maxsize, dtype=np.int32)
+        self.rewards = np.zeros(self._maxsize, dtype=np.float32)
+        self.frames = np.zeros((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
+        self.terminal_flags = np.zeros(self._maxsize, dtype=np.uint8)
 
         # Pre-allocate memory for the states and new_states in a minibatch
-        self.states = np.empty((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
+        self.states = np.zeros((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
                                 ), dtype=np.float32)
-        self.new_states = np.empty((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
+        self.new_states = np.zeros((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
                                     ), dtype=np.float32)
-        self.indices = np.empty(self.batch_size, dtype=np.int32)
+        self.indices = np.zeros(self.batch_size, dtype=np.int32)
 
 
     def add_expert(self, obs_t, reward, action, done):
@@ -198,7 +198,6 @@ class ReplayBuffer(object):
         self.terminal_flags[self._next_idx] = done
 
         self.count = min(self._maxsize, self.count + 1)
-
         self._next_idx = (self._next_idx + 1) % (self._maxsize)
         if self._next_idx < self.expert_idx:
             self._next_idx = self.expert_idx
@@ -271,7 +270,7 @@ class ReplayBuffer(object):
         num_data = len(data['frames'])
         print("Loading Expert Data ... ")
         for i in range(num_data):
-            self.add(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i], done=data['terminal'][i])
+            self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
 
@@ -531,7 +530,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
-        print("Priority Buffer")
+        #print("Priority Buffer")
+        #print(np.max(self.rewards[:self.expert_idx]))
+        #quit()
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, expert_weight=1):
