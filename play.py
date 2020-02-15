@@ -197,11 +197,11 @@ class PlayPlot(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='SeaquestDeterministic-v4', help='Define Environment')
+    parser.add_argument('--env', type=str, default='BreakoutDeterministic-v4', help='Define Environment')
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=60)
+    play(env, args, zoom=2, fps=5)
 
 
 if __name__ == '__main__':
