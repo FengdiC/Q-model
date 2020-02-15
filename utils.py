@@ -469,16 +469,6 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
-=======
-                generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
-                loss = learn(sess, generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿½?
-                episode_loss.append(loss)
-                expert_ratio.append(1)
-            else:
-                generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
-                loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿½?
-                replay_buffer.update_priorities(idxes, loss, expert_idxes, expert_weight=args.expert_weight)
->>>>>>> 87bb5412e12d49b7501a7c17c4cbbb7f3a57f910
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
 
