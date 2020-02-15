@@ -461,7 +461,6 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:
-<<<<<<< HEAD
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿?
                 episode_loss.append(loss)
