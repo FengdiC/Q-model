@@ -19,8 +19,8 @@ import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_dir', type=str, default='data/')
-    parser.add_argument('--expert_file', type=str, default='expert_data.pkl')
+    parser.add_argument('--expert_dir', type=str, default='./')
+    parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_1')
     parser.add_argument('--expert_file_path', type=str, default='None')
 
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/')
@@ -29,7 +29,7 @@ def argsparser():
     parser.add_argument('--special_tag', type=str, default='')
 
     parser.add_argument('--log_dir', help='the directory to save log file', default='logs/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='GIFs/')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='gifs/')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
@@ -65,7 +65,7 @@ def argsparser():
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
 
 
-    parser.add_argument('--env_id', type=str, default='BreakoutDeterministic-v4')
+    parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
@@ -410,9 +410,9 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             if pretrain and j % 1000 is 0 and j > 0:
                 print("Pretraining ... ", j, "Loss: ", np.mean(episode_loss[-1000:]))
             if pretrain:
-                states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
+                states, actions, diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
             else:
-                states, actions, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+                states, actions,diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
             n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
 
             loss = learn(sess, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿?
@@ -461,6 +461,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:
+<<<<<<< HEAD
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿?
                 episode_loss.append(loss)
@@ -469,6 +470,16 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
                 loss = learn(sess, generated_states, generated_actions, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
+=======
+                generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
+                loss = learn(sess, generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿½?
+                episode_loss.append(loss)
+                expert_ratio.append(1)
+            else:
+                generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+                loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8ï¿½?
+                replay_buffer.update_priorities(idxes, loss, expert_idxes, expert_weight=args.expert_weight)
+>>>>>>> 87bb5412e12d49b7501a7c17c4cbbb7f3a57f910
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
 

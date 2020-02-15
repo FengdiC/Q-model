@@ -146,25 +146,27 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq #+ self.args.LAMBDA_2 * l_jeq
         loss = tf.reduce_mean(loss_per_sample) + l2_reg_loss
         return loss, loss_per_sample
 
 
-def learn(session, states, actions, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     # Draw a minibatch from the replay memory
     # states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
     # The main network estimates which action is best (in the next
     # state s', new_states is passed!)
     # for every transition in the minibatch
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
+    probs = session.run(main_dqn.action_prob,feed_dict={main_dqn.input:states})
+    prob = probs[range(batch_size),actions]
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q * (1-terminal_flags))
+    target_q = rewards + (gamma*double_q * (1-terminal_flags)) + diffs *(1-prob)
     #Now compute target_n_q
 
 
@@ -247,8 +249,9 @@ def train(name="dqfd", priority=True):
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
 
-    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-        my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    if os.path.exists(args.expert_dir + args.expert_file):
+        print('loading')
+        my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     #utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
 
     #Pretrain step ...
