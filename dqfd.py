@@ -146,7 +146,7 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq #+ self.args.LAMBDA_2 * l_jeq
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
         loss = tf.reduce_mean(loss_per_sample) + l2_reg_loss
         return loss, loss_per_sample
 
@@ -166,7 +166,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q * (1-terminal_flags)) + diffs *(1-prob)
+    target_q = rewards + (gamma*double_q * (1-terminal_flags)) #+ diffs *(1-prob)
     #Now compute target_n_q
 
 
