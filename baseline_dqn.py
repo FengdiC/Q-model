@@ -93,7 +93,7 @@ class DQN:
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
-def learn(session, states, actions, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma, args):
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:
         session: A tensorflow sesson object
@@ -193,12 +193,12 @@ def train(name="dqn", priority=True):
         os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
     if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
         os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
-    if os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl"):
-       my_replay_memory.load_expert_data("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/" + "expert_data.pkl")
+    if os.path.exists(args.expert_dir + args.expert_file):
+        my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
+    else:
+        print("No Expert Data ... ")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
-    
-    #saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(552302))
-    #print("2. Loaded Model ... ",  "../models/"  + name + "/" + args.env_id + "/" + "model-" + str(552302))
+
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
     utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     episode_reward_list = []

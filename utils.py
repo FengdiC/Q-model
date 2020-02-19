@@ -56,7 +56,7 @@ def argsparser():
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
-    parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=10000)
+    parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=25000)
 
     parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
@@ -376,6 +376,60 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     except IndexError:
         print("No evaluation game finished")
 
+# def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False):
+#     start_time = time.time()
+#     terminal_life_lost, _ = atari.reset(sess, evaluation=True)
+#     episode_reward_sum = 0
+#     episode_length = 0
+#     episode_loss = []
+#     expert_ratio = []
+#
+#     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
+#     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
+#     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
+#     BS = args.batch_size
+#     terminal = False
+#     for j in range(eps_length):
+#         # (4�?
+#         if not pretrain:
+#             if args.stochastic_exploration == "True":
+#                 action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+#             else:
+#                 action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
+#             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+#             frame_num += 1
+#             episode_reward_sum += reward
+#             episode_length += 1
+#
+#             # (7�? Store transition in the replay memory
+#             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+#
+#
+#             #current_frame = next_frame
+#         if frame_num % UPDATE_FREQ == 0 or pretrain:
+#             if pretrain and j % 1000 is 0 and j > 0:
+#                 print("Pretraining ... ", j, "Loss: ", np.mean(episode_loss[-1000:]))
+#             if pretrain:
+#                 states, actions, diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
+#             else:
+#                 states, actions,diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+#             n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
+#             loss = learn(sess, states, actions, diffs,rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
+#             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
+#             expert_ratio.append(np.sum(expert_idxes) / BS)
+#             episode_loss.append(loss)
+#
+#         if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
+#             print("UPDATING Network ... ")
+#             network_updater.update_networks(sess)  # (9�?
+#         if terminal:
+#             break
+#
+#     if pretrain:
+#         print("Loss: ", np.mean(episode_loss[-1000:]))
+#     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
+
+
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False):
     start_time = time.time()
     terminal_life_lost, _ = atari.reset(sess, evaluation=True)
@@ -389,44 +443,44 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = args.batch_size
     terminal = False
-    for j in range(eps_length):
-        # (4�?
+
+    for _ in range(eps_length):
         if not pretrain:
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
             else:
                 action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
             # print("Action: ",action)
-            # (5�?
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             frame_num += 1
             episode_reward_sum += reward
             episode_length += 1
 
-            # (7�? Store transition in the replay memory
             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-            #current_frame = next_frame
+        else:
+            frame_num += 1
+            if frame_num % 1000 == 0:
+                print("Current Loss: ", frame_num, np.mean(episode_loss))
+
         if frame_num % UPDATE_FREQ == 0 or pretrain:
-            if pretrain and j % 1000 is 0 and j > 0:
-                print("Pretraining ... ", j, "Loss: ", np.mean(episode_loss[-1000:]))
-            if pretrain:
-                states, actions, diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
-            else:
-                states, actions,diffs, rewards, new_states, terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
-            n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
+            generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
+            loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, expert_idxes, n_step_rewards, n_step_states, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)
 
-            loss = learn(sess, states, actions, diffs,rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
-            expert_ratio.append(np.sum(expert_idxes) / BS)
+            expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
+        if pretrain:
+            if frame_num % (NETW_UPDATE_FREQ//UPDATE_FREQ) == 0 and frame_num > 0:
+                print("UPDATING Network ... ")
+                network_updater.update_networks(sess)  # (9�?
+        else:
+            if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
+                print("UPDATING Network ... ")
+                network_updater.update_networks(sess)  # (9�?
+            if terminal:
+                break
 
-        if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
-            print("UPDATING Network ... ")
-            network_updater.update_networks(sess)  # (9�?
-        if terminal:
-            break
-    if pretrain:
-        print("Loss: ", np.mean(episode_loss[-1000:]))
     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
@@ -472,9 +526,15 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
 
-        if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
-            print("UPDATING Network ... ")
-            network_updater.update_networks(sess)  # (9�?
-        if terminal:
-            break
+        if pretrain:
+            if frame_num % (NETW_UPDATE_FREQ//UPDATE_FREQ) == 0 and frame_num > 0:
+                print("UPDATING Network ... ")
+                network_updater.update_networks(sess)  # (9�?
+        else:
+            if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
+                print("UPDATING Network ... ")
+                network_updater.update_networks(sess)  # (9�?
+            if terminal:
+                break
+
     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)

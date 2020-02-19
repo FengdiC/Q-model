@@ -147,6 +147,7 @@ class ReplayBuffer(object):
             Max number of transitions to store in the buffer. When the buffer
             overflows the old memories are dropped.
         """
+        print("Called Not Priority Queue!")
         self._maxsize = size
         self._next_idx = 0
         self.expert_idx = 0
@@ -277,6 +278,9 @@ class ReplayBuffer(object):
             self.add(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                      diff = data['diff'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
+
+        #Reward check
+        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
         print(self.count, "Expert Data loaded ... ")
 
 
@@ -335,6 +339,7 @@ class ReplayBuffer(object):
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, size, alpha):
+        print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
         ----------
@@ -503,7 +508,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         not_terminal = np.ones((idxes.shape[0],), dtype=np.int32)
         last_step_gamma = np.zeros((idxes.shape[0],), dtype=np.float32)
         n_step_rewards = np.zeros((idxes.shape[0],), dtype=np.float32)
-        selected_actions = []
+        n_step_state = np.zeros_like(self.states)
+
         for i in range(idxes.shape[0]):
             idx = idxes[i]
             n_step_idx = min(self.count-1, idx + num_steps)
@@ -519,12 +525,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_rewards[i] += accum_gamma * self.rewards[j]
                 accum_gamma *= gamma
             last_step_gamma[i] = accum_gamma
-            self.states[i] = self._get_state(n_step_idx)
-            # self.states = (self.states - 127.5) / 127.5
+            n_step_state[i] = self._get_state(n_step_idx)
 
-            selected_actions.append(self.actions[n_step_idx])
-        selected_actions = np.array(selected_actions)
-        return n_step_rewards, np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, last_step_gamma, not_terminal
+        return n_step_rewards, np.transpose(n_step_state, axes=(0, 2, 3, 1)), last_step_gamma, not_terminal
+        #return None, None, None, None
 
 
     def load_expert_data(self, path):
@@ -536,6 +540,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                             diff = data['diff'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
+        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
         #print("Priority Buffer")
         #print(np.max(self.rewards[:self.expert_idx]))
         #quit()
@@ -557,7 +562,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #Boost expert priority as time goes on .... 
         assert len(idxes) == priorities.shape[0]
         assert expert_weight > 0
-        expert_priority_modifier = min(self._max_priority, 1 + (expert_weight * frame_num))
+        expert_priority_modifier = 1#min(self._max_priority, 1 + (expert_weight * frame_num))
         count = 0
         #print(expert_priority_modifier)
         for idx, priority in zip(idxes, priorities):
