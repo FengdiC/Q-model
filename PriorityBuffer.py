@@ -562,7 +562,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #Boost expert priority as time goes on .... 
         assert len(idxes) == priorities.shape[0]
         assert expert_weight > 0
-        expert_priority_modifier = 1#min(self._max_priority, 1 + (expert_weight * frame_num))
+        expert_priority_modifier = min(self._max_priority, 1 + (expert_weight * frame_num))
         count = 0
         #print(expert_priority_modifier)
         for idx, priority in zip(idxes, priorities):
