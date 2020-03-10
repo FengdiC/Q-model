@@ -128,7 +128,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions})
     # for i in range(batch_size):
-    #     print(i, loss[i], q_val[i], target_q[i], rewards[i], terminal_flags[i])
+    #     if loss[i] > 5:
+    #         print(i, loss[i], q_val[i], target_q[i], rewards[i], terminal_flags[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
     return loss
@@ -200,7 +201,7 @@ def train(name="dqn", priority=True):
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
 
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []

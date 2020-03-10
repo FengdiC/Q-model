@@ -275,7 +275,7 @@ class ReplayBuffer(object):
         print("load expert: ",num_data)
         print("Loading Expert Data ... ")
         for i in range(num_data):
-            self.add(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
+            self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                      diff = data['diff'][i], done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
 
@@ -546,7 +546,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #quit()
 
 
-    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_weight=1):
+    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_weight=1, max_prio_faction=0.005):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -568,13 +568,13 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         for idx, priority in zip(idxes, priorities):
             priority = max(priority, 0)
             assert 0 <= idx < self.count
+            self._max_priority = max(self._max_priority, priority)
             if expert_idxes[count] == 1:
-                new_priority = priority * expert_priority_modifier * 0.95 + 0.05
+                new_priority = priority * expert_priority_modifier * (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
-                new_priority = priority * 0.95 + 0.05
+                new_priority = priority * (1 - max_prio_faction) + self._max_priority * max_prio_faction
             #print(idx, new_priority, expert_idxes[count], count)
             self._it_sum[idx] = (new_priority) ** self._alpha
             self._it_min[idx] = (new_priority) ** self._alpha
-            self._max_priority = max(self._max_priority, priority)
             count += 1
 

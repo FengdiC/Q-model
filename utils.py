@@ -436,6 +436,11 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
+
+    episode_dq_loss = []
+    episode_dq_n_loss = []
+    episode_jeq_loss = []
+
     expert_ratio = []
 
     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
@@ -460,12 +465,20 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
         else:
             frame_num += 1
             if frame_num % 1000 == 0:
-                print("Current Loss: ", frame_num, np.mean(episode_loss))
+                print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]), np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
-            generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+            if pretrain:
+                generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(
+                    BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
+            else:
+                generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(
+                    BS, args.beta, expert=pretrain)  # Generated trajectories
             n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
-            loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, expert_idxes, n_step_rewards, n_step_states, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)
+            loss, loss_dq, loss_dq_n, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, expert_idxes, n_step_rewards, n_step_states, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)
+            episode_dq_loss.append(loss_dq)
+            episode_dq_n_loss.append(loss_dq_n)
+            episode_jeq_loss.append(loss_jeq)
 
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
             expert_ratio.append(np.sum(expert_idxes)/BS)
@@ -520,7 +533,11 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 episode_loss.append(loss)
                 expert_ratio.append(1)
             else:
-                generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+                if pretrain:
+                    generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
+                else:
+                    generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
+
                 loss = learn(sess, generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
                 expert_ratio.append(np.sum(expert_idxes)/BS)

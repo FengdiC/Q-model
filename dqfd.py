@@ -109,12 +109,11 @@ class DQN:
 
     def loss_jeq(self):
         expert_act_one_hot = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
+        self.expert_q_value = tf.reduce_sum(expert_act_one_hot * self.q_values, axis=1)
         #JEQ = max_{a in A}(Q(s,a) + l(a_e, a)) - Q(s, a_e)
-        q_plus_margin = self.q_values + (1-expert_act_one_hot)*self.args.dqfd_margin
-        max_q_plus_margin = tf.reduce_sum(softargmax(q_plus_margin) * q_plus_margin, axis=1)
-        self.q_plus_margin = q_plus_margin
-        self.max_q_plus_margin = max_q_plus_margin
-        jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
+        self.q_plus_margin = self.q_values + (1-expert_act_one_hot)*self.args.dqfd_margin
+        self.max_q_plus_margin = tf.reduce_max(self.q_plus_margin, axis=1)
+        jeq = (self.max_q_plus_margin - self.expert_q_value) * self.expert_state
         return jeq
 
     def dqfd_loss(self, t_vars):
@@ -132,9 +131,7 @@ class DQN:
         self.l_jeq = l_jeq
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-        #loss = tf.reduce_mean(loss_per_sample) + l2_reg_loss
-        #loss_per_sample = l_dq
-        loss = tf.reduce_mean(l_dq)
+        loss = tf.reduce_mean(loss_per_sample)
         return loss, loss_per_sample
 
 # class DQN:
@@ -313,17 +310,26 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
     # if the game is over, targetQ=rewards
     target_n_q = n_step_rewards + (gamma*double_q * not_terminal)
     # Gradient descend step to update the parameters of the main network
-    loss, q_val, q_values, _ = session.run([main_dqn.loss_per_sample, main_dqn.Q, main_dqn.q_values, main_dqn.update],
+    #print(np.max(rewards), np.min(rewards))
+
+    # self.l2_reg_loss = l2_reg_loss
+    # self.l_dq = l_dq
+    # self.l_n_dq = l_n_dq
+    # self.l_jeq = l_jeq
+    loss, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
                                      main_dqn.target_n_q:target_n_q,
-                                     main_dqn.expert_state:expert_idxes})
+                                     main_dqn.expert_state:expert_idxes
+                                     })
+    # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
-    #     print(i, loss[i], q_val[i], target_q[i], rewards[i], terminal_flags[i])
+    #     if loss[i] > 5:
+    #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
-    return loss
+    return loss, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
 
 # def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
 #     # Draw a minibatch from the replay memory
@@ -388,9 +394,9 @@ def train(name="dqfd", priority=True):
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="mainDQN")  #
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="mainDQN")
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="targetDQN")  #
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="targetDQN")
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -411,6 +417,7 @@ def train(name="dqfd", priority=True):
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
     sess.run(init)
+    # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
 
     frame_number = REPLAY_MEMORY_START_SIZE
     eps_number = 0
@@ -430,7 +437,7 @@ def train(name="dqfd", priority=True):
     if args.pretrain_bc_iter > 0:
         utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True)
 
-    utils.evaluate_model(sess, args, EVAL_STEPS * 3, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
     episode_reward_list = []
     episode_len_list = []
@@ -462,7 +469,6 @@ def train(name="dqfd", priority=True):
             print("Current Exploration: ", action_getter.get_eps(frame_number))
             print("Frame Number: ", frame_number)
             print("Episode Number: ", eps_number)
-
 
         if EVAL_FREQUENCY < last_eval:
             last_eval = 0
