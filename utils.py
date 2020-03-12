@@ -52,7 +52,6 @@ def argsparser():
 
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.4)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.6)
-    parser.add_argument('--expert_weight', type=float, help='Max Episode Length', default=0.00001)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
@@ -60,6 +59,10 @@ def argsparser():
 
     parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
+
+    parser.add_argument('--expert_priority_decay', type=int, help='Max Episode Length', default=2000000)
+    parser.add_argument('--min_expert_priority', type=int, help='Max Episode Length', default=0.05)
+
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
@@ -480,7 +483,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
 
-            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
+            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay, min_expert_priority=args.min_expert_priority)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
         if pretrain:

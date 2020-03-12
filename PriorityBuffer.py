@@ -546,7 +546,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #quit()
 
 
-    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_weight=1, max_prio_faction=0.005):
+    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=0, max_prio_faction=0.005):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -559,20 +559,24 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             transitions at the sampled idxes denoted by
             variable `idxes`.
         """
-        #Boost expert priority as time goes on .... 
+        if expert_priority_decay is None:
+            expert_priority = 1
+        else:
+            expert_priority = max(1 - min(1/expert_priority_decay * frame_num, 1), min_expert_priority)
+        #Boost expert priority as time goes on ....
         assert len(idxes) == priorities.shape[0]
-        assert expert_weight > 0
-        expert_priority_modifier = min(self._max_priority, 1 + (expert_weight * frame_num))
+        assert expert_priority >= min_expert_priority
         count = 0
         #print(expert_priority_modifier)
         for idx, priority in zip(idxes, priorities):
             priority = max(priority, 0)
             assert 0 <= idx < self.count
-            self._max_priority = max(self._max_priority, priority)
             if expert_idxes[count] == 1:
-                new_priority = priority * expert_priority_modifier * (1 - max_prio_faction) + self._max_priority * max_prio_faction
+                priority = priority * expert_priority
+                new_priority = priority * (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
                 new_priority = priority * (1 - max_prio_faction) + self._max_priority * max_prio_faction
+            self._max_priority = max(self._max_priority, new_priority)
             #print(idx, new_priority, expert_idxes[count], count)
             self._it_sum[idx] = (new_priority) ** self._alpha
             self._it_min[idx] = (new_priority) ** self._alpha
