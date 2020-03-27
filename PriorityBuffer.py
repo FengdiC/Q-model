@@ -380,6 +380,26 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self._it_sum[idx] = self._max_priority ** self._alpha
         self._it_min[idx] = self._max_priority ** self._alpha
 
+    def delete_expert(self):
+        print("reset priority buffer and delete expert data")
+        self._next_idx = 0
+        self.expert_idx = 0
+        self.count = 0
+
+        # Pre-allocate memory
+        self.actions = np.empty(self._maxsize, dtype=np.int32)
+        self.diffs = np.empty(self._maxsize, dtype=np.int32)
+        self.rewards = np.empty(self._maxsize, dtype=np.float32)
+        self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
+        self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
+
+        # Pre-allocate memory for the states and new_states in a minibatch
+        self.states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
+                                ), dtype=np.float32)
+        self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
+                                    ), dtype=np.float32)
+        self.indices = np.zeros(self.batch_size, dtype=np.int32)
+
     def _sample_proportional(self, batch_size):
         res = []
         p_total = self._it_sum.sum(self.agent_history_length, self.count - 1)
@@ -546,7 +566,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #quit()
 
 
-    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=0, max_prio_faction=0.005):
+    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=1,
+                          max_prio_faction=0.005):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -560,7 +581,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             variable `idxes`.
         """
         if expert_priority_decay is None:
-            expert_priority = 1
+            expert_priority = 2
         else:
             expert_priority = max(1 - min(1/expert_priority_decay * frame_num, 1), min_expert_priority)
         #Boost expert priority as time goes on ....

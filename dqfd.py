@@ -12,6 +12,7 @@ import time
 import pickle
 import utils
 import PriorityBuffer
+import logger
 
 
 def softargmax(x, beta=1e10):
@@ -21,7 +22,7 @@ def softargmax(x, beta=1e10):
 class DQN:
     """Implements a Deep Q Network"""
     def __init__(self, args, n_actions=4, hidden=1024,
-               frame_height=84, frame_width=84, agent_history_length=4, name="dqn"):
+               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn"):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -103,7 +104,10 @@ class DQN:
 
         MAIN_DQN_VARS = tf.trainable_variables(scope=name)
 
-        self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
+        if agent=='dqn':
+            self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
+        else:
+            self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
@@ -131,146 +135,27 @@ class DQN:
         self.l_jeq = l_jeq
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-        loss = tf.reduce_mean(loss_per_sample)
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
-# class DQN:
-#     """Implements a Deep Q Network"""
-#
-#     def __init__(self, args, n_actions=4, hidden=1024,
-#                  frame_height=84, frame_width=84, agent_history_length=4, name="dqn"):
-#         """
-#         Args:
-#             n_actions: Integer, number of possible actions
-#             hidden: Integer, Number of filters in the final convolutional layer.
-#                     This is different from the DeepMind implementation
-#             learning_rate: Float, Learning rate for the Adam optimizer
-#             frame_height: Integer, Height of a frame of an Atari game
-#             frame_width: Integer, Width of a frame of an Atari game
-#             agent_history_length: Integer, Number of frames stacked together to create a state
-#         """
-#         self.args = args
-#         self.n_actions = n_actions
-#         self.hidden = hidden
-#         self.frame_height = frame_height
-#         self.frame_width = frame_width
-#         self.agent_history_length = agent_history_length
-#
-#         self.input = tf.placeholder(shape=[None, self.frame_height,
-#                                            self.frame_width, self.agent_history_length],
-#                                     dtype=tf.float32)
-#         # Normalizing the input
-#         self.inputscaled = (self.input - 127.5)/127.5
-#         #self.inputscaled = self.input
-#         # Convolutional layers
-#         self.conv1 = tf.layers.conv2d(
-#             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-#             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-#             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-#         self.conv2 = tf.layers.conv2d(
-#             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-#             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-#             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-#         self.conv3 = tf.layers.conv2d(
-#             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-#             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-#             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-#         # self.conv4 = tf.layers.conv2d(
-#         #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-#         #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
-#         #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-#         self.d = tf.layers.flatten(self.conv3)
-#         self.dense = tf.layers.dense(inputs = self.d,units = hidden,
-#                                      kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5" )
-#
-#         # Splitting into value and advantage stream
-#         self.valuestream, self.advantagestream = tf.split(self.dense,2,-1)
-#         self.valuestream = tf.layers.flatten(self.valuestream)
-#         self.advantagestream = tf.layers.flatten(self.advantagestream)
-#         self.advantage = tf.layers.dense(
-#             inputs=self.advantagestream, units=self.n_actions,
-#             kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
-#         self.value = tf.layers.dense(
-#             inputs=self.valuestream, units=1,
-#             kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
-#
-#         # Combining value and advantage into Q-values as described above
-#         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
-#         self.action_prob = tf.nn.softmax(self.q_values)
-#         self.best_action = tf.argmax(self.q_values, 1)
-#
-#         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
-#         self.target_n_q = tf.placeholder(shape=[None], dtype=tf.float32)
-#         self.action = tf.placeholder(shape=[None], dtype=tf.int32)
-#         self.expert_state = tf.placeholder(shape=[None], dtype=tf.float32)
-#         # # Action that was performed
-#         # # Q value of the action that was performed
-#         self.one_hot_action = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
-#
-#         self.Q = tf.reduce_sum(tf.multiply(self.q_values, self.one_hot_action), axis=1)
-#
-#         MAIN_DQN_VARS = tf.trainable_variables(scope=name)
-#         self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
-#         # Parameter updates
-#         # self.loss_per_sample = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
-#         # self.loss = tf.reduce_mean(self.loss_per_sample)
-#         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
-#         self.update = self.optimizer.minimize(self.loss, var_list=MAIN_DQN_VARS)
+    def dqn_loss(self,t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        return loss, loss_per_sample
 
 
-    # def build_layers(self, state, units_1=24, units_2=24):
-    #     with tf.variable_scope('select_net') as scope:
-    #         c_names = ['select_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
-    #         w_i = tf.random_uniform_initializer(-0.1, 0.1)
-    #         b_i = tf.constant_initializer(0.1)
-    #         reg = tf.contrib.layers.l2_regularizer(scale=0.2)  # Note: only parameters in select-net need L2
-    #         a_d = self.n_actions
-    #         with tf.variable_scope('l1'):
-    #             w1 = tf.get_variable('w1', [a_d, units_1], initializer=w_i, collections=c_names, regularizer=reg)
-    #             b1 = tf.get_variable('b1', [1, units_1], initializer=b_i, collections=c_names, regularizer=reg)
-    #             dense1 = tf.nn.relu(tf.matmul(state, w1) + b1)
-    #         with tf.variable_scope('l2'):
-    #             w2 = tf.get_variable('w2', [units_1, units_2], initializer=w_i, collections=c_names, regularizer=reg)
-    #             b2 = tf.get_variable('b2', [1, units_2], initializer=b_i, collections=c_names, regularizer=reg)
-    #             dense2 = tf.nn.relu(tf.matmul(dense1, w2) + b2)
-    #         with tf.variable_scope('l3'):
-    #             w3 = tf.get_variable('w3', [units_2, a_d], initializer=w_i, collections=c_names, regularizer=reg)
-    #             b3 = tf.get_variable('b3', [1, a_d], initializer=b_i, collections=c_names, regularizer=reg)
-    #             dense3 = tf.matmul(dense2, w3) + b3
-    #         return dense3
-    # def loss_jeq(self):
-    #     expert_act_one_hot = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
-    #     #JEQ = max_{a in A}(Q(s,a) + l(a_e, a)) - Q(s, a_e)
-    #     q_plus_margin = self.q_values + (1-expert_act_one_hot)*self.args.dqfd_margin
-    #     max_q_plus_margin = tf.reduce_sum(softargmax(q_plus_margin) * q_plus_margin, axis=1)
-    #     self.q_plus_margin = q_plus_margin
-    #     self.max_q_plus_margin = max_q_plus_margin
-    #     jeq = tf.losses.huber_loss(max_q_plus_margin, self.target_q, reduction=tf.losses.Reduction.NONE) * self.expert_state
-    #     return jeq
-    #
-    # def dqfd_loss(self, t_vars):
-    #     l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
-    #     l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
-    #     l_jeq = self.loss_jeq()
-    #
-    #     l2_reg_loss = 0
-    #     for v in t_vars:
-    #         if 'bias' not in v.name:
-    #             l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
-    #     self.l2_reg_loss = l2_reg_loss
-    #     self.l_dq = l_dq
-    #     self.l_n_dq = l_n_dq
-    #     self.l_jeq = l_jeq
-    #
-    #     #loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-    #     #loss = tf.reduce_mean(loss_per_sample) + l2_reg_loss
-    #     loss_per_sample = l_dq
-    #     loss = tf.reduce_mean(l_dq)
-    #     return loss, loss_per_sample
-
-
-
-def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states,
+          last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:
         session: A tensorflow sesson object
@@ -296,9 +181,12 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
+
+    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
+    action_prob = prob[range(batch_size), actions]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q *  (1-terminal_flags))
+    target_q = rewards + (gamma*double_q *  (1-terminal_flags)) # + diffs**2 *(1-action_prob)
 
 
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
@@ -316,7 +204,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
-    loss, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.update],
+    loss, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                main_dqn.l_jeq, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
@@ -367,8 +256,9 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
 #     return loss
 
 
-def train(name="dqfd", priority=True):
+def train( priority=True):
     args = utils.argsparser()
+    name = args.agent
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -394,9 +284,9 @@ def train(name="dqfd", priority=True):
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="mainDQN")
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN")
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, name="targetDQN")
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN")
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -422,58 +312,89 @@ def train(name="dqfd", priority=True):
     frame_number = REPLAY_MEMORY_START_SIZE
     eps_number = 0
 
-    if not os.path.exists("../" + args.gif_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.gif_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists("./" + args.log_dir + "/" + name + "/" + args.env_id + "/"):
+        os.makedirs("./" + args.log_dir + "/" + name + "/" + args.env_id + "/")
+
+    logger.configure("./" + args.log_dir + "/" + name + "/" + args.env_id + "/")
 
     if os.path.exists(args.expert_dir + args.expert_file):
         my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
     #Pretrain step ..
+    logger.log("Starting {agent} for Environment '{env}'".format(agent='dqfd', env=args.env_id))
+    logger.log("Start pre-training")
     if args.pretrain_bc_iter > 0:
-        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True)
+        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
+                              args.pretrain_bc_iter, learn, pretrain=True)
+    if name=='dqn':
+        my_replay_memory.delete_expert()
 
-    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
-    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
+    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
+                         model_name=name, gif=True, random=False)
+    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
+                                      MAIN_DQN, args)
     episode_reward_list = []
     episode_len_list = []
     episode_loss_list = []
     episode_time_list = []
     episode_expert_list = []
+    episode_jeq_list = []
 
     print_iter = 25
-    last_eval = 0
+    last_eval = 0 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, pretrain=False)
+        eps_rw, eps_len, eps_loss, eps_jeq_loss,eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
+                                                                               action_getter, my_replay_memory, atari, frame_number,
+                                                                               MAX_EPISODE_LENGTH, learn, pretrain=False)
         episode_reward_list.append(eps_rw)
         episode_len_list.append(eps_len)
         episode_loss_list.append(eps_loss)
         episode_time_list.append(eps_time)
         episode_expert_list.append(exp_ratio)
+        episode_jeq_list.append(eps_jeq_loss)
 
         frame_number += eps_len
         eps_number += 1
         last_eval += eps_len
         if len(episode_len_list) % print_iter == 0:
-            print("Last " + str(print_iter) + " Episodes Reward: ", np.mean(episode_reward_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Length: ", np.mean(episode_len_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
-            print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
-            print("Current Exploration: ", action_getter.get_eps(frame_number))
-            print("Frame Number: ", frame_number)
-            print("Episode Number: ", eps_number)
+            # print("Last " + str(print_iter) + " Episodes Reward: ", np.mean(episode_reward_list[-print_iter:]))
+            # print("Last " + str(print_iter) + " Episodes Length: ", np.mean(episode_len_list[-print_iter:]))
+            # print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
+            # print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
+            # print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
+            # print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
+            # print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
+            # print("Current Exploration: ", action_getter.get_eps(frame_number))
+            # print("Frame Number: ", frame_number)
+            # print("Episode Number: ", eps_number)
+            logger.record_tabular("Last " + str(print_iter) + " Episodes Reward: ",
+                                  np.mean(episode_reward_list[-print_iter:]))
+            logger.record_tabular("Last " + str(print_iter) + " Episodes Length: ",
+                                  np.mean(episode_len_list[-print_iter:]))
+            logger.record_tabular("Last " + str(print_iter) + " Episodes Loss: ",
+                                  np.mean(episode_loss_list[-print_iter:]))
+            logger.record_tabular("Last " + str(print_iter) + " Episodes Time: ",
+                                  np.mean(episode_time_list[-print_iter:]))
+            logger.record_tabular("Last " + str(print_iter) + " Reward/Frames: ",
+                                  np.sum(episode_reward_list[-print_iter:]) / np.sum(episode_len_list[-print_iter:]))
+            logger.record_tabular("Last " + str(print_iter) + " Expert Ratio: ",
+                                  np.mean(episode_expert_list[-print_iter:]))
+            logger.record_tabular("Total " + str(print_iter) + " Episode time: ",
+                                  np.sum(episode_time_list[-print_iter:]))
+            logger.record_tabular("Current Exploration: ", action_getter.get_eps(frame_number))
+            logger.record_tabular("Frame Number: ", frame_number)
+            logger.record_tabular("Episode Number: ", eps_number)
+            logger.dumpkvs()
 
         if EVAL_FREQUENCY < last_eval:
             last_eval = 0
             utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=True)
-            saver.save(sess, "../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
+            saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
                     global_step=frame_number)
 train()

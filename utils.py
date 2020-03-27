@@ -19,17 +19,18 @@ import argparse
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of DQN")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--agent', help='the trainer used', type=str, default='dqfd')
     parser.add_argument('--expert_dir', type=str, default='./')
     parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_1')
     parser.add_argument('--expert_file_path', type=str, default='None')
 
-    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models/')
+    parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models')
     parser.add_argument('--checkpoint_index', type=int, help='index of model to load', default=-1)
     parser.add_argument('--checkpoint_file_path', type=str, default='None')
     parser.add_argument('--special_tag', type=str, default='')
 
-    parser.add_argument('--log_dir', help='the directory to save log file', default='logs/')
-    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='gifs/')
+    parser.add_argument('--log_dir', help='the directory to save log file', default='logs')
+    parser.add_argument('--gif_dir', help='the directory to save GIFs file', default='gifs')
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
@@ -375,7 +376,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     print("-------------------------------------------\n\n\n")
     try:
         generate_gif(frame_num, frames_for_gif, eval_rewards[0],
-                     "../" + args.gif_dir + "/" + model_name + "/" + args.env_id + "/" + "gif_")
+                     "./" + args.gif_dir + "/" + model_name + "/" + args.env_id + "/" + "gif_")
     except IndexError:
         print("No evaluation game finished")
 
@@ -433,7 +434,8 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
 #     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
 
 
-def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False):
+def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
+                    learn, pretrain=False):
     start_time = time.time()
     terminal_life_lost, _ = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
@@ -468,7 +470,8 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
         else:
             frame_num += 1
             if frame_num % 1000 == 0:
-                print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]), np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
+                print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]),
+                      np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if pretrain:
@@ -477,13 +480,18 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             else:
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
-            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step, args.gamma)
-            loss, loss_dq, loss_dq_n, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, expert_idxes, n_step_rewards, n_step_states, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)
+            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+                                                                                                                 args.gamma)
+            loss, loss_dq, loss_dq_n, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
+                                                       generated_new_states, generated_terminal_flags, expert_idxes, n_step_rewards,
+                                                       n_step_states, last_step_gamma, not_terminal, MAIN_DQN, TARGET_DQN, BS,
+                                                       DISCOUNT_FACTOR, args)
             episode_dq_loss.append(loss_dq)
             episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
 
-            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay, min_expert_priority=args.min_expert_priority)
+            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay,
+                                            min_expert_priority=args.min_expert_priority)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
         if pretrain:
@@ -497,9 +505,11 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             if terminal:
                 break
 
-    return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time, np.mean(expert_ratio)
+    return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_jeq_loss), \
+           time.time() - start_time, np.mean(expert_ratio)
 
-def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn, pretrain=False, priority=False):
+def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn,
+               pretrain=False, priority=False):
     start_time = time.time()
     terminal_life_lost, _ = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
@@ -532,7 +542,8 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:
                 generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
-                loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
+                loss = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states,
+                             generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 episode_loss.append(loss)
                 expert_ratio.append(1)
             else:
@@ -541,7 +552,8 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 else:
                     generated_states, generated_actions, generated_diffs,generated_rewards, generated_new_states, generated_terminal_flags, _, idxes, expert_idxes = replay_buffer.sample(BS, args.beta, expert=pretrain)  # Generated trajectories
 
-                loss = learn(sess, generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
+                loss = learn(sess, generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states,
+                             generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
