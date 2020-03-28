@@ -567,7 +567,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=1,
-                          max_prio_faction=0.005):
+                          max_prio_faction=0.005,expert_initial_priority=5):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -581,9 +581,13 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             variable `idxes`.
         """
         if expert_priority_decay is None:
-            expert_priority = 2
+            expert_priority = expert_initial_priority
         else:
-            expert_priority = max(1 - min(1/expert_priority_decay * frame_num, 1), min_expert_priority)
+            start_frame_num = 100000
+            end_frame_num = 8000000
+            expert_priority_decay = (expert_initial_priority-min_expert_priority)/(end_frame_num-start_frame_num)
+            expert_priority = max(expert_initial_priority - max(expert_priority_decay * (frame_num-start_frame_num),0),
+                                  min_expert_priority)
         #Boost expert priority as time goes on ....
         assert len(idxes) == priorities.shape[0]
         assert expert_priority >= min_expert_priority

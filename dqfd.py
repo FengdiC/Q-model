@@ -43,6 +43,8 @@ class DQN:
         self.input = tf.placeholder(shape=[None, self.frame_height,
                                          self.frame_width, self.agent_history_length],
                                   dtype=tf.float32)
+        self.weight = tf.placeholder(shape=[None,],dtype=tf.float32)
+        self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = (self.input - 127.5) / 127.5
         # self.inputscaled = self.input
@@ -121,8 +123,10 @@ class DQN:
         return jeq
 
     def dqfd_loss(self, t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
 
         l2_reg_loss = 0
@@ -135,6 +139,27 @@ class DQN:
         self.l_jeq = l_jeq
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        return loss, loss_per_sample
+
+    def expert_loss(self, t_vars):
+        self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+                               axis=1)
+        self.posterior = self.target_q+self.diff**2 *(1-self.prob)
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
@@ -154,7 +179,7 @@ class DQN:
         return loss, loss_per_sample
 
 
-def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states,
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states,
           last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:
@@ -210,7 +235,9 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
                                      main_dqn.target_n_q:target_n_q,
-                                     main_dqn.expert_state:expert_idxes
+                                     main_dqn.expert_state:expert_idxes,
+                                     main_dqn.weight:weights,
+                                     main_dqn.diff: diffs
                                      })
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
@@ -219,42 +246,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, 
     # if np.sum(terminal_flags) > 0:
     #     quit()
     return loss, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
-
-# def learn(session, states, actions, diffs, rewards, new_states, terminal_flags, expert_idxes, n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
-#     # Draw a minibatch from the replay memory
-#     # states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
-#     # The main network estimates which action is best (in the next
-#     # state s', new_states is passed!)
-#     # for every transition in the minibatch
-#     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
-#     # The target network estimates the Q-values (in the next state s', new_states is passed!)
-#     # for every transition in the minibatch
-#     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
-#     double_q = q_vals[range(batch_size), arg_q_max]
-#     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
-#     # if the game is over, targetQ=rewards
-#     target_q = rewards + (gamma*double_q * (1-terminal_flags)) #+ diffs *(1-prob)
-#     #Now compute target_n_q
-#
-#
-#     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
-#     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
-#     double_n_q = q_vals[range(batch_size), arg_q_max]
-#     target_n_q = n_step_rewards + last_step_gamma * double_n_q * not_terminal
-#     #print(expert_idxes)
-#     #print(target_q)
-#     # Gradient descend step to update the parameters of the main network
-#     loss, l2, l_dq, l_n_dq, l_jeq, max_q_plus_margin, q_plus_margin, Q, _ = session.run([main_dqn.loss_per_sample, main_dqn.l2_reg_loss, main_dqn.l_dq, main_dqn.l_n_dq, main_dqn.l_jeq, main_dqn.max_q_plus_margin, main_dqn.q_plus_margin, main_dqn.Q, main_dqn.update],
-#                           feed_dict={main_dqn.input:states,
-#                                      main_dqn.target_q:target_q,
-#                                      main_dqn.action:actions,
-#                                      main_dqn.target_n_q: target_n_q,
-#                                      main_dqn.expert_state:expert_idxes})
-#     # if np.random.uniform() < 0.01:
-#     #     for i in range(batch_size):
-#     #         print(i, loss[i], target_q[i], target_n_q[i], Q[i], l_dq[i], l_n_dq[i], l_jeq[i])
-#     return loss
-
 
 def train( priority=True):
     args = utils.argsparser()
