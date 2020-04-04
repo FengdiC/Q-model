@@ -478,7 +478,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             idxes = self._sample_expert_proportional(batch_size)
 
         if random:
-            weights = []
+            weights = [1]*batch_size
             idxes = super()._get_indices(batch_size)
         else:
             weights = []
@@ -489,7 +489,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 p_sample = self._it_sum[idx] / self._it_sum.sum()
                 weight = (p_sample * self.count) ** (-beta)
                 weights.append(weight / max_weight)
-            weights = np.array(weights)
+        weights = np.array(weights)
 
 
         expert_idxes = []
@@ -567,7 +567,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=1,
-                          max_prio_faction=0.005,expert_initial_priority=5):
+                          max_prio_faction=0.005,expert_initial_priority=10):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -598,9 +598,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             assert 0 <= idx < self.count
             if expert_idxes[count] == 1:
                 priority = priority * expert_priority
-                new_priority = priority * (1 - max_prio_faction) + self._max_priority * max_prio_faction
+                new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
-                new_priority = priority * (1 - max_prio_faction) + self._max_priority * max_prio_faction
+                new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             self._max_priority = max(self._max_priority, new_priority)
             #print(idx, new_priority, expert_idxes[count], count)
             self._it_sum[idx] = (new_priority) ** self._alpha

@@ -322,6 +322,9 @@ def train( priority=True):
     if args.pretrain_bc_iter > 0:
         utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
                               args.pretrain_bc_iter, learn, pretrain=True)
+        print("done pretraining ,test prioritized buffer")
+        print("buffer expert size: ",my_replay_memory.expert_idx)
+        print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
     if name=='dqn':
         my_replay_memory.delete_expert()
 
@@ -363,6 +366,10 @@ def train( priority=True):
             # print("Current Exploration: ", action_getter.get_eps(frame_number))
             # print("Frame Number: ", frame_number)
             # print("Episode Number: ", eps_number)
+            print("size of buffer: ",my_replay_memory.count)
+            print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
+            print("total priorities: ",
+                  my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.count -1))
             logger.record_tabular("Last " + str(print_iter) + " Episodes Reward: ",
                                   np.mean(episode_reward_list[-print_iter:]))
             logger.record_tabular("Last " + str(print_iter) + " Episodes Length: ",

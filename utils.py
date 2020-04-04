@@ -58,7 +58,7 @@ def argsparser():
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=25000)
 
-    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
+    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=0.5)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
 
     parser.add_argument('--expert_priority_decay', type=int, help='Max Episode Length', default=2000000)
