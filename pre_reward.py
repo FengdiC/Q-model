@@ -100,5 +100,17 @@ def differences(discount=0.99):
     with open('human_SeaquestDeterministic-v4_1', 'wb') as fout:
         pickle.dump(expert_data_list, fout)
 
-averaged()
-differences()
+# averaged()
+# differences()
+data = pickle.load(open('human_SeaquestDeterministic-v4_1','rb'))
+rew = data['reward'].copy()
+terminal = data['terminal'].copy()
+# cum_rew = discounted_cumulative_reward(rew, terminal,n=50)
+for i in range(len(rew)):
+    rew[i] = np.sign(rew[i]) * np.log(1 + rew[i])
+# print(rew[200:300])
+print("reward larger than 0: ",np.sum(np.array(rew)>=-0.001))
+# print("cum reward larger than 0: ", np.sum(np.array(cum_rew) >0))
+
+print(np.mean(rew))
+# print(np.var(cum_rew))

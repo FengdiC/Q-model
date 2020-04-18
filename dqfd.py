@@ -108,6 +108,8 @@ class DQN:
 
         if agent=='dqn':
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
+        elif agent=='expert':
+            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
         else:
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
@@ -158,6 +160,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
+        self.l_jeq = self.diff**2 *(1-self.prob)
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
@@ -173,6 +176,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
+        self.l_jeq = 0
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)

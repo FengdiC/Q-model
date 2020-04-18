@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, frame_height=84, frame_width=84,
+    def __init__(self, size, var =1, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -151,6 +151,7 @@ class ReplayBuffer(object):
         self._maxsize = size
         self._next_idx = 0
         self.expert_idx = 0
+        self.var = var
 
         self.frame_height = frame_height
         self.frame_width = frame_width
@@ -276,7 +277,7 @@ class ReplayBuffer(object):
         print("Loading Expert Data ... ")
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                     diff = data['diff'][i], done=data['terminal'][i])
+                     diff = self.var, done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
 
         #Reward check
@@ -338,7 +339,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha):
+    def __init__(self, size, alpha,var):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -353,9 +354,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size)
+        super(PrioritizedReplayBuffer, self).__init__(size,var)
         assert alpha >= 0
         self._alpha = alpha
+        self.var= var
 
         it_capacity = 1
         while it_capacity < size:
@@ -557,7 +559,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         print("Loading Expert Data ... ")
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                            diff = data['diff'][i], done=data['terminal'][i])
+                            diff = self.var, done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
@@ -597,6 +599,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             priority = max(priority, 0)
             assert 0 <= idx < self.count
             if expert_idxes[count] == 1:
+                # update the variance of expert data
+                self.diffs[idx] = self.var/(self.var/self.diffs[idx] + 1)
                 priority = priority * expert_priority
                 new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
