@@ -147,7 +147,7 @@ class DQN:
     def expert_loss(self, t_vars):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.posterior = self.target_q+self.diff**2 *(1-self.prob)
+        self.posterior = self.target_q+self.diff *(1-self.prob)
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
@@ -160,7 +160,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.diff**2 *(1-self.prob)
+        self.l_jeq = self.diff *(1-self.prob)
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
@@ -290,7 +290,7 @@ def train( priority=True):
     config.gpu_options.allow_growth = True
 
     if priority:
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha)  # (★)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,args.var)  # (★)
     else:
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE)  # (★)
 

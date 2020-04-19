@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, var =1, frame_height=84, frame_width=84,
+    def __init__(self, size, var =1.0, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -163,7 +163,7 @@ class ReplayBuffer(object):
 
         # Pre-allocate memory
         self.actions = np.empty(self._maxsize, dtype=np.int32)
-        self.diffs = np.empty(self._maxsize, dtype=np.int32)
+        self.diffs = np.empty(self._maxsize, dtype=np.float32)
         self.rewards = np.empty(self._maxsize, dtype=np.float32)
         self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
         self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
@@ -365,7 +365,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         self._it_sum = SumSegmentTree(it_capacity)
         self._it_min = MinSegmentTree(it_capacity)
-        self._max_priority = 1
+        self._max_priority = 5
 
         #self.expert_indices = {}
 
@@ -390,7 +390,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         # Pre-allocate memory
         self.actions = np.empty(self._maxsize, dtype=np.int32)
-        self.diffs = np.empty(self._maxsize, dtype=np.int32)
+        self.diffs = np.empty(self._maxsize, dtype=np.float32)
         self.rewards = np.empty(self._maxsize, dtype=np.float32)
         self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
         self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
@@ -562,6 +562,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                             diff = self.var, done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
+        print(np.sum(self.diffs[:self.expert_idx]))
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
         #print("Priority Buffer")
         #print(np.max(self.rewards[:self.expert_idx]))
@@ -569,7 +570,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=1,
-                          max_prio_faction=0.005,expert_initial_priority=10):
+                          max_prio_faction=0.005,expert_initial_priority=20):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
@@ -585,8 +586,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         if expert_priority_decay is None:
             expert_priority = expert_initial_priority
         else:
-            start_frame_num = 100000
-            end_frame_num = 8000000
+            start_frame_num = 500000
+            end_frame_num = 80000000
             expert_priority_decay = (expert_initial_priority-min_expert_priority)/(end_frame_num-start_frame_num)
             expert_priority = max(expert_initial_priority - max(expert_priority_decay * (frame_num-start_frame_num),0),
                                   min_expert_priority)
@@ -600,7 +601,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             assert 0 <= idx < self.count
             if expert_idxes[count] == 1:
                 # update the variance of expert data
-                self.diffs[idx] = self.var/(self.var/self.diffs[idx] + 1)
+                if self.diffs[idx]==0:
+                    print("zero variance")
+                self.diffs[idx] = self.var/(self.var/(self.diffs[idx]+0.001)+1.0)
                 priority = priority * expert_priority
                 new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:

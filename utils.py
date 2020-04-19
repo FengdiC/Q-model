@@ -53,12 +53,13 @@ def argsparser():
 
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.4)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.6)
+    parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=1.0)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
     parser.add_argument('--pretrain_bc_iter', type=int, help='Max Episode Length', default=25000)
 
-    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=0.5)
+    parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
 
     parser.add_argument('--expert_priority_decay', type=int, help='Max Episode Length', default=2000000)
