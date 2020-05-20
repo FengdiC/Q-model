@@ -373,13 +373,14 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
     eval_rewards.append(episode_reward_sum)
     print("\n\n\n-------------------------------------------")
-    print("Evaluation score:\n", np.mean(eval_rewards))
+    print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
     print("-------------------------------------------\n\n\n")
     try:
         generate_gif(frame_num, frames_for_gif, eval_rewards[0],
                      "./" + args.gif_dir + "/" + model_name + "/" + args.env_id + "/" + "gif_")
     except IndexError:
         print("No evaluation game finished")
+    return np.mean(eval_rewards),np.var(eval_rewards)
 
 
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
@@ -441,7 +442,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_jeq_loss.append(loss_jeq)
 
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay,
-                                            min_expert_priority=args.min_expert_priority)
+                                            min_expert_priority=args.min_expert_priority,pretrain = pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
         if pretrain:

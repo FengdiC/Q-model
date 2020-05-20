@@ -44,6 +44,7 @@ class DQN:
                                          self.frame_width, self.agent_history_length],
                                   dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None,],dtype=tf.float32)
+        self.policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = (self.input - 127.5) / 127.5
@@ -148,7 +149,7 @@ class DQN:
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.diff *(1-self.prob)
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
@@ -213,9 +214,12 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
     action_prob = prob[range(batch_size), actions]
+    mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
+    action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
+    action_prob = action_prob ** 0.6
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q *  (1-terminal_flags)) # + diffs**2 *(1-action_prob)
+    target_q = rewards + (gamma*double_q *  (1-terminal_flags))
 
 
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
@@ -241,7 +245,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      main_dqn.target_n_q:target_n_q,
                                      main_dqn.expert_state:expert_idxes,
                                      main_dqn.weight:weights,
-                                     main_dqn.diff: diffs
+                                     main_dqn.diff: diffs,
+                                     main_dqn.policy:action_prob
                                      })
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
@@ -344,7 +349,8 @@ def train( priority=True):
     episode_jeq_list = []
 
     print_iter = 25
-    last_eval = 0 
+    last_eval = 0
+    eval_reward = 0
     while frame_number < MAX_FRAMES:
         eps_rw, eps_len, eps_loss, eps_jeq_loss,eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
                                                                                action_getter, my_replay_memory, atari, frame_number,
@@ -391,12 +397,15 @@ def train( priority=True):
             logger.record_tabular("Current Exploration: ", action_getter.get_eps(frame_number))
             logger.record_tabular("Frame Number: ", frame_number)
             logger.record_tabular("Episode Number: ", eps_number)
+            logger.record_tabular("Eval Reward: ",eval_reward)
             logger.dumpkvs()
 
         if EVAL_FREQUENCY < last_eval:
             last_eval = 0
-            utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+            eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=True)
+            logger.log("Evaluation result: ",eval_reward, ":::",eval_var)
+            logger.dumpkvs()
             saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
                     global_step=frame_number)
 train()
