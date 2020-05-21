@@ -493,6 +493,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 weights.append(weight / max_weight)
         weights = np.array(weights)
 
+        mean_weight = np.mean(weights)
+        weights = 1/mean_weight * weights
 
         expert_idxes = []
         for i in range(batch_size):

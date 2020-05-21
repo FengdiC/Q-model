@@ -214,9 +214,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
     action_prob = prob[range(batch_size), actions]
+
+
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
     action_prob = action_prob ** 0.4
+
+    mean_action_prob = np.mean(action_prob)
+    action_prob = 1/mean_action_prob * action_prob
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
