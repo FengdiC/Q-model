@@ -126,9 +126,9 @@ class DQN:
         return jeq
 
     def dqfd_loss(self, t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
 
@@ -151,7 +151,7 @@ class DQN:
         self.posterior = self.target_q+self.diff *(1-self.prob)
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -216,7 +216,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     action_prob = prob[range(batch_size), actions]
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
-    action_prob = action_prob ** 0.6
+    action_prob = action_prob ** 0.4
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
