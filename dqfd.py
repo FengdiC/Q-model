@@ -413,6 +413,6 @@ def train( priority=True):
                                  frame_number, model_name=name, gif=False)
             logger.log("Evaluation result: ",eval_reward, ":::",eval_var)
             logger.dumpkvs()
-            saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
-                    global_step=frame_number)
+            #saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
+            #        global_step=frame_number)
 train()
