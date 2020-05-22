@@ -382,7 +382,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self._it_sum[idx] = self._max_priority ** self._alpha
         self._it_min[idx] = self._max_priority ** self._alpha
 
-    def delete_expert(self):
+    def delete_expert(self,size):
+        self._max_priority = 5
+
         print("reset priority buffer and delete expert data")
         self._next_idx = 0
         self.expert_idx = 0
@@ -401,6 +403,14 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
                                     ), dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
+        
+                
+        it_capacity = 1
+        while it_capacity < size:
+            it_capacity *= 2
+        self._it_sum = SumSegmentTree(it_capacity)
+        self._it_min = MinSegmentTree(it_capacity)
+
 
     def _sample_proportional(self, batch_size):
         res = []
@@ -499,6 +509,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         expert_idxes = []
         for i in range(batch_size):
             if idxes[i] < self.expert_idx:
+                if self.expert_idx<4000:
+                    print("idxes[i] :::", idxes[i],":::",self.expert_idx)
                 expert_idxes.append(1)
             else:
                 expert_idxes.append(0)

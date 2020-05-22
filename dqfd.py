@@ -126,9 +126,9 @@ class DQN:
         return jeq
 
     def dqfd_loss(self, t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
 
@@ -177,7 +177,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = 0
+        self.l_jeq = tf.constant(0)
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
@@ -340,7 +340,8 @@ def train( priority=True):
         print("buffer expert size: ",my_replay_memory.expert_idx)
         print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
     if name=='dqn':
-        my_replay_memory.delete_expert()
+        print("agent dqn!")
+        my_replay_memory.delete_expert(MEMORY_SIZE)
 
     utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
                          model_name=name, gif=True, random=False)
@@ -381,10 +382,11 @@ def train( priority=True):
             # print("Current Exploration: ", action_getter.get_eps(frame_number))
             # print("Frame Number: ", frame_number)
             # print("Episode Number: ", eps_number)
-            print("size of buffer: ",my_replay_memory.count)
-            print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
-            print("total priorities: ",
-                  my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.count -1))
+            #print("size of buffer: ",my_replay_memory.count)
+            if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
+              print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
+            #print("total priorities: ",
+            #      my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.count -1))
             logger.record_tabular("Last " + str(print_iter) + " Episodes Reward: ",
                                   np.mean(episode_reward_list[-print_iter:]))
             logger.record_tabular("Last " + str(print_iter) + " Episodes Length: ",
