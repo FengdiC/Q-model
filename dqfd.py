@@ -410,7 +410,7 @@ def train( priority=True):
         if EVAL_FREQUENCY < last_eval:
             last_eval = 0
             eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                 frame_number, model_name=name, gif=True)
+                                 frame_number, model_name=name, gif=False)
             logger.log("Evaluation result: ",eval_reward, ":::",eval_var)
             logger.dumpkvs()
             saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
