@@ -126,9 +126,9 @@ class DQN:
         return jeq
 
     def dqfd_loss(self, t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weigh*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
 
