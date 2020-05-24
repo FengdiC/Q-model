@@ -489,22 +489,22 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         else:
             idxes = self._sample_expert_proportional(batch_size)
 
+        total_weight = self._it_sum.sum()
         if random:
             weights = [1]*batch_size
             idxes = super()._get_indices(batch_size)
         else:
             weights = []
-            p_min = self._it_min.min() / self._it_sum.sum()
+            p_min = self._it_min.min() / total_weight
             max_weight = (p_min * self.count) ** (-beta)
 
             for idx in idxes:
-                p_sample = self._it_sum[idx] / self._it_sum.sum()
+                p_sample = self._it_sum[idx] / total_weight
                 weight = (p_sample * self.count) ** (-beta)
                 weights.append(weight / max_weight)
         weights = np.array(weights)
-
-        mean_weight = np.mean(weights)
-        weights = 1/mean_weight * weights
+        if not expert: #Meaning pretraining ... 
+            weights = 25 * weights
 
         expert_idxes = []
         for i in range(batch_size):
