@@ -503,8 +503,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 weight = (p_sample * self.count) ** (-beta)
                 weights.append(weight / max_weight)
         weights = np.array(weights)
-
-        weights = 30 * weights
+        if not expert: #Meaning pretraining ... 
+            weights = 30 * weights
 
         expert_idxes = []
         for i in range(batch_size):
