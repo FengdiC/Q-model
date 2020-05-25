@@ -112,6 +112,8 @@ class DQN:
         elif agent == "expert":
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
+        elif agent == "dqfd_off_policy":
+            self.loss, self.loss_per_sample = self.dqfd_loss_policy_off(MAIN_DQN_VARS)
         else:
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
@@ -145,6 +147,48 @@ class DQN:
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
+
+    def dqfd_loss_policy_off(self, t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+        l_jeq = self.loss_jeq()
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = l_jeq
+
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        return loss, loss_per_sample
+
+
+    def dqfd_loss_full_off(self, t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q,
+                                      reduction=tf.losses.Reduction.NONE)
+        l_jeq = self.loss_jeq()
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = l_jeq
+
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        return loss, loss_per_sample
+
 
     def expert_loss(self, t_vars):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
