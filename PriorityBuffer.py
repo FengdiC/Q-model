@@ -286,7 +286,6 @@ class ReplayBuffer(object):
         print(self.count, "Expert Data loaded ... ")
 
 
-
     def sample(self, batch_size, expert=False):
         """Sample a batch of experiences.
         Parameters
@@ -507,6 +506,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weights = np.array(weights)
         if not expert and self.agent == "dqn": #Meaning pretraining ... 
             weights = 25 * weights
+        elif not expert and self.agent == "expert":
+            weights = 12 * weights
 
         expert_idxes = []
         for i in range(batch_size):
