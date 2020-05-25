@@ -106,10 +106,11 @@ class DQN:
         #self.loss = tf.reduce_mean(self.loss_per_sample)
 
         MAIN_DQN_VARS = tf.trainable_variables(scope=name)
-
-        if agent=='dqn':
+        if agent == "dqn":
+            print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
-        elif agent=='expert':
+        elif agent == "expert":
+            print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
         else:
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
@@ -286,6 +287,7 @@ def train( priority=True):
     atari = utils.Atari(args.env_id, args.stochastic_environment, NO_OP_STEPS)
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
+    print("Agent: ", name)
     with tf.variable_scope('mainDQN'):
         MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN")
     with tf.variable_scope('targetDQN'):
@@ -339,6 +341,8 @@ def train( priority=True):
     if name=='dqn':
         print("agent dqn!")
         my_replay_memory.delete_expert(MEMORY_SIZE)
+    else:
+        print("Agent: ", name)
 
     utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
                          model_name=name, gif=True, random=False)
