@@ -300,15 +300,15 @@ def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, ma
     while frame_num < replay_buf_size:
         _, _ = atari.reset(sess)
         for _ in range(max_eps):
-            # (4�?
+            # 
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
             else:
                 action = action_getter.get_action(sess, 0, atari.state, MAIN_DQN)
             # print("Action: ",action)
-            # (5�?
+            # 
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-            # (7�? Store transition in the replay memory
+            #  Store transition in the replay memory
             my_replay_memory.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             frame_num += 1
             if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:
@@ -449,11 +449,11 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
         if pretrain:
             if frame_num % (NETW_UPDATE_FREQ//UPDATE_FREQ) == 0 and frame_num > 0:
                 print("UPDATING Network ... ")
-                network_updater.update_networks(sess)  # (9�?
+                network_updater.update_networks(sess)  
         else:
             if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
                 print("UPDATING Network ... ")
-                network_updater.update_networks(sess)  # (9�?
+                network_updater.update_networks(sess)  
             if terminal:
                 break
 
@@ -488,7 +488,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             episode_reward_sum += reward
             episode_length += 1
 
-            # (7�? Store transition in the replay memory
+            # Store transition in the replay memory
             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
@@ -513,11 +513,11 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
         if pretrain:
             if frame_num % (NETW_UPDATE_FREQ//UPDATE_FREQ) == 0 and frame_num > 0:
                 print("UPDATING Network ... ")
-                network_updater.update_networks(sess)  # (9�?
+                network_updater.update_networks(sess)  # 
         else:
             if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
                 print("UPDATING Network ... ")
-                network_updater.update_networks(sess)  # (9�?
+                network_updater.update_networks(sess)  # 
             if terminal:
                 break
 
