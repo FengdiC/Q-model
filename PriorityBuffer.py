@@ -507,7 +507,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         if not expert and self.agent == "dqn": #Meaning pretraining ... 
             weights = 25 * weights
         elif not expert and self.agent == "expert":
-            weights = 10 * weights
+            weights = 8 * weights
 
         expert_idxes = []
         for i in range(batch_size):
