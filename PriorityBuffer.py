@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, var =1.0, frame_height=84, frame_width=84,
+    def __init__(self, size, agent="dqn", var =1.0, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -152,6 +152,7 @@ class ReplayBuffer(object):
         self._next_idx = 0
         self.expert_idx = 0
         self.var = var
+        self.agent = agent
 
         self.frame_height = frame_height
         self.frame_width = frame_width
@@ -339,7 +340,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,var):
+    def __init__(self, size, alpha,var, agent="dqn"):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -358,6 +359,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         assert alpha >= 0
         self._alpha = alpha
         self.var= var
+        self.agent = agent
 
         it_capacity = 1
         while it_capacity < size:
@@ -503,7 +505,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 weight = (p_sample * self.count) ** (-beta)
                 weights.append(weight / max_weight)
         weights = np.array(weights)
-        if not expert: #Meaning pretraining ... 
+        if not expert and self.agent == "dqn": #Meaning pretraining ... 
             weights = 25 * weights
 
         expert_idxes = []
