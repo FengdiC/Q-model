@@ -126,7 +126,7 @@ class DQN:
         return jeq
 
     def dqfd_loss(self, t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weigh*self.policy,
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
@@ -219,9 +219,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
     action_prob = action_prob ** 0.4
-    
-    mean_action_prob = 1/main_dqn.n_actions
-    action_prob = 1/mean_action_prob * action_prob
+    action_prob = 4 * action_prob
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
