@@ -505,9 +505,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 weights.append(weight / max_weight)
         weights = np.array(weights)
         if not expert and self.agent == "dqn": #Meaning pretraining ... 
-            weights = 25 * weights
+            weights = 10 * weights
         elif not expert and self.agent == "expert":
-            weights = 8 * weights
+            weights = 0.5 * weights
 
         expert_idxes = []
         for i in range(batch_size):
@@ -586,7 +586,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #quit()
 
 
-    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_expert_priority=1,
+    def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_priority=0.001, min_expert_priority=1,
                           max_prio_faction=0.005,expert_initial_priority=2,pretrain= False):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
@@ -626,6 +626,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
                 new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
+            new_priority = new_priority * (1 - min_priority) + min_priority
             self._max_priority = max(self._max_priority, new_priority)
             #print(idx, new_priority, expert_idxes[count], count)
             self._it_sum[idx] = (new_priority) ** self._alpha
