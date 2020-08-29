@@ -128,7 +128,7 @@ class DQN:
         jeq = (self.max_q_plus_margin - self.expert_q_value) * self.expert_state
         return jeq
 
-    def dqfd_loss(self, t_vars):
+    def dqfd_loss_off_policy(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
@@ -144,11 +144,11 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * l_jeq)
         return loss, loss_per_sample
 
-    def dqfd_loss_policy_off(self, t_vars):
+    def dqfd_loss_off_priority(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
@@ -164,12 +164,12 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * l_jeq)
         return loss, loss_per_sample
 
 
-    def dqfd_loss_full_off(self, t_vars):
+    def dqfd_loss(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q,
@@ -185,8 +185,8 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq + self.args.LAMBDA_2 * l_jeq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss+ self.args.LAMBDA_2 * l_jeq)
         return loss, loss_per_sample
 
 
@@ -263,8 +263,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
-    action_prob = action_prob ** 0.4
-    action_prob = 4 * action_prob
+    action_prob = action_prob ** 0.2
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
@@ -285,7 +284,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
-    loss, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+    loss_sample, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
@@ -302,7 +301,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
-    return loss, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
+    return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
 
 def train( priority=True):
     args = utils.argsparser()
@@ -455,7 +454,7 @@ def train( priority=True):
         if EVAL_FREQUENCY < last_eval:
             last_eval = 0
             eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                 frame_number, model_name=name, gif=False)
+                                 frame_number, model_name=name, gif=True)
             logger.log("Evaluation result: ",eval_reward, ":::",eval_var)
             logger.dumpkvs()
             #saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",

@@ -504,10 +504,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 weight = (p_sample * self.count) ** (-beta)
                 weights.append(weight / max_weight)
         weights = np.array(weights)
-        if not expert and self.agent == "dqn": #Meaning pretraining ... 
-            weights = 10 * weights
-        elif not expert and self.agent == "expert":
-            weights = 0.5 * weights
+        # if not expert and self.agent == "dqn": #Meaning pretraining ...
+        #     weights = 10 * weights
+        # elif not expert and self.agent == "expert":
+        #     weights = 0.5 * weights
 
         expert_idxes = []
         for i in range(batch_size):
@@ -576,10 +576,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         print("Loading Expert Data ... ")
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                            diff = self.var, done=data['terminal'][i])
+                            diff = self.var*9.5618, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
             #print(data['reward'][i], np.sum(data['terminal']))
         print(self.count, "Expert Data loaded ... ")
-        print(np.sum(self.diffs[:self.expert_idx]))
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
         #print("Priority Buffer")
         #print(np.max(self.rewards[:self.expert_idx]))

@@ -127,7 +127,26 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
                 current_data["terminal"].append(terminal)
                 #replay_mem.add(obs[:, :, 0], action, rew, terminal)
             pickle.dump(current_data, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
-            data_list = [] 
+            data_list = []
+        elif count> 6000:
+            env_done = False
+            num_traj += 1
+            obs = env.reset(sess)
+            print(num_traj, count)
+            count = 0
+
+            for i in range(len(data_list)):
+                action = data_list[i][0]
+                obs = data_list[i][1]
+                rew = data_list[i][2]
+                terminal = data_list[i][3]
+                current_data["frames"].append(obs)
+                current_data["reward"].append(rew)
+                current_data["actions"].append(action)
+                current_data["terminal"].append(terminal)
+                # replay_mem.add(obs[:, :, 0], action, rew, terminal)
+            pickle.dump(current_data, open("human_" + args.env + "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            data_list = []
         else:
             action = keys_to_action.get(tuple(sorted(pressed_keys)), 0)
             obs, rew, env_done, terminal, frame = env.step(sess, action)
@@ -197,11 +216,11 @@ class PlayPlot(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='MsPacmanDeterministic-v4', help='Define Environment')
+    parser.add_argument('--env', type=str, default='SeaquestDeterministic-v4', help='Define Environment')
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=11)
+    play(env, args, zoom=3, fps=7)
 
 
 if __name__ == '__main__':
