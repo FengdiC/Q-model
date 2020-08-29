@@ -206,7 +206,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.diff *(1-self.prob)
+        self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
 
         loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
