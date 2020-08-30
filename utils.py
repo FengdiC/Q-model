@@ -21,7 +21,7 @@ def argsparser():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--agent', help='the trainer used', type=str, default='dqfd')
     parser.add_argument('--expert_dir', type=str, default='./')
-    parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_1')
+    parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_1.pkl')
     parser.add_argument('--expert_file_path', type=str, default='None')
 
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models')
