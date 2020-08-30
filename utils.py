@@ -35,7 +35,7 @@ def argsparser():
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=100)
-    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=25000)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=50000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
