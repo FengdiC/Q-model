@@ -399,6 +399,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     episode_l2_loss = []
 
     expert_ratio = []
+    episode_weights = []
 
     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
@@ -434,6 +435,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
+            episode_weights.append(generated_weights)
             n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
                                                                                                                  args.gamma)
             loss, loss_dq, loss_dq_n, loss_jeq, loss_l2 = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
@@ -459,9 +461,9 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 network_updater.update_networks(sess)  
             if terminal:
                 break
-
+    episode_weights = np.concatenate(episode_weights, axis=0)
     return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_dq_loss), np.mean(episode_dq_n_loss), np.mean(episode_jeq_loss), np.mean(episode_l2_loss), \
-           time.time() - start_time, np.mean(expert_ratio)
+           time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn,
                pretrain=False, priority=False):

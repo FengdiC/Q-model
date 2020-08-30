@@ -367,8 +367,8 @@ def train( priority=True):
     if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
         os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
 
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "/", sess, args)
-
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed), sess, args)
+    print("Expert Directory: ", args.expert_dir + args.expert_file)
     if os.path.exists(args.expert_dir + args.expert_file):
         my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
@@ -398,7 +398,7 @@ def train( priority=True):
     last_gif = 0
 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
                                                                                action_getter, my_replay_memory, atari, frame_number,
                                                                                MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
@@ -423,7 +423,8 @@ def train( priority=True):
         tflogger.log_scalar("Episode/Loss/DQ N-step", eps_dq_n_loss, frame_number)
         tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, frame_number)
         tflogger.log_scalar("Episode/Loss/L2", eps_l2_loss, frame_number)
-
+        tflogger.log_scalar("Episode/Weight/Mean", gen_weight_mean, frame_number)
+        tflogger.log_scalar("Episode/Weight/Std", gen_weight_std, frame_number)
         tflogger.log_scalar("Episode/Time", eps_time, frame_number)
         tflogger.log_scalar("Episode/Reward/Reward Per Frame", eps_rw / max(1, eps_len),
                             frame_number)

@@ -195,7 +195,7 @@ def train(name="dqn", priority=True):
     if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
         os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
 
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "/", sess, args)
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed), sess, args)
 
     if os.path.exists(args.expert_dir + args.expert_file):
         my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
