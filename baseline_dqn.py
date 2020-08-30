@@ -209,6 +209,7 @@ def train(name="dqn", priority=True):
 
     last_eval = 0
     last_gif = 0
+    initial_time = time.time()
     while frame_number < MAX_FRAMES:
         eps_rw, eps_len, eps_loss, eps_time, exp_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority, pretrain=False)
         frame_number += eps_len
@@ -226,6 +227,8 @@ def train(name="dqn", priority=True):
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
         tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
+        tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
+        tflogger.log_scalar("Frames Per Hour", frame_number/((time.time() - initial_time)/3600), frame_number)
 
         if EVAL_FREQUENCY <= last_eval:
             last_eval = last_eval - EVAL_FREQUENCY
