@@ -12,6 +12,7 @@ import time
 import pickle
 import utils
 import PriorityBuffer
+from tensorboard_logger import tensorflowboard_logger
 
 class DQN:
     """Implements a Deep Q Network"""
@@ -139,9 +140,10 @@ def train(name="dqn", priority=True):
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
 
-
+    
     MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
+    GIF_FREQUENCY = args.gif_freq
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
 
     REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
@@ -172,7 +174,7 @@ def train(name="dqn", priority=True):
     config.gpu_options.allow_growth = True
 
     if priority:
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha)  #
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, args.var)  #
     else:
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE)  #
 
@@ -188,55 +190,54 @@ def train(name="dqn", priority=True):
     frame_number = REPLAY_MEMORY_START_SIZE
     eps_number = 0
 
-    if not os.path.exists("../" + args.gif_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.gif_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("../" + args.expert_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
+    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
+
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed), sess, args)
+
     if os.path.exists(args.expert_dir + args.expert_file):
         my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
-
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
-    episode_reward_list = []
-    episode_len_list = []
-    episode_loss_list = []
-    episode_time_list = []
-    episode_expert_list = []
+    eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+    tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
 
-    print_iter = 25
     last_eval = 0
+    last_gif = 0
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time, expert_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority, pretrain=False)
-        episode_reward_list.append(eps_rw)
-        episode_len_list.append(eps_len)
-        episode_loss_list.append(eps_loss)
-        episode_time_list.append(eps_time)
-        episode_expert_list.append(expert_ratio)
-
+        eps_rw, eps_len, eps_loss, eps_time, exp_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority, pretrain=False)
         frame_number += eps_len
         eps_number += 1
+        last_gif += 1
         last_eval += eps_len
-        if len(episode_len_list) % print_iter == 0:
-            print("Last " + str(print_iter) + " Episodes Reward: ", np.mean(episode_reward_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Length: ", np.mean(episode_len_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
-            print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
-            print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
-            print("Current Exploration: ", action_getter.get_eps(frame_number))
-            print("Frame Number: ", frame_number)
-            print("Episode Number: ", eps_number)
 
-        if EVAL_FREQUENCY < last_eval:
-            last_eval = 0
-            utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+        tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
+        tflogger.log_scalar("Episode/Length", eps_len, frame_number)
+        tflogger.log_scalar("Episode/Loss/Total", eps_loss, frame_number)
+        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
+        tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
+                            frame_number)
+        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
+        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+        tflogger.log_scalar("Total Episodes", eps_number, frame_number)
+        tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
+
+        if EVAL_FREQUENCY <= last_eval:
+            last_eval = last_eval - EVAL_FREQUENCY
+            if GIF_FREQUENCY <= last_gif:
+                last_gif = last_gif - GIF_FREQUENCY
+                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=True)
-            saver.save(sess, "../" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
-                    global_step=frame_number)
+            else:
+                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+                                 frame_number, model_name=name, gif=False)
+            tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+            tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
+            saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model",
+                   global_step=frame_number)
 train()
