@@ -362,12 +362,12 @@ def train( priority=True):
     frame_number = REPLAY_MEMORY_START_SIZE
     eps_number = 0
 
-    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
+    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
+    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
 
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority), sess, args)
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "/", sess, args)
 
     if os.path.exists(args.expert_dir + args.expert_file):
         my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
@@ -443,6 +443,6 @@ def train( priority=True):
                                  frame_number, model_name=name, gif=False)
             tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
             tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
-            saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
+            saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model",
                    global_step=frame_number)
 train()
