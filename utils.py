@@ -34,7 +34,8 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=100000)
+    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=100)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=25000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
@@ -372,9 +373,9 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
         if len(eval_rewards) % 10 == 0:
             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
     eval_rewards.append(episode_reward_sum)
-    print("\n\n\n-------------------------------------------")
-    print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
-    print("-------------------------------------------\n\n\n")
+    # print("\n\n\n-------------------------------------------")
+    # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
+    # print("-------------------------------------------\n\n\n")
     try:
         if len(frames_for_gif) > 0:
             generate_gif(frame_num, frames_for_gif, eval_rewards[0],
@@ -395,6 +396,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     episode_dq_loss = []
     episode_dq_n_loss = []
     episode_jeq_loss = []
+    episode_l2_loss = []
 
     expert_ratio = []
 
@@ -434,13 +436,14 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                     BS, args.beta, expert=pretrain)  # Generated trajectories
             n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
                                                                                                                  args.gamma)
-            loss, loss_dq, loss_dq_n, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
+            loss, loss_dq, loss_dq_n, loss_jeq, loss_l2 = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
                                                        expert_idxes, n_step_rewards,n_step_states, last_step_gamma, not_terminal,
                                                        MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
             episode_dq_loss.append(loss_dq)
             episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
+            episode_l2_loss.append(loss_l2)
 
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay,
                                             min_expert_priority=args.min_expert_priority,pretrain = pretrain)
@@ -457,7 +460,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             if terminal:
                 break
 
-    return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_jeq_loss), \
+    return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_dq_loss), np.mean(episode_dq_n_loss), np.mean(episode_jeq_loss), np.mean(episode_l2_loss), \
            time.time() - start_time, np.mean(expert_ratio)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn,
@@ -506,7 +509,9 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
 
                 loss = learn(sess, generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states,
                              generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
-                replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_weight=args.expert_weight)
+                replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num,
+                                                expert_priority_decay=args.expert_priority_decay,
+                                                min_expert_priority=args.min_expert_priority, pretrain=pretrain)
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
 

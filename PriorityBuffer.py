@@ -586,7 +586,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_decay=None, min_priority=0.001, min_expert_priority=1,
-                          max_prio_faction=0.005,expert_initial_priority=2,pretrain= False):
+                          expert_initial_priority=2,pretrain= False):
         """Update priorities of sampled transitions.
         sets priority of transition at index idxes[i] in buffer
         to priorities[i].
