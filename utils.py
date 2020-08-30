@@ -379,7 +379,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     try:
         if len(frames_for_gif) > 0:
             generate_gif(frame_num, frames_for_gif, eval_rewards[0],
-                        "./" + args.gif_dir + "/" + model_name + "/" + args.env_id + "/" + "gif_")
+                        "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
     except IndexError:
         print("No evaluation game finished")
     return np.mean(eval_rewards),np.var(eval_rewards)
