@@ -346,8 +346,10 @@ def train( priority=True):
     config.gpu_options.allow_growth = True
 
     if priority:
+        print("Priority")
         my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,args.var, agent=name)
     else:
+        print("Not Priority")
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
