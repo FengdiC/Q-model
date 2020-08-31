@@ -399,7 +399,7 @@ def train( priority=True):
     initial_time = time.time()
 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
                                                                                action_getter, my_replay_memory, atari, frame_number,
                                                                                MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
@@ -431,6 +431,9 @@ def train( priority=True):
                             frame_number)
         tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+        tflogger.log_scalar("Episode/Non Expert Gen Diff", non_expert_gen_diff, frame_number)
+        tflogger.log_scalar("Episode/Expert Gen Diff", expert_gen_diff, frame_number)
+
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
         tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
         tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
