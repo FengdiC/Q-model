@@ -129,7 +129,7 @@ class DQN:
         jeq = (self.max_q_plus_margin - self.expert_q_value) * self.expert_state
         return jeq
 
-    def dqfd_loss_off_policy(self, t_vars):
+    def dqfd_loss_policy_off(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
