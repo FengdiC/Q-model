@@ -339,7 +339,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,var, agent="dqn"):
+    def __init__(self, size, alpha,var,agent_history_length=4, agent="dqn"):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -354,7 +354,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size,var)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,var=var,agent_history_length=agent_history_length)
         assert alpha >= 0
         self._alpha = alpha
         self.var= var
