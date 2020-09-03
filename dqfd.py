@@ -460,7 +460,7 @@ def train( priority=True):
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
         tflogger.log_scalar("Episode/Non Expert Gen Diff", non_expert_gen_diff, frame_number)
         tflogger.log_scalar("Episode/Expert Gen Diff", expert_gen_diff, frame_number)
-        tflogger.log_scalar("Episode/Mean Mask", mean_mask, frame_number)
+        #tflogger.log_scalar("Episode/Mean Mask", mean_mask, frame_number)
 
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
         tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
