@@ -116,6 +116,9 @@ class DQN:
         elif agent == "expert":
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
+        elif agent == "expert_off_policy":
+            print("Expert Loss off Policy")
+            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS)
         elif agent == "dqfd_off_policy":
             print("DQFD Off Policy")
             self.loss, self.loss_per_sample = self.dqfd_loss_policy_off(MAIN_DQN_VARS)
@@ -195,6 +198,28 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss+ self.args.LAMBDA_2 * l_jeq)
         return loss, loss_per_sample
 
+
+    def expert_loss_off_policy(self, t_vars):
+        self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+                               axis=1)
+        self.posterior = self.target_q+self.diff *(1-self.prob)
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
+
+        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        return loss, loss_per_sample
 
     def expert_loss(self, t_vars):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
