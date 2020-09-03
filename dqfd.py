@@ -110,12 +110,17 @@ class DQN:
         if agent == "dqn":
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
+        elif agent == "baseline_dqn":
+            print("Baseline DQN")
+            self.loss, self.loss_per_sample = self.baseline_dqn_loss(MAIN_DQN_VARS)
         elif agent == "expert":
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
         elif agent == "dqfd_off_policy":
+            print("DQFD Off Policy")
             self.loss, self.loss_per_sample = self.dqfd_loss_policy_off(MAIN_DQN_VARS)
         else:
+            print("DQFD")
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
@@ -231,6 +236,24 @@ class DQN:
         return loss, loss_per_sample
 
 
+
+    def baseline_dqn_loss(self,t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        #l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        # l2_reg_loss = 0
+        # for v in t_vars:
+        #     if 'bias' not in v.name:
+        #         l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        # self.l2_reg_loss = l2_reg_loss
+        self.l2_reg_loss = tf.constant(0)
+        self.l_dq = l_dq
+        self.l_n_dq = tf.constant(0)
+        self.l_jeq = tf.constant(0)
+        loss_per_sample = l_dq
+        loss = tf.reduce_mean(loss_per_sample)
+        return loss, loss_per_sample
+
+
 def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states,
           last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     """
@@ -303,7 +326,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
-    return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2)
+    return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
     args = utils.argsparser()
@@ -383,7 +406,7 @@ def train( priority=True):
         print("buffer expert size: ",my_replay_memory.expert_idx)
         tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
 
-    if name=='dqn':
+    if name=='dqn' or  name == 'baseline_dqn':
         print("agent dqn!")
         my_replay_memory.delete_expert(MEMORY_SIZE)
     else:
@@ -399,9 +422,11 @@ def train( priority=True):
     last_eval = 0
     last_gif = 0
     initial_time = time.time()
+    max_eval_reward = -1
 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = \
+            utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
                                                                                action_getter, my_replay_memory, atari, frame_number,
                                                                                MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
@@ -435,6 +460,7 @@ def train( priority=True):
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
         tflogger.log_scalar("Episode/Non Expert Gen Diff", non_expert_gen_diff, frame_number)
         tflogger.log_scalar("Episode/Expert Gen Diff", expert_gen_diff, frame_number)
+        tflogger.log_scalar("Episode/Mean Mask", mean_mask, frame_number)
 
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
         tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
@@ -450,6 +476,10 @@ def train( priority=True):
             else:
                 eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=False)
+            if eval_reward > max_eval_reward:
+                max_eval_reward = eval_reward
+
+            tflogger.log_scalar("Evaluation/Max_Reward", max_eval_reward, frame_number)
             tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
             tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
             saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model",
