@@ -169,6 +169,11 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      })
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
 
+def compute_regret(sess,grid,main_dqn):
+    state = np.eye(grid*grid)
+    prob = sess.run([main_dqn.action_prob],feed_dict={main_dqn.input: state})
+
+
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length, state,
                     learn, action_getter,grid, pretrain=False):
     start_time = time.time()
