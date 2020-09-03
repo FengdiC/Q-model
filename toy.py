@@ -3,6 +3,7 @@ import numpy as np
 import os
 import random
 import math
+import time
 import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import utils
@@ -168,10 +169,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      })
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
 
-def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
-                    learn, pretrain=False):
+def compute_regret(sess,grid,main_dqn):
+    state = np.eye(grid*grid)
+    prob = sess.run([main_dqn.action_prob],feed_dict={main_dqn.input: state})
+
+
+def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length, state,
+                    learn, action_getter,grid, pretrain=False):
     start_time = time.time()
-    terminal_life_lost, _ = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
@@ -182,32 +187,46 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
 
     expert_ratio = []
 
-    NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
+    NETW_UPDATE_FREQ = 2*grid        # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
-    BS = args.batch_size
+    BS = 8
     terminal = False
 
     for _ in range(eps_length):
-        if not pretrain:
-            if args.stochastic_exploration == "True":
-                action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
-            else:
-                action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
-            # print("Action: ",action)
-            next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-            frame_num += 1
-            episode_reward_sum += reward
-            episode_length += 1
-
-            replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+        frame = np.zeros(grid * grid)
+        frame[state[0] * grid + state[1]] = 1
+        if args.stochastic_exploration == "True":
+            action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
         else:
-            frame_num += 1
-            if frame_num % 1000 == 0:
-                print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]),
-                      np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
+            action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN)
+        # print("Action: ",action)
+        if action==0:
+            state[0] = state[0]+1
+            state[1] = np.max(0, state[1]-1)
+            reward = 0
+            if state[0]==grid:
+                terminal = True
+        else:
+            state[0] = state[0]+1
+            state[1] = np.min(state[1]+1,grid)
+            if state[1] == grid:
+                reward = 10
+                terminal = True
+            elif state[0]==grid:
+                reward = 0
+                terminal = True
+            else:
+                reward = -0.01
+        frame_num += 1
+        episode_reward_sum += reward
+        episode_length += 1
+        next_frame = np.zeros(grid*grid)
+        next_frame[state[0]*grid+state[1]] = 1
 
-        if frame_num % UPDATE_FREQ == 0 or pretrain:
+        replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal_life_lost)
+
+        if frame_num % UPDATE_FREQ == 0 and frame_num > args.replay_start_size:
             if pretrain:
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
@@ -244,38 +263,27 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_jeq_loss), \
            time.time() - start_time, np.mean(expert_ratio)
 
-def train( priority=True):
+def train( priority=True,grid=10):
     args = utils.argsparser()
     name = args.agent
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
 
+    MAX_EPISODE_LENGTH = grid  # Equivalent of 5 minutes of gameplay at 60 frames per second
+    EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
 
-    MAX_EPISODE_LENGTH = args.max_eps_len       # Equivalent of 5 minutes of gameplay at 60 frames per second
-    EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
-    EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
-
-    REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
-                                    # before the agent starts learning
-    MAX_FRAMES = args.max_frames            # Total number of frames the agent sees
-    MEMORY_SIZE = args.replay_mem_size            # Number of transitions stored in the replay memory
-    NO_OP_STEPS = args.no_op_steps                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
-                                    # evaluation episode
-    HIDDEN = args.hidden                    # Number of filters in the final convolutional layer. The output
-                                    # has the shape (1,1,1024) which is split into two streams. Both
-                                    # the advantage stream and value stream have the shape
-                                    # (1,1,512). This is slightly different from the original
-                                    # implementation but tests I did with the environment Pong
-                                    # have shown that this way the score increases more quickly
-                                    # Hessel et al. 2017 used 0.0000625
-    atari = utils.Atari(args.env_id, args.stochastic_environment, NO_OP_STEPS)
-    atari.env.seed(args.seed)
+    REPLAY_MEMORY_START_SIZE = args.replay_start_size  # Number of completely random actions,
+    # before the agent starts learning
+    MAX_FRAMES = 4**(grid)  # Total number of frames the agent sees
+    MEMORY_SIZE = grid * grid  # Number of transitions stored in the replay memory
+    # evaluation episode
+    HIDDEN = 512
     # main DQN and target DQN networks:
     print("Agent: ", name)
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN")
+        MAIN_DQN = DQN(args, 2, HIDDEN, agent=name, name="mainDQN")
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN")
+        TARGET_DQN = DQN(args, 2, HIDDEN, agent=name, name="targetDQN")
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -284,120 +292,124 @@ def train( priority=True):
     config.gpu_options.allow_growth = True
 
     if priority:
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,args.var, agent=name)
+        print("Priority")
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, args.var,
+                                                                  agent_history_length=1, agent=name)
     else:
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
+        print("Not Priority")
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE,agent_history_length=1, agent=name)
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-    action_getter = utils.ActionGetter(atari.env.action_space.n,
-                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES,
-                                 eps_initial=args.initial_exploration)
+    action_getter = utils.ActionGetter(2,
+                                       replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                       max_frames=MAX_FRAMES,
+                                       eps_initial=args.initial_exploration)
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
     sess.run(init)
     # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
 
-    frame_number = REPLAY_MEMORY_START_SIZE
     eps_number = 0
+    state = np.zeros(2)
+    frame_number = 0
 
-    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/")
-    if not os.path.exists("./" + args.log_dir + "/" + name + "/" + args.env_id + "/"):
-        os.makedirs("./" + args.log_dir + "/" + name + "/" + args.env_id + "/")
-
-    logger.configure("./" + args.log_dir + "/" + name + "/" + args.env_id + "/")
-
+    tflogger = tensorflowboard_logger(
+        "./" + args.log_dir + "/" + "toy"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
+        sess, args)
+    print("Expert Directory: ", args.expert_dir + args.expert_file)
     if os.path.exists(args.expert_dir + args.expert_file):
-        my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
+        my_replay_memory.load_expert_data(args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
-    #Pretrain step ..
-    logger.log("Starting {agent} for Environment '{env}'".format(agent='dqfd', env=args.env_id))
-    logger.log("Start pre-training")
-    if args.pretrain_bc_iter > 0:
-        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
-                              args.pretrain_bc_iter, learn, pretrain=True)
-        print("done pretraining ,test prioritized buffer")
-        print("buffer expert size: ",my_replay_memory.expert_idx)
-        print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
-    if name=='dqn':
+
+    if name == 'dqn':
         print("agent dqn!")
         my_replay_memory.delete_expert(MEMORY_SIZE)
     else:
         print("Agent: ", name)
 
-    utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
-                         model_name=name, gif=True, random=False)
-    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
-                                      MAIN_DQN, args)
-    episode_reward_list = []
-    episode_len_list = []
-    episode_loss_list = []
-    episode_time_list = []
-    episode_expert_list = []
-    episode_jeq_list = []
+    frame_num = 0
 
     print_iter = 25
     last_eval = 0
-    eval_reward = 0
-    while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_jeq_loss,eps_time, exp_ratio = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
-                                                                               action_getter, my_replay_memory, atari, frame_number,
-                                                                               MAX_EPISODE_LENGTH, learn, pretrain=False)
-        episode_reward_list.append(eps_rw)
-        episode_len_list.append(eps_len)
-        episode_loss_list.append(eps_loss)
-        episode_time_list.append(eps_time)
-        episode_expert_list.append(exp_ratio)
-        episode_jeq_list.append(eps_jeq_loss)
+    last_gif = 0
+    initial_time = time.time()
 
+    while frame_number < MAX_FRAMES:
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss, eps_time, exp_ratio, \
+        gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff = utils.train_step_dqfd(
+            sess, args, MAIN_DQN, TARGET_DQN, network_updater,my_replay_memory,  frame_number,
+            MAX_EPISODE_LENGTH, state, learn, action_getter, grid, pretrain=False)
         frame_number += eps_len
         eps_number += 1
+        last_gif += 1
         last_eval += eps_len
-        if len(episode_len_list) % print_iter == 0:
-            # print("Last " + str(print_iter) + " Episodes Reward: ", np.mean(episode_reward_list[-print_iter:]))
-            # print("Last " + str(print_iter) + " Episodes Length: ", np.mean(episode_len_list[-print_iter:]))
-            # print("Last " + str(print_iter) + " Episodes Loss: ", np.mean(episode_loss_list[-print_iter:]))
-            # print("Last " + str(print_iter) + " Episodes Time: ", np.mean(episode_time_list[-print_iter:]))
-            # print("Last " + str(print_iter) + " Reward/Frames: ", np.sum(episode_reward_list[-print_iter:])/np.sum(episode_len_list[-print_iter:]))
-            # print("Last " + str(print_iter) + " Expert Ratio: ", np.mean(episode_expert_list[-print_iter:]))
-            # print("Total " + str(print_iter) + " Episode time: ", np.sum(episode_time_list[-print_iter:]))
-            # print("Current Exploration: ", action_getter.get_eps(frame_number))
-            # print("Frame Number: ", frame_number)
-            # print("Episode Number: ", eps_number)
-            #print("size of buffer: ",my_replay_memory.count)
-            if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
-              print("expert priorities: ",my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx))
-            #print("total priorities: ",
-            #      my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.count -1))
-            logger.record_tabular("Last " + str(print_iter) + " Episodes Reward: ",
-                                  np.mean(episode_reward_list[-print_iter:]))
-            logger.record_tabular("Last " + str(print_iter) + " Episodes Length: ",
-                                  np.mean(episode_len_list[-print_iter:]))
-            logger.record_tabular("Last " + str(print_iter) + " Episodes Loss: ",
-                                  np.mean(episode_loss_list[-print_iter:]))
-            logger.record_tabular("Last " + str(print_iter) + " Episodes Time: ",
-                                  np.mean(episode_time_list[-print_iter:]))
-            logger.record_tabular("Last " + str(print_iter) + " Reward/Frames: ",
-                                  np.sum(episode_reward_list[-print_iter:]) / np.sum(episode_len_list[-print_iter:]))
-            logger.record_tabular("Last " + str(print_iter) + " Expert Ratio: ",
-                                  np.mean(episode_expert_list[-print_iter:]))
-            logger.record_tabular("Total " + str(print_iter) + " Episode time: ",
-                                  np.sum(episode_time_list[-print_iter:]))
-            logger.record_tabular("Current Exploration: ", action_getter.get_eps(frame_number))
-            logger.record_tabular("Frame Number: ", frame_number)
-            logger.record_tabular("Episode Number: ", eps_number)
-            logger.record_tabular("Eval Reward: ",eval_reward)
-            logger.dumpkvs()
 
-        if EVAL_FREQUENCY < last_eval:
-            last_eval = 0
-            eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                 frame_number, model_name=name, gif=True)
-            logger.log("Evaluation result: ",eval_reward, ":::",eval_var)
-            logger.dumpkvs()
-            #saver.save(sess, "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "/" + "model",
-            #        global_step=frame_number)
-train()
+
+        if eps_number % print_iter == 0:
+            if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
+                tflogger.log_scalar("Expert Priorities",
+                                    my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
+                                                                 my_replay_memory.expert_idx), frame_number)
+                tflogger.log_scalar("Total Priorities",
+                                    my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
+                                                                 my_replay_memory.count - 1), frame_number)
+
+        tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
+        tflogger.log_scalar("Episode/Length", eps_len, frame_number)
+        tflogger.log_scalar("Episode/Loss/Total", eps_loss, frame_number)
+        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
+        tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
+                            frame_number)
+        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
+        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+        tflogger.log_scalar("Episode/Loss/DQ", eps_dq_loss, frame_number)
+        tflogger.log_scalar("Episode/Loss/DQ N-step", eps_dq_n_loss, frame_number)
+        tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, frame_number)
+        tflogger.log_scalar("Episode/Loss/L2", eps_l2_loss, frame_number)
+        tflogger.log_scalar("Episode/Weight/Mean", gen_weight_mean, frame_number)
+        tflogger.log_scalar("Episode/Weight/Std", gen_weight_std, frame_number)
+        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
+        tflogger.log_scalar("Episode/Reward/Reward Per Frame", eps_rw / max(1, eps_len),
+                            frame_number)
+        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
+        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+        tflogger.log_scalar("Episode/Non Expert Gen Diff", non_expert_gen_diff, frame_number)
+        tflogger.log_scalar("Episode/Expert Gen Diff", expert_gen_diff, frame_number)
+
+        tflogger.log_scalar("Total Episodes", eps_number, frame_number)
+        tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
+        tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
+        tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), frame_number)
+
+        if EVAL_FREQUENCY <= last_eval:
+            last_eval = last_eval - EVAL_FREQUENCY
+            state = np.zeros(2)
+            for _ in range(MAX_EPISODE_LENGTH):
+                frame = np.zeros(grid * grid)
+                frame[state[0] * grid + state[1]] = 1
+                if args.stochastic_exploration == "True":
+                    action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
+                else:
+                    action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN)
+                # print("Action: ",action)
+                if action == 0:
+                    state[0] = state[0] + 1
+                    state[1] = np.max(0, state[1] - 1)
+                    reward = 0
+                    if state[0] == grid:
+                        terminal = True
+                else:
+                    state[0] = state[0] + 1
+                    state[1] = np.min(state[1] + 1, grid)
+                    if state[1] == grid:
+                        reward = 10
+                        terminal = True
+                    elif state[0] == grid:
+                        reward = 0
+                        terminal = True
+                    else:
+                        reward = -0.01
+                if terminal:
+                    eval_reward = reward
+            tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+train(grid = 10)
