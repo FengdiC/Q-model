@@ -217,18 +217,18 @@ def train(name="dqn", priority=True):
         last_gif += 1
         last_eval += eps_len
 
-        tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
-        tflogger.log_scalar("Episode/Length", eps_len, frame_number)
-        tflogger.log_scalar("Episode/Loss/Total", eps_loss, frame_number)
-        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
-        tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
+        tflogger.log_scalar("No N-step DQN Episode/Reward", eps_rw, frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Length", eps_len, frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Loss/Total", eps_loss, frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Time", eps_time, frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Reward Per Frame", eps_rw / max(1, eps_len),
                             frame_number)
-        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
-        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
-        tflogger.log_scalar("Total Episodes", eps_number, frame_number)
-        tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
-        tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
-        tflogger.log_scalar("Frames Per Hour", frame_number/((time.time() - initial_time)/3600), frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Expert Ratio", exp_ratio, frame_number)
+        tflogger.log_scalar("No N-step DQN Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+        tflogger.log_scalar("No N-step DQN Total Episodes", eps_number, frame_number)
+        tflogger.log_scalar("No N-step DQN Replay Buffer Size", my_replay_memory.count, frame_number)
+        tflogger.log_scalar("No N-step DQN Elapsed Time", time.time() - initial_time, frame_number)
+        tflogger.log_scalar("No N-step DQN Frames Per Hour", frame_number/((time.time() - initial_time)/3600), frame_number)
 
         if EVAL_FREQUENCY <= last_eval:
             last_eval = last_eval - EVAL_FREQUENCY

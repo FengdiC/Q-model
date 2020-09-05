@@ -34,7 +34,7 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=100)
+    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=500)
     parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=50000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
@@ -402,6 +402,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     episode_weights = []
     episode_diff_non_expert = []
     episode_diff_expert = []
+    episode_mask_mean = []
 
     NETW_UPDATE_FREQ = args.target_update_freq         # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
@@ -440,10 +441,11 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_weights.append(generated_weights)
             n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
                                                                                                                  args.gamma)
-            loss, loss_dq, loss_dq_n, loss_jeq, loss_l2 = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
+            loss, loss_dq, loss_dq_n, loss_jeq, loss_l2, mask = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
                                                        expert_idxes, n_step_rewards,n_step_states, last_step_gamma, not_terminal,
                                                        MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
+            episode_mask_mean.append(np.mean(mask))
             episode_dq_loss.append(loss_dq)
             episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
@@ -466,7 +468,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 break
     episode_weights = np.concatenate(episode_weights, axis=0)
     return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_dq_loss), np.mean(episode_dq_n_loss), np.mean(episode_jeq_loss), np.mean(episode_l2_loss), \
-           time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights), np.mean(episode_diff_non_expert), np.mean(episode_diff_expert)
+           time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights), np.mean(episode_diff_non_expert), np.mean(episode_diff_expert), np.mean(episode_mask_mean)
 
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn,
                pretrain=False, priority=False):
