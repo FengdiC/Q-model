@@ -21,7 +21,7 @@ def argsparser():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--agent', help='the trainer used', type=str, default='dqfd')
     parser.add_argument('--expert_dir', type=str, default='./')
-    parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_1.pkl')
+    parser.add_argument('--expert_file', type=str, default='human_SeaquestDeterministic-v4_5.pkl')
     parser.add_argument('--expert_file_path', type=str, default='None')
 
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='models')
@@ -63,7 +63,7 @@ def argsparser():
     parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
 
-    parser.add_argument('--expert_priority_decay', type=int, help='Max Episode Length', default=2000000)
+    parser.add_argument('--expert_priority_modifier', type=int, help='Max Episode Length', default=1)
     parser.add_argument('--min_expert_priority', type=int, help='Max Episode Length', default=0.05)
 
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
@@ -452,7 +452,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_l2_loss.append(loss_l2)
             episode_diff_non_expert.append(np.sum(generated_diffs * (1 - expert_idxes)) /max(1, np.sum(1 - expert_idxes)))
             episode_diff_expert.append(np.sum(generated_diffs * expert_idxes) /max(1, np.sum(expert_idxes)))
-            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay,
+            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority,pretrain = pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
@@ -517,7 +517,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                 loss = learn(sess, generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states,
                              generated_terminal_flags, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, args)  # (8�?
                 replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num,
-                                                expert_priority_decay=args.expert_priority_decay,
+                                                expert_priority_modifier=args.expert_priority_modifier,
                                                 min_expert_priority=args.min_expert_priority, pretrain=pretrain)
                 expert_ratio.append(np.sum(expert_idxes)/BS)
                 episode_loss.append(loss)
