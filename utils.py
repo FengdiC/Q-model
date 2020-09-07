@@ -75,6 +75,7 @@ def argsparser():
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
+    parser.add_argument('--custom_id', type=str, default='SeaquestDeterministic-v4')
     return parser.parse_args()
 
 

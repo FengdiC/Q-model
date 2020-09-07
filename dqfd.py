@@ -460,7 +460,7 @@ def train( priority=True):
     sess = tf.Session(config=config)
     sess.run(init)
 
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed), sess, args)
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
 
     #Pretrain step ..
     if args.pretrain_bc_iter > 0:
