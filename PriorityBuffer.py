@@ -281,10 +281,11 @@ class ReplayBuffer(object):
                      diff = self.var, done=data['terminal'][i])
             #print(data['reward'][i], np.sum(data['terminal']))
 
+        max_reward = np.max(self.rewards[self.rewards > 0])
         #Reward check
-        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
+        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
-
+        return max_reward
 
     def sample(self, batch_size, expert=False):
         """Sample a batch of experiences.
@@ -512,8 +513,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         expert_idxes = []
         for i in range(batch_size):
             if idxes[i] < self.expert_idx:
-                if self.expert_idx<4000:
-                    print("idxes[i] :::", idxes[i],":::",self.expert_idx)
+                # if self.expert_idx<4000:
+                #     print("idxes[i] :::", idxes[i],":::",self.expert_idx)
                 expert_idxes.append(1)
             else:
                 expert_idxes.append(0)
@@ -578,12 +579,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                             diff = self.var*9.5618, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
             #print(data['reward'][i], np.sum(data['terminal']))
+        max_reward = np.max(self.rewards[self.rewards > 0])
+        #Reward check
+        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
-        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", np.max(self.rewards[self.rewards > 0]))
-        #print("Priority Buffer")
-        #print(np.max(self.rewards[:self.expert_idx]))
-        #quit()
-
+        return max_reward
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_modifier=1, min_priority=0.001, min_expert_priority=1,
                           expert_initial_priority=2,pretrain= False):

@@ -23,7 +23,7 @@ def softargmax(x, beta=1e10):
 class DQN:
     """Implements a Deep Q Network"""
     def __init__(self, args, n_actions=4, hidden=1024,
-               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn"):
+               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn", max_reward=1):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -34,6 +34,7 @@ class DQN:
           frame_width: Integer, Width of a frame of an Atari game
           agent_history_length: Integer, Number of frames stacked together to create a state
         """
+        self.max_reward = max_reward
         self.args = args
         self.n_actions = n_actions
         self.hidden = hidden
@@ -116,9 +117,27 @@ class DQN:
         elif agent == "expert":
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
-        elif agent == "expert_off_policy":
+
+        elif agent == "expert_hardcap_loss":
             print("Expert Loss off Policy")
+            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS, loss_cap=agent)
+
+        elif agent == "expert_softcap_loss":
+            print("Expert Loss off Policy")
+            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS, loss_cap=agent)
+
+        elif agent == "expert_off_policy":
+            print("Expert Loss off policy")
             self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS)
+
+        elif agent == "expert_off_policy_hardcap_loss":
+            print("Expert Loss off policy hardcap loss")
+            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS, loss_cap=agent)
+
+        elif agent == "expert_off_policy_softcap_loss":
+            print("Expert Loss off policy softcap loss")
+            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS, loss_cap=agent)
+
         elif agent == "dqfd_off_policy":
             print("DQFD Off Policy")
             self.loss, self.loss_per_sample = self.dqfd_loss_policy_off(MAIN_DQN_VARS)
@@ -199,7 +218,7 @@ class DQN:
         return loss, loss_per_sample
 
 
-    def expert_loss_off_policy(self, t_vars):
+    def expert_loss_off_policy(self, t_vars, loss_cap=None):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.diff *(1-self.prob)
@@ -207,7 +226,6 @@ class DQN:
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
-
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -217,11 +235,21 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        if loss_cap == "expert_off_policy_hardcap_loss": # For DQ loss and DQ n step loss, JEQ if needed
+            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq))
+            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq))
+            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq))
+
+        elif loss_cap == "expert_off_policy_softcap_loss":
+            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq)) + tf.log(1 + tf.math.maximum(self.l_dq - self.max_reward, tf.zeros_like(self.l_dq)))
+            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq)) + tf.log(1 + tf.math.maximum(self.l_n_dq - self.max_reward, tf.zeros_like(self.l_n_dq)))
+            #self.l_jeq = tf.math.minimum(self.l_jeq, tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 1, tf.zeros_like(self.l_jeq)))
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
-    def expert_loss(self, t_vars):
+    def expert_loss(self, t_vars, loss_cap=None):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.diff *(1-self.prob)
@@ -239,7 +267,17 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        if loss_cap == "expert_hardcap_loss": # For DQ loss and DQ n step loss, JEQ if needed
+            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq))
+            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq))
+            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq))
+
+        elif loss_cap == "expert_softcap_loss":
+            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq)) + tf.log(1 + tf.math.maximum(self.l_dq - self.max_reward, tf.zeros_like(self.l_dq)))
+            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq)) + tf.log(1 + tf.math.maximum(self.l_n_dq - self.max_reward, tf.zeros_like(self.l_n_dq)))
+            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 2, tf.zeros_like(self.l_jeq)))
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
@@ -382,23 +420,37 @@ def train( priority=True):
     atari.env.seed(args.seed)
     # main DQN and target DQN networks:
     print("Agent: ", name)
-    with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN")
-    with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN")
-
-    init = tf.global_variables_initializer()
-    MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
-    TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-
     if priority:
         print("Priority")
         my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,args.var, agent=name)
     else:
         print("Not Priority")
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
+
+    # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
+    frame_number = REPLAY_MEMORY_START_SIZE
+    eps_number = 0
+
+    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
+    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
+        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
+    print("Expert Directory: ", args.expert_dir + args.expert_file)
+    if os.path.exists(args.expert_dir + args.expert_file):
+        max_reward = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
+    else:
+        print("No Expert Data ... ")
+        
+    with tf.variable_scope('mainDQN'):
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward)
+    with tf.variable_scope('targetDQN'):
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN", max_reward=max_reward)
+
+    init = tf.global_variables_initializer()
+    MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
+    TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -407,22 +459,9 @@ def train( priority=True):
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
     sess.run(init)
-    # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
 
-    frame_number = REPLAY_MEMORY_START_SIZE
-    eps_number = 0
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
 
-    if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
-        os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
-    if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
-        os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
-
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed), sess, args)
-    print("Expert Directory: ", args.expert_dir + args.expert_file)
-    if os.path.exists(args.expert_dir + args.expert_file):
-        my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
-    else:
-        print("No Expert Data ... ")
     #Pretrain step ..
     if args.pretrain_bc_iter > 0:
         utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
@@ -438,7 +477,7 @@ def train( priority=True):
         print("Agent: ", name)
 
     eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
-                         model_name=name, gif=True, random=False)
+                         model_name=name, gif=False, random=False)
     tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
     tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
