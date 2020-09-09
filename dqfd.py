@@ -192,8 +192,8 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * l_jeq)
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * self.l_jeq)
         return loss, loss_per_sample
 
 
@@ -213,8 +213,8 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = l_jeq
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss+ self.args.LAMBDA_2 * l_jeq)
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss+ self.args.LAMBDA_2 * self.l_jeq)
         return loss, loss_per_sample
 
 
@@ -246,7 +246,7 @@ class DQN:
             #self.l_jeq = tf.math.minimum(self.l_jeq, tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 1, tf.zeros_like(self.l_jeq)))
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
     def expert_loss(self, t_vars, loss_cap=None):
@@ -278,7 +278,7 @@ class DQN:
             #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 2, tf.zeros_like(self.l_jeq)))
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
 
@@ -294,8 +294,8 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = tf.constant(0)
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
 
@@ -312,7 +312,7 @@ class DQN:
         self.l_dq = l_dq
         self.l_n_dq = tf.constant(0)
         self.l_jeq = tf.constant(0)
-        loss_per_sample = l_dq
+        loss_per_sample = self.l_dq
         loss = tf.reduce_mean(loss_per_sample)
         return loss, loss_per_sample
 
