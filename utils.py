@@ -54,7 +54,7 @@ def argsparser():
 
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.6)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.4)
-    parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=2.3)
+    parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=2.3*9.5618)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
