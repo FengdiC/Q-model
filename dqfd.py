@@ -470,11 +470,10 @@ def train( priority=True):
         print("buffer expert size: ",my_replay_memory.expert_idx)
         tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
 
-    if name=='dqn' or  name == 'baseline_dqn':
-        print("agent dqn!")
+    if args.delete_expert:
+        print("Expert data deleted .... ")
         my_replay_memory.delete_expert(MEMORY_SIZE)
-    else:
-        print("Agent: ", name)
+    print("Agent: ", name)
 
     eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
                          model_name=name, gif=False, random=False)
