@@ -112,7 +112,7 @@ class DQN:
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
         if agent == "dqn_with_priority_weight":
-            print("DQN Loss")
+            print("DQN priority weights loss")
             self.loss, self.loss_per_sample = self.dqn_with_priority_weight_loss(MAIN_DQN_VARS)
         elif agent == "baseline_dqn":
             print("Baseline DQN")
