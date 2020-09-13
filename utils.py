@@ -69,6 +69,7 @@ def argsparser():
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
+    parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
 
 
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
@@ -77,7 +78,6 @@ def argsparser():
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     parser.add_argument('--custom_id', type=str, default='')
     return parser.parse_args()
-
 
 class TargetNetworkUpdater:
     """Copies the parameters of the main DQN to the target DQN"""
