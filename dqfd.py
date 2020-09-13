@@ -143,7 +143,7 @@ class DQN:
 
         elif agent == "dqfd_with_priority_weight":
             print("DQFD with priority")
-            self.loss, self.loss_per_sample = self.dqfd_loss_off_priority(MAIN_DQN_VARS)
+            self.loss, self.loss_per_sample = self.dqfd_loss_with_priority_weights(MAIN_DQN_VARS)
         elif agent == "dqfd_all_weights":
             print("DQFD all weights")
             self.loss, self.loss_per_sample = self.loss_dqfd_all_weights(MAIN_DQN_VARS)
@@ -181,7 +181,7 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * l_jeq)
         return loss, loss_per_sample
 
-    def dqfd_loss_off_priority(self, t_vars):
+    def dqfd_loss_with_priority_weights(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
