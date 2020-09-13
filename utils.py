@@ -79,7 +79,6 @@ def argsparser():
     parser.add_argument('--custom_id', type=str, default='')
     return parser.parse_args()
 
-
 class TargetNetworkUpdater:
     """Copies the parameters of the main DQN to the target DQN"""
 

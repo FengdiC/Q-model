@@ -138,9 +138,12 @@ class DQN:
             print("Expert Loss off policy softcap loss")
             self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS, loss_cap=agent)
 
-        elif agent == "dqfd_off_policy":
-            print("DQFD Off Policy")
-            self.loss, self.loss_per_sample = self.dqfd_loss_policy_off(MAIN_DQN_VARS)
+        elif agent == "dqfd_with_priority_weight":
+            print("DQFD with priority")
+            self.loss, self.loss_per_sample = self.dqfd_loss_off_priority(MAIN_DQN_VARS)
+        elif agent == "dqfd_all_weights":
+            print("DQFD all weights")
+            self.loss, self.loss_per_sample = self.loss_dqfd_all_weights(MAIN_DQN_VARS)
         else:
             print("DQFD")
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
@@ -156,13 +159,12 @@ class DQN:
         jeq = (self.max_q_plus_margin - self.expert_q_value) * self.expert_state
         return jeq
 
-    def dqfd_loss_policy_off(self, t_vars):
+    def loss_dqfd_all_weights(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
-
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -182,7 +184,6 @@ class DQN:
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
         l_jeq = self.loss_jeq()
-
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -195,7 +196,6 @@ class DQN:
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss + self.args.LAMBDA_2 * self.l_jeq)
         return loss, loss_per_sample
-
 
     def dqfd_loss(self, t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q,
@@ -298,8 +298,6 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
-
-
     def baseline_dqn_loss(self,t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
         #l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
@@ -315,7 +313,6 @@ class DQN:
         loss_per_sample = self.l_dq
         loss = tf.reduce_mean(loss_per_sample)
         return loss, loss_per_sample
-
 
 def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states,
           last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
