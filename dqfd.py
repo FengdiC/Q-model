@@ -111,6 +111,9 @@ class DQN:
         if agent == "dqn":
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
+        if agent == "dqn_with_priority_weight":
+            print("DQN Loss")
+            self.loss, self.loss_per_sample = self.dqn_with_priority_weight_loss(MAIN_DQN_VARS)
         elif agent == "baseline_dqn":
             print("Baseline DQN")
             self.loss, self.loss_per_sample = self.baseline_dqn_loss(MAIN_DQN_VARS)
@@ -297,6 +300,23 @@ class DQN:
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
+
+    def dqn_with_priority_weight_loss(self,t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = tf.constant(0)
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
+        return loss, loss_per_sample
+
 
     def baseline_dqn_loss(self,t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
