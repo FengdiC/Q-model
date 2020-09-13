@@ -36,6 +36,8 @@ class DQN:
         """
         self.max_reward = max_reward
         self.args = args
+        self.var = args.var
+        self.eta = args.eta
         self.n_actions = n_actions
         self.hidden = hidden
         self.frame_height = frame_height
@@ -86,7 +88,7 @@ class DQN:
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage,
                                                tf.reduce_mean(self.advantage, axis=1, keepdims=True))
-        self.action_prob = tf.nn.softmax(self.q_values)
+        self.action_prob = tf.nn.softmax(args.eta * self.q_values)
         self.best_action = tf.argmax(self.q_values, 1)
 
         # The next lines perform the parameter update. This will be explained in detail later.
@@ -116,7 +118,7 @@ class DQN:
             self.loss, self.loss_per_sample = self.baseline_dqn_loss(MAIN_DQN_VARS)
         elif agent == "expert":
             print("Expert Loss")
-            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
+            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
 
         elif agent == "expert_hardcap_loss":
             print("Expert Loss off Policy")
@@ -126,17 +128,9 @@ class DQN:
             print("Expert Loss off Policy")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS, loss_cap=agent)
 
-        elif agent == "expert_off_policy":
+        elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
-            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS)
-
-        elif agent == "expert_off_policy_hardcap_loss":
-            print("Expert Loss off policy hardcap loss")
-            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS, loss_cap=agent)
-
-        elif agent == "expert_off_policy_softcap_loss":
-            print("Expert Loss off policy softcap loss")
-            self.loss, self.loss_per_sample = self.expert_loss_off_policy(MAIN_DQN_VARS, loss_cap=agent)
+            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS)
 
         elif agent == "dqfd_off_policy":
             print("DQFD Off Policy")
@@ -218,10 +212,10 @@ class DQN:
         return loss, loss_per_sample
 
 
-    def expert_loss_off_policy(self, t_vars, loss_cap=None):
+    def expert_loss_diff_policy(self, t_vars, loss_cap=None):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.posterior = self.target_q+self.diff *(1-self.prob)
+        self.posterior = self.target_q+self.var*((9+4*self.diff)/tf.square(3+self.diff)) *(1-self.prob)
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
@@ -249,10 +243,17 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
-    def expert_loss(self, t_vars, loss_cap=None):
+    def expert_loss(self, t_vars, decay='t', loss_cap=None):
+        # decay 't' means order one decay 1/(beta+t)
+        #       's' means beta^2+t/(beta+t)^2
+        # here set beta = 3
+        if decay =='t':
+          ratio = 1/(3+self.diff)
+        elif decay =='s':
+          ratio = (9+4*self.diff)/tf.square(3+self.diff)
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.posterior = self.target_q+self.diff *(1-self.prob)
+        self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
@@ -265,7 +266,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
         if loss_cap == "expert_hardcap_loss": # For DQ loss and DQ n step loss, JEQ if needed
             self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq))
@@ -355,7 +356,9 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
-
+    #target_pos = np.where(target_q>=0,np.zeros(batch_size),np.ones(batch_size))
+    #if np.sum(target_pos)>0:
+    #  print("Check if target values are positive: ", np.sum(target_pos))
 
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
@@ -402,6 +405,7 @@ def train( priority=True):
     EVAL_FREQUENCY = args.eval_freq          # Number of frames the agent sees between evaluations
     GIF_FREQUENCY = args.gif_freq
     EVAL_STEPS = args.eval_len               # Number of frames for one evaluation
+    var = args.var                           # initial variance value
 
     REPLAY_MEMORY_START_SIZE = args.replay_start_size # Number of completely random actions,
                                     # before the agent starts learning
@@ -422,7 +426,7 @@ def train( priority=True):
     print("Agent: ", name)
     if priority:
         print("Priority")
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,args.var, agent=name)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name)
     else:
         print("Not Priority")
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
