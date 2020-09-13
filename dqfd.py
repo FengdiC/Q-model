@@ -148,8 +148,9 @@ class DQN:
             print("DQFD all weights")
             self.loss, self.loss_per_sample = self.loss_dqfd_all_weights(MAIN_DQN_VARS)
         else:
-            print("DQFD")
-            self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
+            # print("DQFD")
+            # self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
+            raise NotImplementedError
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
