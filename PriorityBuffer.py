@@ -582,7 +582,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #Reward check
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
-        return max_reward
+        return max_reward,num_data
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_modifier=1, min_priority=0.001, min_expert_priority=1,
                           expert_initial_priority=2,pretrain= False):
