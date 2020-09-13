@@ -34,7 +34,7 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=500)
+    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=1000)
     parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=50000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
@@ -55,6 +55,8 @@ def argsparser():
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.6)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.4)
     parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=2.3*9.5618)
+    parser.add_argument('--eta', type=float, help='Action prob coefficient', default=1.0)
+    parser.add_argument('--decay', type=str, help='Decay Computation of Variance of prior Q-values', default='t')
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
     parser.add_argument('--max_ent_coef_bc', type=float, help='Max Episode Length', default=1.0)
@@ -63,12 +65,13 @@ def argsparser():
     parser.add_argument('--LAMBDA_1', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--LAMBDA_2', type=float, help='Lambda 1 for expert', default=1)
 
-    parser.add_argument('--expert_priority_modifier', type=int, help='Max Episode Length', default=1)
-    parser.add_argument('--min_expert_priority', type=int, help='Max Episode Length', default=0.05)
+    parser.add_argument('--expert_priority_modifier', type=int, help='Max Episode Length', default=4)
+    parser.add_argument('--min_expert_priority', type=int, help='Max Episode Length', default=1)
 
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
+    parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
 
 
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
@@ -77,7 +80,6 @@ def argsparser():
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     parser.add_argument('--custom_id', type=str, default='')
     return parser.parse_args()
-
 
 class TargetNetworkUpdater:
     """Copies the parameters of the main DQN to the target DQN"""
