@@ -500,7 +500,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                     while len(res) < batch_size:
                         indx = np.random.randint(self.agent_history_length, self.expert_idx)
                         res.append(indx)
-        print(res)
         return res
 
     def sample(self, batch_size, beta, expert=False, random=False):
