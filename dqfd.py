@@ -23,7 +23,7 @@ def softargmax(x, beta=1e10):
 class DQN:
     """Implements a Deep Q Network"""
     def __init__(self, args, n_actions=4, hidden=1024,
-               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn", max_reward=1):
+               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn", max_reward=1,ratio_expert=1.0):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -35,6 +35,7 @@ class DQN:
           agent_history_length: Integer, Number of frames stacked together to create a state
         """
         self.max_reward = max_reward
+        self.ratio_expert=ratio_expert
         self.args = args
         self.var = args.var
         self.eta = args.eta
@@ -123,17 +124,9 @@ class DQN:
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
 
-        elif agent == "expert_hardcap_loss":
-            print("Expert Loss off Policy")
-            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS, loss_cap=agent)
-
-        elif agent == "expert_softcap_loss":
-            print("Expert Loss off Policy")
-            self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS, loss_cap=agent)
-
         elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
-            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS)
+            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
 
         elif agent == "dqfd_with_priority_weight":
             print("DQFD with priority")
@@ -216,13 +209,20 @@ class DQN:
         return loss, loss_per_sample
 
 
-    def expert_loss_diff_policy(self, t_vars, loss_cap=None):
+    def expert_loss_diff_policy(self, t_vars,decay='t', loss_cap=None):
+        if decay =='t':
+          ratio = 1/(3+self.diff)
+        elif decay =='s':
+          ratio = (9+4*self.diff)/tf.square(3+self.diff)
+        elif decay == 'f':
+          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.posterior = self.target_q+self.var*((9+4*self.diff)/tf.square(3+self.diff)) *(1-self.prob)
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+        self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
+        self.policy = self.expert_state*self.ratio_expert + (1-self.expert_state)
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.expert_state*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
         l2_reg_loss = 0
         for v in t_vars:
@@ -231,17 +231,8 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
-        if loss_cap == "expert_off_policy_hardcap_loss": # For DQ loss and DQ n step loss, JEQ if needed
-            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq))
-            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq))
-            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq))
-
-        elif loss_cap == "expert_off_policy_softcap_loss":
-            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq)) + tf.log(1 + tf.math.maximum(self.l_dq - self.max_reward, tf.zeros_like(self.l_dq)))
-            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq)) + tf.log(1 + tf.math.maximum(self.l_n_dq - self.max_reward, tf.zeros_like(self.l_n_dq)))
-            #self.l_jeq = tf.math.minimum(self.l_jeq, tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 1, tf.zeros_like(self.l_jeq)))
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -250,14 +241,17 @@ class DQN:
     def expert_loss(self, t_vars, decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
+        #       'f' means forth order beta^2(t^3/3+5t^2/2+37t/6)/(t+2)^2(t+3)^2
         # here set beta = 3
         if decay =='t':
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
+        elif decay == 'f':
+          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
-        self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)
+        self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
@@ -271,16 +265,6 @@ class DQN:
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
         self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
-
-        if loss_cap == "expert_hardcap_loss": # For DQ loss and DQ n step loss, JEQ if needed
-            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq))
-            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq))
-            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq))
-
-        elif loss_cap == "expert_softcap_loss":
-            self.l_dq = tf.math.minimum(self.l_dq, self.max_reward *  tf.ones_like(self.l_dq)) + tf.log(1 + tf.math.maximum(self.l_dq - self.max_reward, tf.zeros_like(self.l_dq)))
-            self.l_n_dq = tf.math.minimum(self.l_n_dq, self.max_reward *  tf.ones_like(self.l_n_dq)) + tf.log(1 + tf.math.maximum(self.l_n_dq - self.max_reward, tf.zeros_like(self.l_n_dq)))
-            #self.l_jeq = tf.math.minimum(self.l_jeq, 1 + tf.ones_like(self.l_jeq)) + tf.log(1 + tf.math.maximum(self.l_jeq - 2, tf.zeros_like(self.l_jeq)))
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -370,7 +354,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
-    action_prob = action_prob ** 0.2
+    action_prob = action_prob ** args.power
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
@@ -459,14 +443,16 @@ def train( priority=True):
         os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
     print("Expert Directory: ", args.expert_dir + args.expert_file)
     if os.path.exists(args.expert_dir + args.expert_file):
-        max_reward = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
+        max_reward, num_expert = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
         
+    ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power
+        
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward)
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward,ratio_expert=ratio_expert)
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN", max_reward=max_reward)
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN", max_reward=max_reward,ratio_expert=ratio_expert)
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
