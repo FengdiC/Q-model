@@ -1,14 +1,13 @@
 import tensorflow as tf
 import numpy as np
 import os
-import random
-import math
 import time
 import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import utils
 import PriorityBuffer
-import logger
+import pickle
+from tensorboard_logger import tensorflowboard_logger
 
 
 class DQN:
@@ -38,7 +37,7 @@ class DQN:
                                       kernel_initializer=tf.variance_scaling_initializer(scale=2),name='fc1')
         self.layer2 = tf.layers.dense(inputs=self.layer1, units=hidden, activation=tf.nn.relu,
                                       kernel_initializer=tf.variance_scaling_initializer(scale=2), name='fc2')
-        self.dense = tf.layers.dense(inputs=self.d, units=hidden,
+        self.dense = tf.layers.dense(inputs=self.layer2, units=hidden,
                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc3")
 
         # Splitting into value and advantage stream
@@ -75,7 +74,7 @@ class DQN:
         if agent == "dqn":
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
-        elif agent == "expert":
+        else:
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
@@ -272,9 +271,9 @@ def train( priority=True,grid=10):
     MAX_EPISODE_LENGTH = grid  # Equivalent of 5 minutes of gameplay at 60 frames per second
     EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
 
-    REPLAY_MEMORY_START_SIZE = args.replay_start_size  # Number of completely random actions,
+    REPLAY_MEMORY_START_SIZE = 32  # Number of completely random actions,
     # before the agent starts learning
-    MAX_FRAMES = 4**(grid)  # Total number of frames the agent sees
+    MAX_FRAMES = 2**(grid)  # Total number of frames the agent sees
     MEMORY_SIZE = grid * grid  # Number of transitions stored in the replay memory
     # evaluation episode
     HIDDEN = 512
@@ -315,11 +314,22 @@ def train( priority=True,grid=10):
     tflogger = tensorflowboard_logger(
         "./" + args.log_dir + "/" + "toy"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
         sess, args)
-    print("Expert Directory: ", args.expert_dir + args.expert_file)
-    if os.path.exists(args.expert_dir + args.expert_file):
-        my_replay_memory.load_expert_data(args.expert_dir + args.expert_file)
-    else:
-        print("No Expert Data ... ")
+
+    expert = {}
+    states = np.zeros((grid*grid,grid))
+    for i in range(grid) :
+        states[i*grid+i,i]=1
+    rewards = -0.01 * np.ones(grid)
+    rewards[grid-1] = 10
+    terminals = np.zeros(grid)
+    terminals[grid-1] = 1
+    expert['frames'] = states
+    expert['reward'] = rewards
+    expert['actions'] = np.ones(grid)
+    expert['terminal'] = terminals
+    with open('expert_toy', 'wb') as fout:
+        pickle.dump(expert, fout)
+    my_replay_memory.load_expert_data('expert_toy')
 
     if name == 'dqn':
         print("agent dqn!")

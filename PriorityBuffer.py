@@ -340,7 +340,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,var,agent_history_length=4, agent="dqn"):
+    def __init__(self, size, alpha,agent_history_length=4, agent="dqn"):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -355,10 +355,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,var=var,agent_history_length=agent_history_length)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length)
         assert alpha >= 0
         self._alpha = alpha
-        self.var= var
         self.agent = agent
 
         it_capacity = 1
@@ -577,13 +576,13 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         print("Loading Expert Data ... ")
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                            diff = self.var*9.5618, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
+                            diff = 1.0, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
             #print(data['reward'][i], np.sum(data['terminal']))
         max_reward = np.max(self.rewards[self.rewards > 0])
         #Reward check
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
-        return max_reward
+        return max_reward,num_data
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_modifier=1, min_priority=0.001, min_expert_priority=1,
                           expert_initial_priority=2,pretrain= False):
@@ -618,7 +617,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 if self.diffs[idx]==0:
                     print("zero variance")
                 if not pretrain:
-                    self.diffs[idx] = self.var/(self.var/(self.diffs[idx]+0.001)+1.0)
+                    self.diffs[idx] += 1
                 priority = priority * expert_priority
                 new_priority = priority #* (1 - max_prio_faction) + self._max_priority * max_prio_faction
             else:
