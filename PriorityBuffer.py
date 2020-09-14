@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, agent="dqn", var =1.0, frame_height=84, frame_width=84,
+    def __init__(self, size, grid=None,agent="dqn", var =1.0, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -153,6 +153,7 @@ class ReplayBuffer(object):
         self.expert_idx = 0
         self.var = var
         self.agent = agent
+        self.grid = grid
 
         self.frame_height = frame_height
         self.frame_width = frame_width
@@ -175,6 +176,13 @@ class ReplayBuffer(object):
         self.new_states = np.zeros((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
                                     ), dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
+
+        if grid is not None:
+            self.frames = np.empty((self._maxsize, self.grid**2), dtype=np.uint8)
+            self.states = np.zeros((self.batch_size, self.agent_history_length, self.grid**2
+                                    ), dtype=np.float32)
+            self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.grid**2
+                                        ), dtype=np.float32)
 
 
     def add_expert(self, obs_t, reward, action,diff, done):
@@ -340,7 +348,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,agent_history_length=4, agent="dqn"):
+    def __init__(self, size, alpha,grid=None,agent_history_length=4, agent="dqn"):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -355,7 +363,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,grid=grid,agent_history_length=agent_history_length)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent
@@ -404,6 +412,13 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
                                     ), dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
+
+        if self.grid is not None:
+            self.frames = np.empty((self._maxsize, self.grid**2), dtype=np.uint8)
+            self.states = np.zeros((self.batch_size, self.agent_history_length, self.grid**2
+                                    ), dtype=np.float32)
+            self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.grid**2
+                                        ), dtype=np.float32)
         
                 
         it_capacity = 1
@@ -578,9 +593,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                             diff = 1.0, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
             #print(data['reward'][i], np.sum(data['terminal']))
-        max_reward = np.max(self.rewards[self.rewards > 0])
+        max_reward = np.max(self.rewards[0:num_data])
         #Reward check
-        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
+        print("Min Reward: ", np.min(self.rewards[0:num_data]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
         return max_reward
 

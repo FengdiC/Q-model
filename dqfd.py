@@ -510,10 +510,10 @@ def train( priority=True):
     max_eval_reward = -1
 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = \
-            utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
-                                                                               action_getter, my_replay_memory, atari, frame_number,
-                                                                               MAX_EPISODE_LENGTH, learn, pretrain=False)
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, \
+        gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN,
+                                                                          network_updater,action_getter, my_replay_memory, atari,
+                                                                          frame_number,MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
         eps_number += 1
         last_gif += 1
