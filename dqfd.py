@@ -126,7 +126,7 @@ class DQN:
 
         elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
-            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS)
+            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
 
         elif agent == "dqfd_with_priority_weight":
             print("DQFD with priority")
@@ -209,7 +209,7 @@ class DQN:
         return loss, loss_per_sample
 
 
-    def expert_loss_diff_policy(self, t_vars, loss_cap=None):
+    def expert_loss_diff_policy(self, t_vars,decay='t', loss_cap=None):
         if decay =='t':
           ratio = 1/(3+self.diff)
         elif decay =='s':
