@@ -214,6 +214,8 @@ class DQN:
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
+        elif decay == 'f':
+          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
@@ -239,11 +241,14 @@ class DQN:
     def expert_loss(self, t_vars, decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
+        #       'f' means forth order beta^2(t^3/3+5t^2/2+37t/6)/(t+2)^2(t+3)^2
         # here set beta = 3
         if decay =='t':
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
+        elif decay == 'f':
+          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
