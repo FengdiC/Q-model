@@ -428,10 +428,10 @@ def train( priority=True):
     print("Agent: ", name)
     if priority:
         print("Priority")
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name, batch_size=args.batch_size)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name, batch_size=args.batch_size)
 
     # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
     frame_number = REPLAY_MEMORY_START_SIZE

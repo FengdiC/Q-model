@@ -222,13 +222,12 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_bu
             next_frame[int(state[0]*grid+state[1])] = 1
 
             replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            print(replay_buffer.count)
         else:
-            print('pretraining')
             frame_num += 1
             if frame_num % 10 == 0:
                 print("Current Loss: ", frame_num, np.mean(episode_loss[-10:]), np.mean(episode_dq_loss[-10:]),
                       np.mean(episode_dq_n_loss[-10:]), np.mean(episode_jeq_loss[-10:]))
-
 
         if frame_num % UPDATE_FREQ == 0 and frame_num>grid-1:
             if pretrain:
@@ -251,7 +250,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_bu
             episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
 
-            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_decay=args.expert_priority_decay,
+            replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority,pretrain = pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
@@ -270,7 +269,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_bu
            np.mean(episode_dq_n_loss),np.mean(episode_jeq_loss), \
            time.time() - start_time, np.mean(expert_ratio)
 
-def train( priority=True,grid=10):
+def train( priority=True,grid=128):
     args = utils.argsparser()
     name = args.agent
     tf.random.set_random_seed(args.seed)
@@ -289,9 +288,9 @@ def train( priority=True,grid=10):
     # main DQN and target DQN networks:
     print("Agent: ", name)
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, 2, HIDDEN, agent=name, name="mainDQN")
+        MAIN_DQN = DQN(args, 2, HIDDEN, agent=name, grid=grid, name="mainDQN")
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, 2, HIDDEN, agent=name, name="targetDQN")
+        TARGET_DQN = DQN(args, 2, HIDDEN, agent=name, grid=grid, name="targetDQN")
 
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -300,12 +299,11 @@ def train( priority=True,grid=10):
     config.gpu_options.allow_growth = True
 
     if priority:
-        print("Priority")
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, grid=grid,
-                                                                  agent_history_length=1, agent=name)
+        print("Priority", grid, grid * grid)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, grid=grid, agent_history_length=1, agent=name, batch_size=args.batch_size)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE,grid=grid,agent_history_length=1, agent=name)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE,grid=grid,agent_history_length=1, agent=name, batch_size=args.batch_size)
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(2,
                                        replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -343,6 +341,7 @@ def train( priority=True,grid=10):
 
     # Pretrain step ..
     if PRETRAIN > 0:
+        print("Beginning to pretrain ... ")
         train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,my_replay_memory,  frame_number,
             PRETRAIN, state, learn, action_getter, grid, pretrain=True)
         print("done pretraining ,test prioritized buffer")
@@ -436,4 +435,4 @@ def train( priority=True,grid=10):
                 if terminal:
                     eval_reward = reward
             tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
-train(grid = 10)
+train(grid = 128)
