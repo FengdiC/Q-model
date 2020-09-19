@@ -542,13 +542,40 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                selected_rewards, np.transpose(self.new_states, axes=(0, 2, 3, 1)), selected_terminal, \
                weights, idxes, expert_idxes
 
-    def compute_n_step_target_q(self, idxes, num_steps, gamma):
+    def compute_all_n_step_target_q(self, idxes, num_steps, gamma):
         idxes = idxes - 1
         not_terminal = np.ones((idxes.shape[0],), dtype=np.int32)
         last_step_gamma = np.zeros((idxes.shape[0],), dtype=np.float32)
         n_step_rewards = np.zeros((idxes.shape[0],), dtype=np.float32)
         n_step_state = np.zeros_like(self.states)
 
+        for i in range(idxes.shape[0]):
+            idx = idxes[i]
+            n_step_idx = min(self.count-1, idx + num_steps)
+            if n_step_idx >= self.expert_idx and idx < self.expert_idx:
+                n_step_idx = self.expert_idx - 1
+            if n_step_idx >= self._next_idx and idx  < self._next_idx:
+                n_step_idx = self._next_idx - 1
+            if np.sum(self.terminal_flags[idx:n_step_idx]) > 0:
+                n_step_idx = idx + np.argmax(self.terminal_flags[idx:n_step_idx])
+                not_terminal[i] = 0
+            accum_gamma = 1
+            for j in range(idx, n_step_idx):
+                n_step_rewards[i] += accum_gamma * self.rewards[j]
+                accum_gamma *= gamma
+            last_step_gamma[i] = accum_gamma
+            n_step_state[i] = self._get_state(n_step_idx)
+
+        return n_step_rewards, np.transpose(n_step_state, axes=(0, 2, 3, 1)), last_step_gamma, not_terminal
+
+    def compute_n_step_target_q(self, idxes, num_steps, gamma):
+        idxes = idxes - 1
+        not_terminal = np.ones((idxes.shape[0], num_steps), dtype=np.int32)
+        last_step_gamma = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
+        n_step_rewards = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
+        n_step_state = np.zeros((batch_size, num_steps) + self.states.shape[1:])
+        print(n_step_state.shape)
+        quit()
         for i in range(idxes.shape[0]):
             idx = idxes[i]
             n_step_idx = min(self.count-1, idx + num_steps)
