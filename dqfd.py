@@ -214,16 +214,14 @@ class DQN:
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
-        elif decay == 'f':
-          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
-        self.policy = self.expert_state*self.ratio_expert + (1-self.expert_state)
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.expert_state*self.policy,
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                       reduction=tf.losses.Reduction.NONE)
+
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -233,7 +231,6 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
-
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
@@ -241,14 +238,11 @@ class DQN:
     def expert_loss(self, t_vars, decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
-        #       'f' means forth order beta^2(t^3/3+5t^2/2+37t/6)/(t+2)^2(t+3)^2
         # here set beta = 3
         if decay =='t':
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
-        elif decay == 'f':
-          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         
@@ -431,10 +425,10 @@ def train( priority=True):
     print("Agent: ", name)
     if priority:
         print("Priority")
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name, batch_size=args.batch_size)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name, batch_size=args.batch_size)
 
     # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
     frame_number = REPLAY_MEMORY_START_SIZE
@@ -499,10 +493,10 @@ def train( priority=True):
     max_eval_reward = -1
 
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = \
-            utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,
-                                                                               action_getter, my_replay_memory, atari, frame_number,
-                                                                               MAX_EPISODE_LENGTH, learn, pretrain=False)
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, \
+        gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN,
+                                                                          network_updater,action_getter, my_replay_memory, atari,
+                                                                          frame_number,MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
         eps_number += 1
         last_gif += 1
