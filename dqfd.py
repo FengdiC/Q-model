@@ -90,6 +90,9 @@ class DQN:
         self.q_values = self.value + tf.subtract(self.advantage,
                                                tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.action_prob = tf.nn.softmax(args.eta * self.q_values)
+
+        self.nstep_minus_prob = tf.placeholder(shape=[None], dtype=tf.float32)
+
         self.best_action = tf.argmax(self.q_values, 1)
 
         # The next lines perform the parameter update. This will be explained in detail later.
@@ -249,7 +252,9 @@ class DQN:
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
+
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -315,7 +320,7 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample)
         return loss, loss_per_sample
 
-def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states,
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states, n_step_actions,
           last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:
@@ -346,12 +351,11 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
     action_prob = prob[range(batch_size), actions]
 
-    #sum of (1 - action prob)
-
-
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
     action_prob = action_prob ** args.power
+
+
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
@@ -359,14 +363,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     #if np.sum(target_pos)>0:
     #  print("Check if target values are positive: ", np.sum(target_pos))
 
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
+    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
+    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_n_q = n_step_rewards + (gamma*double_q * not_terminal)
+    target_n_q = n_step_rewards[:, -1] + (gamma*double_q * not_terminal[:, -1])
     # Gradient descend step to update the parameters of the main network
     #print(np.max(rewards), np.min(rewards))
 
@@ -374,6 +378,13 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
+    nstep_minus_prob = []
+    for i in range(n_step_actions.shape[1]):
+        prob = session.run(main_dqn.prob, feed_dict={main_dqn.input: n_step_states[:, i], main_dqn.action:n_step_actions[:, i]})
+        nstep_minus_prob.append(1 - prob)
+    nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
+
+
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
@@ -383,7 +394,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      main_dqn.expert_state:expert_idxes,
                                      main_dqn.weight:weights,
                                      main_dqn.diff: diffs,
-                                     main_dqn.policy:action_prob
+                                     main_dqn.policy:action_prob,
+                                     main_dqn.nstep_minus_prob: nstep_minus_prob
                                      })
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):

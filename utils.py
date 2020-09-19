@@ -443,11 +443,15 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
             episode_weights.append(generated_weights)
-            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+            # n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+            #                                                                                                      args.gamma)
+            n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_all_n_step_target_q(idxes,
+                                                                                                                 args.dqfd_n_step,
                                                                                                                  args.gamma)
+
             loss, loss_dq, loss_dq_n, loss_jeq, loss_l2, mask = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
-                                                       expert_idxes, n_step_rewards,n_step_states, last_step_gamma, not_terminal,
+                                                       expert_idxes, n_step_rewards,n_step_states, n_step_actions, last_step_gamma, not_terminal,
                                                        MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
             episode_mask_mean.append(np.mean(mask))
             episode_dq_loss.append(loss_dq)

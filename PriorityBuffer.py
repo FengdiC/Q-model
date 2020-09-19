@@ -340,7 +340,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,agent_history_length=4, agent="dqn"):
+    def __init__(self, size, alpha,agent_history_length=4, agent="dqn", batch_size=64):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -355,7 +355,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, batch_size=batch_size)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent
@@ -548,8 +548,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         not_terminal = np.ones((idxes.shape[0], num_steps), dtype=np.int32)
         last_step_gamma = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
         n_step_rewards = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
-        n_step_state = np.zeros_like(self.states, num_steps)
-        
+        n_step_state = np.zeros([self.states.shape[0], num_steps] + list(self.states.shape[1:]))
+        n_step_actions = np.zeros([self.states.shape[0], num_steps] + list(self.actions.shape[1:]))
         for i in range(idxes.shape[0]):
             idx = idxes[i]
             n_step_idx = min(self.count-1, idx + num_steps)
@@ -557,27 +557,31 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_idx = self.expert_idx - 1
             if n_step_idx >= self._next_idx and idx  < self._next_idx:
                 n_step_idx = self._next_idx - 1
-            # if np.sum(self.terminal_flags[idx:n_step_idx]) > 0:
+            if np.sum(self.terminal_flags[idx:n_step_idx]) > 0:
+                for j in range(num_steps):
+                    if self.terminal_flags[idx + j]:
+                        n_step_idx = idx + j
+                        break
             #     n_step_idx = idx + np.argmax(self.terminal_flags[idx:n_step_idx])
             #     not_terminal[i] = 0
             accum_gamma = 1
-            for j in range(idx, n_step_idx):
-                n_step_rewards[i, n_step_idx - 1] += accum_gamma * self.rewards[j]
+            n_range = n_step_idx - idx
+            for j in range(n_range):
+                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[j]
                 last_step_gamma[i, j] = gamma
                 accum_gamma *= gamma
-                n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_step_idx - 1])
-                not_terminal[i, j] = self.terminal_flags[idx + j]
-                n_step_state[i, j] = np.copy(self._get_state(n_step_idx))
-            
-            for j in range(n_step_idx, num_steps)
-                not_terminal[i, j] = not_terminal[i, n_step_idx - 1]
-                last_step_gamma[i, j] = last_step_gamma[i, n_step_idx - 1]
-                n_step_rewards[i, j] = n_step_rewards[i, n_step_idx - 1]
-                n_step_state[i, j] = n_step_state[i, n_step_idx - 1]
+                n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
+                not_terminal[i, j] = 1 - self.terminal_flags[idx + j]
+                n_step_state[i, j] = np.copy(self._get_state(idx + j))
+                n_step_actions[i, j] = np.copy(self.actions[idx + j])
 
-            #last_step_gamma[i] = accum_gamma
-            #n_step_state[i] = self._get_state(n_step_idx)
-        return n_step_rewards, np.transpose(n_step_state, axes=(0, 1, 3, 4, 2)), last_step_gamma, not_terminal
+            for j in range(n_range, num_steps):
+                not_terminal[i, j] = not_terminal[i, n_range - 1]
+                last_step_gamma[i, j] = last_step_gamma[i, n_range - 1]
+                n_step_rewards[i, j] = n_step_rewards[i, n_range - 1]
+                n_step_state[i, j] = n_step_state[i, n_range - 1]
+                n_step_actions[i, j] = n_step_actions[i, n_range - 1]
+        return n_step_rewards, np.transpose(n_step_state, axes=(0, 1, 3, 4, 2)), n_step_actions,last_step_gamma, not_terminal
         #return None, None, None, None
 
 
