@@ -378,13 +378,16 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
+    n_step_states = np.concatenate(n_step_states, axis=0)
+    n_step_actions = np.concatenate(n_step_actions, axis=0)
+    all_prob = session.run(main_dqn.prob,
+                       feed_dict={main_dqn.input: n_step_states, main_dqn.action: n_step_actions})
+
     nstep_minus_prob = []
-    for i in range(n_step_actions.shape[1]):
-        prob = session.run(main_dqn.prob, feed_dict={main_dqn.input: n_step_states[:, i], main_dqn.action:n_step_actions[:, i]})
+    for i in range(n_step_rewards.shape[1]):
+        prob = all_prob[i * batch_size:(i + 1) * batch_size]
         nstep_minus_prob.append(1 - prob)
     nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
-
-
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
