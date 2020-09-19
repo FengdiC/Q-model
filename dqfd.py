@@ -214,16 +214,14 @@ class DQN:
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
-        elif decay == 'f':
-          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
-        self.policy = self.expert_state*self.ratio_expert + (1-self.expert_state)
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.expert_state*self.policy,
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                       reduction=tf.losses.Reduction.NONE)
+
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -233,7 +231,6 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
-
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
@@ -241,14 +238,11 @@ class DQN:
     def expert_loss(self, t_vars, decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
-        #       'f' means forth order beta^2(t^3/3+5t^2/2+37t/6)/(t+2)^2(t+3)^2
         # here set beta = 3
         if decay =='t':
           ratio = 1/(3+self.diff)
         elif decay =='s':
           ratio = (9+4*self.diff)/tf.square(3+self.diff)
-        elif decay == 'f':
-          ratio = 9*(self.diff*tf.square(self.diff)/3.0+5*tf.square(self.diff)/2.0+37*self.diff/6.0)/(tf.square(self.diff+2)*tf.square(self.diff+3))
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
