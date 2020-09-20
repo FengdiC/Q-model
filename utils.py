@@ -72,7 +72,6 @@ def argsparser():
     parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
-    parser.add_argument('--n_step_prob_modifier', type=float, help='Lambda 1 for expert', default=1)
     parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
 
 
