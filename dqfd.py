@@ -222,9 +222,9 @@ class DQN:
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                     reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                       reduction=tf.losses.Reduction.NONE)
-
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -256,8 +256,7 @@ class DQN:
         self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
         l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
-        # l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight*self.policy,
-        #                               reduction=tf.losses.Reduction.NONE)
+
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -379,16 +378,24 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
-    n_step_states = np.concatenate(n_step_states, axis=0)
-    n_step_actions = np.concatenate(n_step_actions, axis=0)
-    all_prob = session.run(main_dqn.prob,
-                       feed_dict={main_dqn.input: n_step_states, main_dqn.action: n_step_actions})
-
-    nstep_minus_prob = []
-    for i in range(n_step_rewards.shape[1]):
-        prob = all_prob[i * batch_size:(i + 1) * batch_size]
-        nstep_minus_prob.append(1 - prob)
-    nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
+    
+    n_step_prob = np.zeros(batch_size)
+    if np.sum(expert_idxes)>0:
+      idx = np.nonzero(expert_idxes)
+      # print("expert input size: ",n_step_states[idx].shape)
+      n_step_states = np.concatenate(n_step_states[idx], axis=0)
+      n_step_actions = np.concatenate(n_step_actions[idx], axis=0)
+      all_prob = session.run(main_dqn.prob,
+                         feed_dict={main_dqn.input: n_step_states, main_dqn.action: n_step_actions})
+  
+      nstep_minus_prob = []
+      BS = n_step_actions[idx].shape[0]
+      # print("check batch size: ",BS)
+      for i in range(n_step_rewards.shape[1]):
+          prob = all_prob[i * BS:(i + 1) * BS]
+          nstep_minus_prob.append(1 - prob)
+      nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
+      n_step_prob[idx] = nstep_minus_prob
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
@@ -399,7 +406,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      main_dqn.weight:weights,
                                      main_dqn.diff: diffs,
                                      main_dqn.policy:action_prob,
-                                     main_dqn.nstep_minus_prob: nstep_minus_prob
+                                     main_dqn.nstep_minus_prob: n_step_prob
                                      })
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
