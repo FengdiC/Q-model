@@ -50,6 +50,7 @@ class DQN:
                                   dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None,],dtype=tf.float32)
         self.policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
+        self.n_policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = (self.input - 127.5) / 127.5
@@ -223,7 +224,7 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
                                     reduction=tf.losses.Reduction.NONE)
         self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy*self.ratio_expert,
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy*self.ratio_expert,
                                       reduction=tf.losses.Reduction.NONE)
         l2_reg_loss = 0
         for v in t_vars:
@@ -232,7 +233,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state/(self.target_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -243,9 +244,9 @@ class DQN:
         #       's' means beta^2+t/(beta+t)^2
         # here set beta = 3
         if decay =='t':
-          ratio = 1/(3+self.diff)
+          ratio = 1/(4+self.diff)
         elif decay =='s':
-          ratio = (9+4*self.diff)/tf.square(3+self.diff)
+          ratio = (16+4*self.diff)/tf.square(4+self.diff)
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
         
@@ -253,8 +254,8 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
+        self.n_posterior = self.target_n_q +0.1*self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -264,7 +265,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = 0.4*self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -380,6 +381,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_jeq = l_jeq
     
     n_step_prob = np.zeros(batch_size)
+    n_policy = np.zeros(batch_size)
     if np.sum(expert_idxes)>0:
       idx = np.nonzero(expert_idxes)
       # print("expert input size: ",n_step_states[idx].shape)
@@ -394,8 +396,12 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
       for i in range(n_step_rewards.shape[1]):
           prob = all_prob[i * BS:(i + 1) * BS]
           nstep_minus_prob.append(1 - prob)
+      nstep_policy = (np.prod(np.array(nstep_minus_prob),axis=0))**args.power
       nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
       n_step_prob[idx] = nstep_minus_prob
+      n_policy[idx] = nstep_policy
+      # if np.sum(expert_idxes)>1 and np.sum(expert_idxes)<30:
+      #  print("check n step oof policy ratio: ",nstep_policy)
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
@@ -406,6 +412,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      main_dqn.weight:weights,
                                      main_dqn.diff: diffs,
                                      main_dqn.policy:action_prob,
+                                     main_dqn.n_policy:n_policy,
                                      main_dqn.nstep_minus_prob: n_step_prob
                                      })
     # print(loss, q_val.shape, q_values.shape)
@@ -468,7 +475,7 @@ def train( priority=True):
         print("No Expert Data ... ")
         
     ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power
-        
+    #ratio_expert=0.01
     with tf.variable_scope('mainDQN'):
         MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward,ratio_expert=ratio_expert)
     with tf.variable_scope('targetDQN'):
