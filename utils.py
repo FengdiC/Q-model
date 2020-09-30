@@ -54,9 +54,9 @@ def argsparser():
 
     parser.add_argument('--alpha', type=float, help='Max Episode Length', default=0.6)
     parser.add_argument('--beta', type=float, help='Max Episode Length', default=0.4)
-    parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=2.3*9.5618)
-    parser.add_argument('--eta', type=float, help='Action prob coefficient', default=1.0)
-    parser.add_argument('--decay', type=str, help='Decay Computation of Variance of prior Q-values', default='t')
+    parser.add_argument('--var', type=float, help='Variance of prior Q-values', default=2.3*9.5618) #test 1, 3.5, 5.5, test large values
+    parser.add_argument('--eta', type=float, help='Action prob coefficient', default=3.0)
+    parser.add_argument('--decay', type=str, help='Decay Computation of Variance of prior Q-values', default='s')
     parser.add_argument('--power', type=float, help='Off policy correction power', default=0.2)
 
     parser.add_argument('--decay_rate', type=int, help='Max Episode Length', default=1000000)
@@ -443,11 +443,15 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
             episode_weights.append(generated_weights)
-            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+            # n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+            #                                                                                                      args.gamma)
+            n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_all_n_step_target_q(idxes,
+                                                                                                                 args.dqfd_n_step,
                                                                                                                  args.gamma)
+
             loss, loss_dq, loss_dq_n, loss_jeq, loss_l2, mask = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
-                                                       expert_idxes, n_step_rewards,n_step_states, last_step_gamma, not_terminal,
+                                                       expert_idxes, n_step_rewards,n_step_states, n_step_actions, last_step_gamma, not_terminal,
                                                        MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
             episode_mask_mean.append(np.mean(mask))
             episode_dq_loss.append(loss_dq)
