@@ -228,7 +228,7 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q + 0.1*self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
         l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
                                       reduction=tf.losses.Reduction.NONE)
 
@@ -239,7 +239,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = 0.1*self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = 0.4*self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -387,7 +387,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_jeq = l_jeq
     
     n_step_prob = np.zeros(batch_size)
-    n_policy = np.zeros(batch_size)
+    n_policy = np.ones(batch_size)
     if np.sum(expert_idxes)>0:
       idx = np.nonzero(expert_idxes)
       # print("expert input size: ",n_step_states[idx].shape)
@@ -404,8 +404,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
           prob = all_prob[i * BS:(i + 1) * BS]
           nstep_prob.append(prob)
           nstep_minus_prob.append((1 - prob)*gamma**i)
+      nstep_prob = np.array(nstep_prob)[-2:-1]
       maxx = np.ndarray.max(np.prod(np.array(nstep_prob),axis=0))
-      nstep_policy = (np.prod(np.array(nstep_prob),axis=0)/(maxx+0.001))**args.power
+      nstep_policy = (np.prod(np.array(nstep_prob),axis=0))**0.2
+      print(maxx,":::",nstep_policy[1],":::",action_prob[1])
       nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
       n_step_prob[idx] = nstep_minus_prob
       n_policy[idx] = nstep_policy
