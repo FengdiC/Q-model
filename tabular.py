@@ -26,20 +26,21 @@ def compute_regret(Q_value,grid,final_reward,gamma):
             P[i*grid+j,l*grid+r]=1
     for j in range(grid):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
-    R = np.flatten(R)
+    R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
-    return Q[0,pi[0,0]]
+    return Q[0+pi[0,0]]
 
 def eps_action(action,frame_number,grid):
-    if frame_number < grid*grid:
+    c = grid/2
+    if frame_number < 2**c:
         eps=1
-    elif frame_number<grid**3/2:
-        slope = -0.9/(grid**3/2-grid*grid)
-        intercept = 1-slope*grid*grid
+    elif frame_number<4**grid:
+        slope = -0.6/(4**grid-2**c)
+        intercept = 1-slope*2**c
         eps = slope*frame_number+intercept
     else:
-        slope = -0.1/(2**grid-grid**3/2)
-        intercept = 0.1-slope*grid**3/2
+        slope = -0.4/(6**grid-4**grid)
+        intercept = 0.4-slope*4**grid
         eps = slope * frame_number + intercept
     if np.random.uniform(0, 1) < eps:
         p = np.random.uniform(0,1)
@@ -50,11 +51,10 @@ def eps_action(action,frame_number,grid):
     return action
 
 
-def train( priority=True,grid=10):
+def train(grid=10,eps=True,seed =0 ):
     args = utils.argsparser()
-    name = args.agent
-    tf.random.set_random_seed(args.seed)
-    np.random.seed(args.seed)
+    tf.random.set_random_seed(seed)
+    np.random.seed(seed)
 
     horizon = grid
     MAX_FRAMES = 6**grid
@@ -66,7 +66,6 @@ def train( priority=True,grid=10):
     print("True value for initial state: ",V)
 
     # Q-value storage
-    print("Agent: ", name)
     Q_value = np.zeros((grid,grid,2))
     update_count = np.zeros((grid,grid,2))
     init = tf.global_variables_initializer()
@@ -75,11 +74,12 @@ def train( priority=True,grid=10):
 
     eps_number = 0
     frame_number = 0
+    regret = []
     sess = tf.Session(config=config)
     sess.run(init)
 
     tflogger = tensorflowboard_logger(
-        "./" + args.log_dir + "/" + "tabular"+"/"+"grid" + "_" + str(grid) + "_seed_" + str(args.seed),
+        "./" + args.log_dir + "/" + "tabular"+"/"+"grid" + "_" + str(grid) + "_seed_" + str(seed),
         sess, args)
 
     while frame_number < MAX_FRAMES:
@@ -94,7 +94,8 @@ def train( priority=True,grid=10):
             Q = Q_value[state[0], state[1], :]
             action = int(np.argmax(Q))
             #epsilon-greedy action
-            #action = eps_action(action,frame_number,grid)
+            if eps:
+                action = eps_action(action,frame_number,grid)
             traj[count,2] = action
             if action == 0:
                 state[0] = state[0] + 1
@@ -122,7 +123,7 @@ def train( priority=True,grid=10):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
-            return frame_number
+            return frame_number,regret
         traj[count,0] = state[0]; traj[count,1]=state[1];
         frame_number += episode_length
         eps_number += 1
@@ -141,21 +142,22 @@ def train( priority=True,grid=10):
             reward = traj[i,3]
             # print("state size: ",state.shape)
             update_count[state[0],state[1],action] +=1
-            if state[0]==state[1]:
+            if state[0]==state[1] and not eps:
                 # plus expert correction loss
                 t = int(update_count[state[0],state[1],action])
-                var = beta**2 *(t**3/3.0+5*t**2/2.0+37*t/6.0)/((t+2)**2*(t+3)**2)
+                var = (beta**2 +4*t)/(t+3)**2
                 Q = Q_value[state[0], state[1], :]
                 prob = softmax(eta*Q)
                 expert_correction = eta*var*(action-prob[action])
                 target_q = reward + gamma * np.max(Q_value[next_state[0], next_state[1]]) + expert_correction
-                alpha = beta / (beta + update_count[state[0], state[1], action])
+                alpha = 1.0 / (beta + update_count[state[0], state[1], action])
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
             else:
                 target_q = reward+gamma*np.max(Q_value[next_state[0],next_state[1]])
                 alpha = beta/(beta+update_count[state[0],state[1],action])
                 Q_value[state[0],state[1],action] = (1-alpha) * Q_value[state[0],state[1],action] + alpha * target_q
 
+        # regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
         tflogger.log_scalar("Episode/Reward", episode_reward_sum, frame_number)
         tflogger.log_scalar("Episode/Exploration", var, frame_number)
         tflogger.log_scalar("Q_value of initial state", Q_value[0,0,1],frame_number)
@@ -187,11 +189,49 @@ def train( priority=True,grid=10):
                 if terminal:
                     eval_reward = reward
             tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+    return -1,[]
 
 import matplotlib.pyplot as plt
-list = []
-for grid in range(5,129):
-    num = train(grid = grid)
-    list.append(num)
-plt.plot(range(5,129),list)
+N = 18
+M = 131
+num_seed = 5
+eps = np.zeros((N-5,num_seed))
+expert_frame = []
+exponential = []
+for grid in range(5,15):
+    exponential.append(2 ** grid)
+for seed in range(num_seed):
+    eps_frame = []
+    for grid in range(5,N):
+        eps_num,eps_reg = train(grid = grid,eps=True,seed=seed)
+        eps_frame.append(eps_num/grid)
+
+    eps[:,seed] = np.array(eps_frame)
+
+for grid in range(5,M):
+    num, reg = train(grid=grid, eps=False,seed=seed)
+    expert_frame.append(num/grid)
+exponential = np.array(exponential)
+eps_frame = np.mean(eps,axis=1)
+eps_err = np.std(eps,axis=1)
+expert_frame = np.array(expert_frame)
+
+plt.plot(range(5,15), exponential,label='dithering')
+plt.plot(range(5,N),eps_frame,label='epsilon_greedy')
+plt.plot(range(5,M),expert_frame,label='expert')
+plt.legend()
 plt.savefig('toy_explor')
+plt.close()
+
+# num_seed=3
+# for seed in range(num_seed):
+#     grid = 10
+#     _, eps_reg = train(grid = grid,eps=True,seed=seed)
+#     plt.plot(range(len(eps_reg)), eps_reg, label='epsilon_greedy_'+str(seed))
+#
+# _, reg = train(grid=grid, eps=False,seed=seed)
+#
+# plt.plot(range(len(reg)),reg,label='expert')
+# # plt.plot(range(len(reg)),range(40,40+len(reg)),label='linear')
+# plt.legend()
+# plt.savefig("toy_regret")
