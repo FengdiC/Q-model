@@ -538,6 +538,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
+        #print(idxes - 1)
         return np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, selected_diffs,\
                selected_rewards, np.transpose(self.new_states, axes=(0, 2, 3, 1)), selected_terminal, \
                weights, idxes, expert_idxes
@@ -573,7 +574,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
                 not_terminal[i, j] = 1 - self.terminal_flags[idx + j]
                 n_step_state[i, j] = np.copy(self._get_state(idx + j))
-                n_step_actions[i, j] = np.copy(self.actions[idx + j])
+                n_step_actions[i, j] = np.copy(self.actions[idx + j + 1])
 
             for j in range(n_range, num_steps):
                 not_terminal[i, j] = not_terminal[i, n_range - 1]

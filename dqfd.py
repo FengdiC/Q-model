@@ -356,10 +356,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     double_q = q_vals[range(batch_size), arg_q_max]
 
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
-    action_prob = prob[range(batch_size), actions]
+    basic_action_prob = prob[range(batch_size), actions]
 
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
-    action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
+    action_prob = mask * basic_action_prob + (1-mask) * np.ones((batch_size,))
     action_prob = action_prob ** args.power
 
 
@@ -385,32 +385,60 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_dq = l_dq
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
-    
-    n_step_prob = np.zeros(batch_size)
+
+    n_step_prob = np.zeros((batch_size, ))
     n_policy = np.ones(batch_size)
     if np.sum(expert_idxes)>0:
-      idx = np.nonzero(expert_idxes)
+      idx = np.nonzero(expert_idxes)[0]
       # print("expert input size: ",n_step_states[idx].shape)
-      n_step_states = np.concatenate(n_step_states[idx], axis=0)
-      n_step_actions = np.concatenate(n_step_actions[idx], axis=0)
-      all_prob = session.run(main_dqn.prob,
-                         feed_dict={main_dqn.input: n_step_states, main_dqn.action: n_step_actions})
-  
-      nstep_minus_prob = []
-      nstep_prob = []
-      BS = n_step_actions[idx].shape[0]
-      # print("check batch size: ",BS)
-      for i in range(n_step_rewards.shape[1]):
-          prob = all_prob[i * BS:(i + 1) * BS]
-          nstep_prob.append(prob)
-          nstep_minus_prob.append((1 - prob)*gamma**i)
-      nstep_prob = np.array(nstep_prob)[-2:-1]
-      maxx = np.ndarray.max(np.prod(np.array(nstep_prob),axis=0))
-      nstep_policy = (np.prod(np.array(nstep_prob),axis=0))**0.2
-      print(maxx,":::",nstep_policy[1],":::",action_prob[1])
-      nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
-      n_step_prob[idx] = nstep_minus_prob
-      n_policy[idx] = nstep_policy
+      n_state_list = []
+      n_action_list = []
+      n_expert_idxes = []
+      for i in range(batch_size):
+          for j in range(n_step_states.shape[1]):
+            n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+            n_action_list.append(n_step_actions[i, j])
+            n_expert_idxes.append(idx[i])
+      n_step_states = np.concatenate(n_state_list, axis=0)
+      n_step_actions = np.array(n_action_list)
+      n_expert_idxes = np.array(n_expert_idxes)
+
+      all_prob = session.run(target_dqn.prob,
+                         feed_dict={target_dqn.input: n_step_states[n_expert_idxes], target_dqn.action: n_step_actions[n_expert_idxes]})
+
+      n_policy_expert = []
+      n_step_prob_expert = []
+      for i in range(all_prob.shape[0]//args.dqfd_n_step):
+          #should be a dataset of expert by n_actions
+          prob = all_prob[i * args.dqfd_n_step:(i + 1) * args.dqfd_n_step]
+          n_policy_expert.append(prob)
+          n_step_prob_expert.append(np.sum((1 - prob) * gamma ** i))
+      n_step_prob[idx] = np.array(n_step_prob_expert)
+      n_policy_expert = (np.prod(np.array(n_policy_expert), axis=1)) ** 0.2
+      n_policy[idx] = n_policy_expert
+
+
+      # nstep_minus_prob = []
+      # nstep_prob = []
+      # BS = n_step_actions[idx].shape[0]
+      # # print("check batch size: ",BS)
+      # for i in range(n_step_rewards.shape[1]):
+      #     prob = all_prob[i * BS:(i + 1) * BS]
+      #     nstep_prob.append(prob)
+      #     nstep_minus_prob.append((1 - prob)*gamma**i)
+      #
+      # nstep_prob = np.array(nstep_prob)[0:1]
+      # maxx = np.ndarray.max(np.prod(np.array(nstep_prob),axis=0))
+      # nstep_policy = (np.prod(np.array(nstep_prob),axis=0))**0.2
+      # print(maxx,":::",nstep_policy[0],":::",action_prob[0])
+      # quit()
+      # nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
+      #
+      # n_step_prob[idx] = nstep_minus_prob
+      # n_policy[idx] = nstep_policy
+
+
+      
       # if np.sum(expert_idxes)>1 and np.sum(expert_idxes)<30:
       #  print("check n step oof policy ratio: ",nstep_policy)
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
