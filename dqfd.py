@@ -260,8 +260,8 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
+        self.n_posterior = self.target_n_q #+self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -386,36 +386,61 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
 
-    n_step_prob = np.zeros((batch_size, ))
-    n_policy = np.ones(batch_size)
-    if np.sum(expert_idxes)>0:
-      idx = np.nonzero(expert_idxes)[0]
-      # print("expert input size: ",n_step_states[idx].shape)
-      n_state_list = []
-      n_action_list = []
-      n_expert_idxes = []
-      for i in range(batch_size):
-          for j in range(n_step_states.shape[1]):
-            n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
-            n_action_list.append(n_step_actions[i, j])
-            n_expert_idxes.append(idx[i])
-      n_step_states = np.concatenate(n_state_list, axis=0)
-      n_step_actions = np.array(n_action_list)
-      n_expert_idxes = np.array(n_expert_idxes)
-
-      all_prob = session.run(target_dqn.prob,
-                         feed_dict={target_dqn.input: n_step_states[n_expert_idxes], target_dqn.action: n_step_actions[n_expert_idxes]})
-
-      n_policy_expert = []
-      n_step_prob_expert = []
-      for i in range(all_prob.shape[0]//args.dqfd_n_step):
-          #should be a dataset of expert by n_actions
-          prob = all_prob[i * args.dqfd_n_step:(i + 1) * args.dqfd_n_step]
-          n_policy_expert.append(prob)
-          n_step_prob_expert.append(np.sum((1 - prob) * gamma ** i))
-      n_step_prob[idx] = np.array(n_step_prob_expert)
-      n_policy_expert = (np.prod(np.array(n_policy_expert), axis=1)) ** 0.2
-      n_policy[idx] = n_policy_expert
+    # n_step_prob = np.zeros((batch_size, ))
+    # n_policy = np.ones(batch_size)
+    # if np.sum(expert_idxes)>0:
+    #   idx = np.nonzero(expert_idxes)[0]
+    #   # print("expert input size: ",n_step_states[idx].shape)
+    #   n_state_list = []
+    #   n_action_list = []
+    #   n_expert_idxes = []
+    #   for i in range(batch_size):
+    #       for j in range(n_step_states.shape[1]):
+    #         n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+    #         n_action_list.append(n_step_actions[i, j])
+    #         n_expert_idxes.append(idx[i])
+    #   n_step_states = np.concatenate(n_state_list, axis=0)
+    #   n_step_actions = np.array(n_action_list)
+    #   n_expert_idxes = np.array(n_expert_idxes)
+    #
+    #   all_prob = session.run(target_dqn.prob,
+    #                      feed_dict={target_dqn.input: n_step_states[n_expert_idxes], target_dqn.action: n_step_actions[n_expert_idxes]})
+    #
+    #   n_policy_expert = []
+    #   n_step_prob_expert = []
+    #   for i in range(all_prob.shape[0]//args.dqfd_n_step):
+    #       #should be a dataset of expert by n_actions
+    #       prob = all_prob[i * args.dqfd_n_step:(i + 1) * args.dqfd_n_step]
+    #       n_policy_expert.append(prob)
+    #       n_step_prob_expert.append(np.sum((1 - prob) * gamma ** i))
+    #   n_step_prob[idx] = np.array(n_step_prob_expert)
+    #   n_policy_expert = (np.prod(np.array(n_policy_expert), axis=1)) ** 0.2
+    #   n_policy[idx] = n_policy_expert
+    #   loss_sample, l_dq, l_n_dq, l_jeq, l_l2, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+    #                                                            main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+    #                                                           feed_dict={main_dqn.input: states,
+    #                                                                      main_dqn.target_q: target_q,
+    #                                                                      main_dqn.action: actions,
+    #                                                                      main_dqn.target_n_q: target_n_q,
+    #                                                                      main_dqn.expert_state: expert_idxes,
+    #                                                                      main_dqn.weight: weights,
+    #                                                                      main_dqn.diff: diffs,
+    #                                                                      main_dqn.policy: action_prob,
+    #                                                                      main_dqn.n_policy: n_policy,
+    #                                                                      main_dqn.nstep_minus_prob: n_step_prob
+    #                                                                      })
+    loss_sample, l_dq, l_n_dq, l_jeq, l_l2, _ = session.run(
+        [main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+         main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+        feed_dict={main_dqn.input: states,
+                   main_dqn.target_q: target_q,
+                   main_dqn.action: actions,
+                   main_dqn.target_n_q: target_n_q,
+                   main_dqn.expert_state: expert_idxes,
+                   main_dqn.weight: weights,
+                   main_dqn.diff: diffs,
+                   main_dqn.policy: action_prob
+                   })
 
 
       # nstep_minus_prob = []
@@ -438,22 +463,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
       # n_policy[idx] = nstep_policy
 
 
-      
+
       # if np.sum(expert_idxes)>1 and np.sum(expert_idxes)<30:
       #  print("check n step oof policy ratio: ",nstep_policy)
-    loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
-                                                main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
-                          feed_dict={main_dqn.input:states,
-                                     main_dqn.target_q:target_q,
-                                     main_dqn.action:actions,
-                                     main_dqn.target_n_q:target_n_q,
-                                     main_dqn.expert_state:expert_idxes,
-                                     main_dqn.weight:weights,
-                                     main_dqn.diff: diffs,
-                                     main_dqn.policy:action_prob,
-                                     main_dqn.n_policy:n_policy,
-                                     main_dqn.nstep_minus_prob: n_step_prob
-                                     })
+
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
     #     if loss[i] > 5:
