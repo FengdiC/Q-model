@@ -228,7 +228,7 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state
         l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
                                       reduction=tf.losses.Reduction.NONE)
 
@@ -239,7 +239,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = 0.4*self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state/(self.target_n_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -260,8 +260,8 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * (1-self.prob) * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -271,7 +271,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_n_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -393,54 +393,30 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
       # print("expert input size: ",n_step_states[idx].shape)
       n_state_list = []
       n_action_list = []
-      n_expert_idxes = []
-      for i in range(batch_size):
+      for i in idx:
           for j in range(n_step_states.shape[1]):
             n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
             n_action_list.append(n_step_actions[i, j])
-            n_expert_idxes.append(idx[i])
       n_step_states = np.concatenate(n_state_list, axis=0)
       n_step_actions = np.array(n_action_list)
-      n_expert_idxes = np.array(n_expert_idxes)
 
       all_prob = session.run(target_dqn.prob,
-                         feed_dict={target_dqn.input: n_step_states[n_expert_idxes], target_dqn.action: n_step_actions[n_expert_idxes]})
+                         feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
 
       n_policy_expert = []
       n_step_prob_expert = []
+      gamma_weight = np.array([gamma**i for i in range(args.dqfd_n_step)])
       for i in range(all_prob.shape[0]//args.dqfd_n_step):
           #should be a dataset of expert by n_actions
-          prob = all_prob[i * args.dqfd_n_step:(i + 1) * args.dqfd_n_step]
+          prob = all_prob[i * args.dqfd_n_step:(i ) * args.dqfd_n_step+3]
           n_policy_expert.append(prob)
-          n_step_prob_expert.append(np.sum((1 - prob) * gamma ** i))
+          n_step_prob_expert.append(np.sum((1 - prob[1:3])*gamma_weight[1:3]))
       n_step_prob[idx] = np.array(n_step_prob_expert)
-      n_policy_expert = (np.prod(np.array(n_policy_expert), axis=1)) ** 0.2
+      n_policy_expert = np.array(n_policy_expert)[:,0:3]
+      maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+      n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
       n_policy[idx] = n_policy_expert
-
-
-      # nstep_minus_prob = []
-      # nstep_prob = []
-      # BS = n_step_actions[idx].shape[0]
-      # # print("check batch size: ",BS)
-      # for i in range(n_step_rewards.shape[1]):
-      #     prob = all_prob[i * BS:(i + 1) * BS]
-      #     nstep_prob.append(prob)
-      #     nstep_minus_prob.append((1 - prob)*gamma**i)
-      #
-      # nstep_prob = np.array(nstep_prob)[0:1]
-      # maxx = np.ndarray.max(np.prod(np.array(nstep_prob),axis=0))
-      # nstep_policy = (np.prod(np.array(nstep_prob),axis=0))**0.2
-      # print(maxx,":::",nstep_policy[0],":::",action_prob[0])
-      # quit()
-      # nstep_minus_prob = np.sum(np.array(nstep_minus_prob), axis=0)
-      #
-      # n_step_prob[idx] = nstep_minus_prob
-      # n_policy[idx] = nstep_policy
-
-
-      
-      # if np.sum(expert_idxes)>1 and np.sum(expert_idxes)<30:
-      #  print("check n step oof policy ratio: ",nstep_policy)
+      # print(maxx,":::",n_policy[0],":::",action_prob[0])
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
