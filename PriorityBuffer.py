@@ -328,7 +328,7 @@ class ReplayBuffer(object):
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
 
-        if self.state_shape == 2:
+        if len(self.state_shape) == 2:
             states = np.transpose(self.states, axes=(0, 2, 3, 1))
             new_states = np.transpose(self.new_states, axes=(0, 2, 3, 1))
         else:
@@ -538,7 +538,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         # self.new_states = (self.new_states - 127.5)/127.5
         #print(idxes - 1)
 
-        if self.state_shape == 2:
+        if len(self.state_shape) == 2:
             states = np.transpose(self.states, axes=(0, 2, 3, 1))
             new_states = np.transpose(self.new_states, axes=(0, 2, 3, 1))
         else:
