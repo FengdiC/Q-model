@@ -574,9 +574,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             accum_gamma = 1
             n_range = n_step_idx - idx
             for j in range(n_range):
-                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[j]
-                last_step_gamma[i, j] = gamma
                 accum_gamma *= gamma
+                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[j]
+                last_step_gamma[i, j] = accum_gamma
+
                 n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
                 not_terminal[i, j] = 1 - self.terminal_flags[idx + j]
                 n_step_state[i, j] = np.copy(self._get_state(idx + j))
