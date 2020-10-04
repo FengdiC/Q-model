@@ -340,7 +340,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=64):
+    def __init__(self, size, alpha, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=32):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
