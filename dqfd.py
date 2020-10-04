@@ -260,8 +260,8 @@ class DQN:
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * (1-self.prob) * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -271,7 +271,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_n_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *self.nstep_minus_prob/(self.target_n_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -374,6 +374,11 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input: n_step_states[:, -1],
+                                                          target_dqn.action: n_step_actions[:,-1]})
+    n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
+    n_policy = n_policy**args.power
+    n_minus_prob = prob
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
@@ -386,37 +391,37 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # self.l_n_dq = l_n_dq
     # self.l_jeq = l_jeq
 
-    n_step_prob = np.zeros((batch_size, ))
-    n_policy = np.ones(batch_size)
-    if np.sum(expert_idxes)>0:
-      idx = np.nonzero(expert_idxes)[0]
-      # print("expert input size: ",n_step_states[idx].shape)
-      n_state_list = []
-      n_action_list = []
-      for i in idx:
-          for j in range(n_step_states.shape[1]):
-            n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
-            n_action_list.append(n_step_actions[i, j])
-      n_step_states = np.concatenate(n_state_list, axis=0)
-      n_step_actions = np.array(n_action_list)
-
-      all_prob = session.run(target_dqn.prob,
-                         feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
-
-      n_policy_expert = []
-      n_step_prob_expert = []
-      gamma_weight = np.array([gamma**i for i in range(args.dqfd_n_step)])
-      for i in range(all_prob.shape[0]//args.dqfd_n_step):
-          #should be a dataset of expert by n_actions
-          prob = all_prob[i * args.dqfd_n_step:(i ) * args.dqfd_n_step+3]
-          n_policy_expert.append(prob)
-          n_step_prob_expert.append(np.sum((1 - prob[1:3])*gamma_weight[1:3]))
-      n_step_prob[idx] = np.array(n_step_prob_expert)
-      n_policy_expert = np.array(n_policy_expert)[:,0:3]
-      maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
-      n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
-      n_policy[idx] = n_policy_expert
-      # print(maxx,":::",n_policy[0],":::",action_prob[0])
+    # n_step_prob = np.zeros((batch_size, ))
+    # n_policy = np.ones(batch_size)
+    # if np.sum(expert_idxes)>0:
+    #   idx = np.nonzero(expert_idxes)[0]
+    #   # print("expert input size: ",n_step_states[idx].shape)
+    #   n_state_list = []
+    #   n_action_list = []
+    #   for i in idx:
+    #       for j in range(n_step_states.shape[1]):
+    #         n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+    #         n_action_list.append(n_step_actions[i, j])
+    #   n_step_states = np.concatenate(n_state_list, axis=0)
+    #   n_step_actions = np.array(n_action_list)
+    #
+    #   all_prob = session.run(target_dqn.prob,
+    #                      feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
+    #
+    #   n_policy_expert = []
+    #   n_step_prob_expert = []
+    #   gamma_weight = np.array([gamma**i for i in range(args.dqfd_n_step)])
+    #   for i in range(all_prob.shape[0]//args.dqfd_n_step):
+    #       #should be a dataset of expert by n_actions
+    #       prob = all_prob[i * args.dqfd_n_step:(i ) * args.dqfd_n_step+3]
+    #       n_policy_expert.append(prob)
+    #       n_step_prob_expert.append(np.sum((1 - prob[1:3])*gamma_weight[1:3]))
+    #   n_step_prob[idx] = np.array(n_step_prob_expert)
+    #   n_policy_expert = np.array(n_policy_expert)[:,0:3]
+    #   maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+    #   n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
+    #   n_policy[idx] = n_policy_expert
+    #   # print(maxx,":::",n_policy[0],":::",action_prob[0])
     loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                 main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                           feed_dict={main_dqn.input:states,
@@ -428,7 +433,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                      main_dqn.diff: diffs,
                                      main_dqn.policy:action_prob,
                                      main_dqn.n_policy:n_policy,
-                                     main_dqn.nstep_minus_prob: n_step_prob
+                                     main_dqn.nstep_minus_prob: n_minus_prob
                                      })
     # print(loss, q_val.shape, q_values.shape)
     # for i in range(batch_size):
