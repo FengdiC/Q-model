@@ -544,7 +544,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         else:
             states = self.states
             new_states = self.new_states
-
+        # if np.sum(selected_rewards) > 0:
+        #     print(selected_rewards)
         return states, selected_actions, selected_diffs,\
                selected_rewards, new_states, selected_terminal, \
                weights, idxes, expert_idxes
@@ -575,7 +576,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             n_range = n_step_idx - idx
             for j in range(n_range):
                 accum_gamma *= gamma
-                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[j]
+                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[idx + j]
                 last_step_gamma[i, j] = accum_gamma
 
                 n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
@@ -589,6 +590,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_rewards[i, j] = n_step_rewards[i, n_range - 1]
                 n_step_state[i, j] = n_step_state[i, n_range - 1]
                 n_step_actions[i, j] = n_step_actions[i, n_range - 1]
+
         return n_step_rewards, np.transpose(n_step_state, axes=(0, 1, 3, 4, 2)), n_step_actions,last_step_gamma, not_terminal
         #return None, None, None, None
 
