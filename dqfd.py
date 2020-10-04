@@ -261,7 +261,7 @@ class DQN:
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
         l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
                                     reduction=tf.losses.Reduction.NONE)
-        self.n_posterior = self.target_n_q #+self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
         l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
 
