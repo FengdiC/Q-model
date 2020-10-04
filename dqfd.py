@@ -376,7 +376,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_n_q = n_step_rewards[:, -1] + (gamma*double_q * not_terminal[:, -1])
+    target_n_q = n_step_rewards[:, -1] + (last_step_gamma*double_q * not_terminal[:, -1])
     # Gradient descend step to update the parameters of the main network
     #print(np.max(rewards), np.min(rewards))
 
