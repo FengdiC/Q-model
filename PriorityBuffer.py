@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, agent="dqn", var =1.0, frame_height=84, frame_width=84,
+    def __init__(self, size, agent="dqn", var=1.0, state_shape=[84, 84],
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -154,26 +154,23 @@ class ReplayBuffer(object):
         self.var = var
         self.agent = agent
 
-        self.frame_height = frame_height
-        self.frame_width = frame_width
         self.agent_history_length = agent_history_length
         self.batch_size = batch_size
         self.max_reward = 1
         self.min_reward = 0
         self.count = 0
+        self.state_shape = state_shape
 
         # Pre-allocate memory
         self.actions = np.empty(self._maxsize, dtype=np.int32)
         self.diffs = np.empty(self._maxsize, dtype=np.float32)
         self.rewards = np.empty(self._maxsize, dtype=np.float32)
-        self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
+        self.frames = np.empty([self._maxsize] + self.state_shape, dtype=np.uint8)
         self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
 
         # Pre-allocate memory for the states and new_states in a minibatch
-        self.states = np.zeros((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
-                                ), dtype=np.float32)
-        self.new_states = np.zeros((self.batch_size, self.agent_history_length,self.frame_height, self.frame_width,
-                                    ), dtype=np.float32)
+        self.states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
+        self.new_states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
 
 
@@ -330,17 +327,20 @@ class ReplayBuffer(object):
             #else:
             self.states[i] = self._get_state(idx - 1)
             self.new_states[i] = self._get_state(idx)
-        # for i, idx in enumerate(idxes):
-        #     self.states[i] =  self._get_state(idx - 1)
-        #     self.new_states[i] = self._get_state(idx)
-        # self.states = (self.states - 127.5)/127.5
-        # self.new_states = (self.new_states - 127.5)/127.5
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions,selected_diffs, \
-               selected_rewards, np.transpose(self.new_states, axes=(0, 2, 3, 1)), selected_terminal
+
+        if len(self.state_shape) == 2:
+            states = np.transpose(self.states, axes=(0, 2, 3, 1))
+            new_states = np.transpose(self.new_states, axes=(0, 2, 3, 1))
+        else:
+            states = self.states
+            new_states = self.new_states
+
+        return states, selected_actions,selected_diffs, \
+               selected_rewards, new_states, selected_terminal
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha,agent_history_length=4, agent="dqn", batch_size=64):
+    def __init__(self, size, alpha, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=32):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -355,7 +355,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, batch_size=batch_size)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, state_shape=state_shape, batch_size=batch_size)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent
@@ -395,14 +395,12 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.actions = np.empty(self._maxsize, dtype=np.int32)
         self.diffs = np.empty(self._maxsize, dtype=np.float32)
         self.rewards = np.empty(self._maxsize, dtype=np.float32)
-        self.frames = np.empty((self._maxsize, self.frame_height, self.frame_width), dtype=np.uint8)
+        self.frames = np.empty([self._maxsize] + self.state_shape, dtype=np.uint8)
         self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
 
         # Pre-allocate memory for the states and new_states in a minibatch
-        self.states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
-                                ), dtype=np.float32)
-        self.new_states = np.zeros((self.batch_size, self.agent_history_length, self.frame_height, self.frame_width,
-                                    ), dtype=np.float32)
+        self.states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
+        self.new_states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
         
                 
@@ -539,8 +537,17 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
         #print(idxes - 1)
-        return np.transpose(self.states, axes=(0, 2, 3, 1)), selected_actions, selected_diffs,\
-               selected_rewards, np.transpose(self.new_states, axes=(0, 2, 3, 1)), selected_terminal, \
+
+        if len(self.state_shape) == 2:
+            states = np.transpose(self.states, axes=(0, 2, 3, 1))
+            new_states = np.transpose(self.new_states, axes=(0, 2, 3, 1))
+        else:
+            states = self.states
+            new_states = self.new_states
+        # if np.sum(selected_rewards) > 0:
+        #     print(selected_rewards)
+        return states, selected_actions, selected_diffs,\
+               selected_rewards, new_states, selected_terminal, \
                weights, idxes, expert_idxes
 
 
@@ -568,9 +575,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             accum_gamma = 1
             n_range = n_step_idx - idx
             for j in range(n_range):
-                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[j]
-                last_step_gamma[i, j] = gamma
                 accum_gamma *= gamma
+                n_step_rewards[i, n_range - 1] += accum_gamma * self.rewards[idx + j]
+                last_step_gamma[i, j] = accum_gamma
+
                 n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
                 not_terminal[i, j] = 1 - self.terminal_flags[idx + j]
                 n_step_state[i, j] = np.copy(self._get_state(idx + j))
@@ -582,6 +590,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_rewards[i, j] = n_step_rewards[i, n_range - 1]
                 n_step_state[i, j] = n_step_state[i, n_range - 1]
                 n_step_actions[i, j] = n_step_actions[i, n_range - 1]
+
         return n_step_rewards, np.transpose(n_step_state, axes=(0, 1, 3, 4, 2)), n_step_actions,last_step_gamma, not_terminal
         #return None, None, None, None
 

@@ -8,11 +8,12 @@ import utils
 import PriorityBuffer
 import pickle
 from tensorboard_logger import tensorflowboard_logger
+import math
 
 
 class DQN:
     """Implements a Deep Q Network"""
-    def __init__(self, args, n_actions=2, hidden=512, grid = 10,agent='dqfd', name="dqn"):
+    def __init__(self, args, n_actions=2, hidden=512, grid = 10, agent='dqfd', name="dqn"):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -28,34 +29,18 @@ class DQN:
         self.hidden = hidden
         self.grid = grid
 
-        self.input = tf.placeholder(shape=[None, self.grid*self.grid],dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid],dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None,],dtype=tf.float32)
         self.policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
-        #layers
-        self.layer1 = tf.layers.dense(inputs= self.input, units = hidden, activation=tf.nn.relu,
-                                      kernel_initializer=tf.variance_scaling_initializer(scale=2),name='fc1')
-        self.layer2 = tf.layers.dense(inputs=self.layer1, units=hidden, activation=tf.nn.relu,
-                                      kernel_initializer=tf.variance_scaling_initializer(scale=2), name='fc2')
-        self.dense = tf.layers.dense(inputs=self.layer2, units=hidden,
-                                   kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc3")
 
-        # Splitting into value and advantage stream
-        self.valuestream, self.advantagestream = tf.split(self.dense, 2, -1)
-        self.valuestream = tf.layers.flatten(self.valuestream)
-        self.advantagestream = tf.layers.flatten(self.advantagestream)
-        self.advantage = tf.layers.dense(
-          inputs=self.advantagestream, units=self.n_actions,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
-        self.value = tf.layers.dense(
-          inputs=self.valuestream, units=1,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
-
+        if agent == "bootstrap_dqn":
+            print("TBD")
+        else:
+            self.q_values = self.build_network(hidden)
         # Combining value and advantage into Q-values as described above
-        self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.action_prob = tf.nn.softmax(self.q_values)
         self.best_action = tf.argmax(self.q_values, 1)
-
         # The next lines perform the parameter update. This will be explained in detail later.
 
         # targetQ according to Bellman equation:
@@ -80,6 +65,34 @@ class DQN:
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
 
+    def build_bootstrap_networks(self, hidden):
+        print("TBD")
+
+    def build_network(self, hidden, index=0):
+        #layers
+        with tf.variable_scope('Q_network_' + str(index)):
+            layer1 = tf.layers.dense(inputs=self.input, units = hidden, activation=tf.nn.relu,
+                                        kernel_initializer=tf.variance_scaling_initializer(scale=2),name='fc1')
+            layer2 = tf.layers.dense(inputs=layer1, units=hidden, activation=tf.nn.relu,
+                                        kernel_initializer=tf.variance_scaling_initializer(scale=2), name='fc2')
+            dense = tf.layers.dense(inputs=layer2, units=hidden,
+                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc3")
+
+            # Splitting into value and advantage stream
+            valuestream, advantagestream = tf.split(dense, 2, -1)
+            valuestream = tf.layers.flatten(valuestream)
+            advantagestream = tf.layers.flatten(advantagestream)
+            advantage = tf.layers.dense(
+            inputs=advantagestream, units=self.n_actions,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+            value = tf.layers.dense(
+            inputs=valuestream, units=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+            q_values = value + tf.subtract(advantage, tf.reduce_mean(advantage, axis=1, keepdims=True))
+            return q_values
+
+
+
     def expert_loss(self, t_vars):
         self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                                axis=1)
@@ -98,13 +111,34 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = self.diff *(1-self.prob)/(self.target_q+0.001)
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss_per_sample = l_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
+    def dqfd_loss(self, t_vars):
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+        l_jeq = self.loss_jeq()
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = l_jeq
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss+ self.args.LAMBDA_2 * self.l_jeq)
+        return loss, loss_per_sample
+
+
     def dqn_loss(self,t_vars):
-        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
-        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
+        l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
         l2_reg_loss = 0
         for v in t_vars:
             if 'bias' not in v.name:
@@ -114,13 +148,13 @@ class DQN:
         self.l_n_dq = l_n_dq
         self.l_jeq = tf.constant(0)
 
-        loss_per_sample = l_dq + self.args.LAMBDA_1 * l_n_dq
+        loss_per_sample = l_dq
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
 
-def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states,
-          last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
+def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
+            weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, args):
     """
     Args:
         session: A tensorflow sesson object
@@ -135,13 +169,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     target Q-value that the prediction Q-value is regressed to.
     Then a parameter update is performed on the main DQN.
     """
+    states = np.squeeze(states)
+    new_states = np.squeeze(new_states)
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
 
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
     action_prob = prob[range(batch_size), actions]
-
 
     mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
     action_prob = mask * action_prob + (1-mask) * np.ones((batch_size,))
@@ -150,26 +185,94 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
 
-
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
-    double_q = q_vals[range(batch_size), arg_q_max]
-    target_n_q = n_step_rewards + (gamma*double_q * not_terminal)
-    loss_sample, l_dq, l_n_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+    # arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
+    # q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
+    # double_q = q_vals[range(batch_size), arg_q_max]
+    # target_n_q = n_step_rewards + (gamma*double_q * not_terminal)
+    loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
                                                 main_dqn.l_jeq, main_dqn.update],
                           feed_dict={main_dqn.input:states,
                                      main_dqn.target_q:target_q,
                                      main_dqn.action:actions,
-                                     main_dqn.target_n_q:target_n_q,
                                      main_dqn.expert_state:expert_idxes,
                                      main_dqn.weight:weights,
                                      main_dqn.diff: diffs,
                                      main_dqn.policy:action_prob
                                      })
-    return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq)
+    return loss_sample, np.mean(l_dq), np.mean(l_jeq)
 
+class toy_env:
+    def __init__(self, grid, final_reward=10, other_reward=-0.01, min_expert_frames=512):
+        self.grid = grid
+        self.final_reward = final_reward
+        self.other_reward = other_reward
+        self.generate_expert_data(min_expert_frames=min_expert_frames)
 
-def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length, state,
+    def reset(self):
+        self.current_state = 0
+        return self.get_current_state()
+
+    def get_current_state(self):
+        one_hot_state = np.zeros((self.grid, ), dtype=np.uint8)
+        one_hot_state[self.current_state] = 1
+        return one_hot_state
+
+    def step(self, action):
+        assert not (action != 0 and action != 1), "invalid action"
+        if action == 0:
+            self.current_state -= 1
+        else:
+            self.current_state += 1        
+        self.current_state = np.clip(self.current_state, 0, self.grid).astype(np.uint8)
+        if self.current_state == self.grid - 1:
+            terminal = 1
+            reward = self.final_reward
+        else:
+            terminal = 0
+            reward = self.other_reward
+        return self.get_current_state(), reward, terminal
+
+    def generate_expert_data(self, min_expert_frames=512, expert_ratio=4):
+        expert = {}
+        half_expert_traj = self.grid//expert_ratio
+        num_batches = math.ceil(min_expert_frames/half_expert_traj)
+        num_expert = num_batches * half_expert_traj
+        expert_frames = np.zeros((num_expert, self.grid), np.uint8)
+        rewards = -0.01 * np.ones((num_expert, ), dtype=np.float32)
+        terminals = np.zeros((num_expert,), np.uint8)
+        for i in range(num_batches):
+            for j in range(half_expert_traj):
+                expert_frames[i * half_expert_traj + j, j] = 1
+
+        expert['actions'] = np.ones((num_expert,), dtype=np.uint8)
+        expert['frames'] = expert_frames
+        expert['reward'] = rewards
+        expert['terminal'] = terminals
+        with open('expert_toy', 'wb') as fout:
+            pickle.dump(expert, fout)
+
+    def get_default_shape(self):
+        return [self.grid]
+
+def eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length,
+                    learn, action_getter,grid, pretrain=False):
+    episode_reward_sum = 0
+    episode_len = 0
+    eval_pos = []
+    next_frame = env.reset()
+    eval_pos.append(np.argmax(next_frame))
+    for _ in range(eps_length):
+        action = action_getter.get_action(sess, frame_num, next_frame, MAIN_DQN, evaluation=True)
+        next_frame, reward, terminal = env.step(action)
+        episode_reward_sum += reward
+        episode_len += 1
+        eval_pos.append(np.argmax(next_frame))
+        if terminal:
+            break
+    
+    return episode_reward_sum, episode_len, eval_pos
+
+def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length,
                     learn, action_getter,grid, pretrain=False):
     start_time = time.time()
     episode_reward_sum = 0
@@ -177,77 +280,44 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_bu
     episode_loss = []
 
     episode_dq_loss = []
-    episode_dq_n_loss = []
     episode_jeq_loss = []
 
     expert_ratio = []
 
-    NETW_UPDATE_FREQ = 2*grid        # Number of chosen actions between updating the target network.
+    NETW_UPDATE_FREQ = 2048        # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = 8
     terminal = False
-
+    frame = env.reset()
     for _ in range(eps_length):
         if not pretrain:
-            frame = np.zeros(grid * grid)
-            idx = int(state[0] * grid + state[1])
-            frame[idx] = 1
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN)
-            # print("Action: ",action)
-            if action==0:
-                state[0] = state[0]+1
-                state[1] = max(0, state[1]-1)
-                reward = 0
-                if state[0]>=grid-1:
-                    terminal = True
-            else:
-                state[0] = state[0]+1
-                state[1] = min(state[1]+1,grid-1)
-                if state[1] == grid-1:
-                    reward = 10
-                    terminal = True
-                elif state[0]>=grid-1:
-                    reward = 0
-                    terminal = True
-                else:
-                    reward = -0.01
-            frame_num += 1
-            episode_reward_sum += reward
-            episode_length += 1
-            next_frame = np.zeros(grid*grid)
-            next_frame[int(state[0]*grid+state[1])] = 1
-
+            next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
-            print(replay_buffer.count)
+            episode_length += 1
+            episode_reward_sum += reward
+            frame_num += 1
         else:
             frame_num += 1
-            if frame_num % 10 == 0:
-                print("Current Loss: ", frame_num, np.mean(episode_loss[-10:]), np.mean(episode_dq_loss[-10:]),
-                      np.mean(episode_dq_n_loss[-10:]), np.mean(episode_jeq_loss[-10:]))
 
         if frame_num % UPDATE_FREQ == 0 and frame_num>grid-1:
             if pretrain:
-                print("sample  data")
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain, random=True)  # Generated trajectories
-                print("done")
             else:
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
-            n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, 3,
-                                                                                                                 args.gamma)
-            loss, loss_dq, loss_dq_n, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
+
+            loss, loss_dq, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
-                                                       expert_idxes, n_step_rewards,n_step_states, last_step_gamma, not_terminal,
-                                                       MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
+                                                       expert_idxes, MAIN_DQN, TARGET_DQN, BS,DISCOUNT_FACTOR, args)
             episode_dq_loss.append(loss_dq)
-            episode_dq_n_loss.append(loss_dq_n)
             episode_jeq_loss.append(loss_jeq)
 
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
@@ -260,31 +330,32 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, replay_bu
                 network_updater.update_networks(sess)
         else:
             if frame_num % NETW_UPDATE_FREQ == 0 and frame_num > 0:
-                print("UPDATING Network ... ")
+                print("UPDATING Network ... ", frame_num)
                 network_updater.update_networks(sess)
             if terminal:
                 break
 
     return episode_reward_sum, episode_length, np.mean(episode_loss), np.mean(episode_dq_loss), \
-           np.mean(episode_dq_n_loss),np.mean(episode_jeq_loss), \
-           time.time() - start_time, np.mean(expert_ratio)
+           np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
 
-def train( priority=True,grid=128):
+
+def train(priority=True,grid=128):
     args = utils.argsparser()
     name = args.agent
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
 
-    MAX_EPISODE_LENGTH = grid  # Equivalent of 5 minutes of gameplay at 60 frames per second
+    MAX_EPISODE_LENGTH = grid 
     EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
 
-    REPLAY_MEMORY_START_SIZE = 32  # Number of completely random actions,
+    REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
     # before the agent starts learning
-    MAX_FRAMES = 3**(grid)  # Total number of frames the agent sees
-    MEMORY_SIZE = grid * grid +2 # Number of transitions stored in the replay memory
+    MAX_FRAMES = 50000000  # Total number of frames the agent sees
+    MEMORY_SIZE = 32 * 4000#grid * grid +2 # Number of transitions stored in the replay memory
     # evaluation episode
     HIDDEN = 512
     PRETRAIN = 8*grid
+    BS = 8
     # main DQN and target DQN networks:
     print("Agent: ", name)
     with tf.variable_scope('mainDQN'):
@@ -300,10 +371,10 @@ def train( priority=True,grid=128):
 
     if priority:
         print("Priority", grid, grid * grid)
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, grid=grid, agent_history_length=1, agent=name, batch_size=args.batch_size)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, state_shape=[grid], agent_history_length=1, agent=name, batch_size=BS)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE,grid=grid,agent_history_length=1, agent=name, batch_size=args.batch_size)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid],agent_history_length=1, agent=name, batch_size=BS)
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(2,
                                        replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -321,118 +392,65 @@ def train( priority=True,grid=128):
         "./" + args.log_dir + "/" + "toy"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
         sess, args)
 
-    expert = {}
-    states = np.zeros((grid,grid*grid))
-    for i in range(grid) :
-        states[i,i*grid+i]=1
-    rewards = -0.01 * np.ones(grid)
-    rewards[grid-1] = 10
-    terminals = np.zeros(grid)
-    terminals[grid-1] = 1
-    expert['frames'] = states
-    expert['reward'] = rewards
-    expert['actions'] = np.ones(grid)
-    expert['terminal'] = terminals
-    with open('expert_toy', 'wb') as fout:
-        pickle.dump(expert, fout)
-    my_replay_memory.load_expert_data('expert_toy')
+    env = toy_env(grid)
+    if not args.delete_expert:
+        my_replay_memory.load_expert_data('expert_toy')
 
-    state = np.zeros(2)
-
-    # Pretrain step ..
-    if PRETRAIN > 0:
-        print("Beginning to pretrain ... ")
-        train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater,my_replay_memory,  frame_number,
-            PRETRAIN, state, learn, action_getter, grid, pretrain=True)
-        print("done pretraining ,test prioritized buffer")
-        print("buffer expert size: ", my_replay_memory.expert_idx)
-        tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
-                                                                              my_replay_memory.expert_idx),
-                            frame_number)
-
-    if args.delete_expert:
-        print("Expert data deleted .... ")
-        my_replay_memory.delete_expert(MEMORY_SIZE)
     print("Agent: ", name)
-
     frame_num = 0
-
     print_iter = 25
     last_eval = 0
-    last_gif = 0
     initial_time = time.time()
-
+    print("Pretraining Eval ... ")
+    eval_rewards, eval_len, eval_pos = eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory,  frame_number,
+    MAX_EPISODE_LENGTH, learn, action_getter, grid, pretrain=False)
+    tflogger.log_scalar("Evaluation/Reward", eval_rewards, eps_number)
+    tflogger.log_scalar("Evaluation/Len", eval_len, eps_number)
+    # for i in range(len(eval_pos)):
+    #     print(i, eval_pos[i])
     while frame_number < MAX_FRAMES:
-        state = np.zeros(2)
-        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
-            sess, args, MAIN_DQN, TARGET_DQN, network_updater,my_replay_memory,  frame_number,
-            MAX_EPISODE_LENGTH, state, learn, action_getter, grid, pretrain=False)
+        eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
+            sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory,  frame_number,
+            MAX_EPISODE_LENGTH, learn, action_getter, grid, pretrain=False)
         frame_number += eps_len
         eps_number += 1
-        last_gif += 1
         last_eval += eps_len
-
 
         if eps_number % print_iter == 0:
             if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
                 tflogger.log_scalar("Expert Priorities",
                                     my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
-                                                                 my_replay_memory.expert_idx), frame_number)
+                                                                 my_replay_memory.expert_idx), eps_number)
                 tflogger.log_scalar("Total Priorities",
                                     my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
-                                                                 my_replay_memory.count - 1), frame_number)
-
-        tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
-        tflogger.log_scalar("Episode/Length", eps_len, frame_number)
-        tflogger.log_scalar("Episode/Loss/Total", eps_loss, frame_number)
-        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
+                                                                 my_replay_memory.count - 1), eps_number)
+        tflogger.log_scalar("Episode/Reward", eps_rw, eps_number)
+        tflogger.log_scalar("Episode/Length", eps_len, eps_number)
+        tflogger.log_scalar("Episode/Loss/Total", eps_loss, eps_number)
+        tflogger.log_scalar("Episode/Time", eps_time, eps_number)
         tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
-                            frame_number)
-        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
-        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
-        tflogger.log_scalar("Episode/Loss/DQ", eps_dq_loss, frame_number)
-        tflogger.log_scalar("Episode/Loss/DQ N-step", eps_dq_n_loss, frame_number)
-        tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, frame_number)
-        tflogger.log_scalar("Episode/Time", eps_time, frame_number)
+                            eps_number)
+        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
+        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
+        tflogger.log_scalar("Episode/Loss/DQ", eps_dq_loss, eps_number)
+        tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, eps_number)
+        tflogger.log_scalar("Episode/Time", eps_time, eps_number)
         tflogger.log_scalar("Episode/Reward/Reward Per Frame", eps_rw / max(1, eps_len),
-                            frame_number)
-        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
-        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+                            eps_number)
+        tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
+        tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
 
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
-        tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
-        tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
-        tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), frame_number)
+        tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, eps_number)
+        tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
+        tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
 
-        if EVAL_FREQUENCY <= last_eval:
-            last_eval = last_eval - EVAL_FREQUENCY
-            state = np.zeros(2)
-            for _ in range(MAX_EPISODE_LENGTH):
-                frame = np.zeros(grid * grid)
-                frame[state[0] * grid + state[1]] = 1
-                if args.stochastic_exploration == "True":
-                    action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
-                else:
-                    action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN)
-                # print("Action: ",action)
-                if action == 0:
-                    state[0] = state[0] + 1
-                    state[1] = np.max(0, state[1] - 1)
-                    reward = 0
-                    if state[0] == grid:
-                        terminal = True
-                else:
-                    state[0] = state[0] + 1
-                    state[1] = np.min(state[1] + 1, grid)
-                    if state[1] == grid:
-                        reward = 10
-                        terminal = True
-                    elif state[0] == grid:
-                        reward = 0
-                        terminal = True
-                    else:
-                        reward = -0.01
-                if terminal:
-                    eval_reward = reward
-            tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
-train(grid = 128)
+        eval_rewards, eval_len, eval_pos = eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory,  frame_number,
+        MAX_EPISODE_LENGTH, learn, action_getter, grid, pretrain=False)
+        tflogger.log_scalar("Evaluation/Reward", eval_rewards, eps_number)
+        tflogger.log_scalar("Evaluation/Len", eval_len, eps_number)
+        if eval_rewards > 0:
+            return eps_number
+    return -1
+
+print(train(grid = 256))
