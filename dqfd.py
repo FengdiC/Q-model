@@ -259,11 +259,10 @@ class DQN:
                                axis=1)
         
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
-                                    reduction=tf.losses.Reduction.NONE)
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy, reduction=tf.losses.Reduction.NONE)
+
         self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
-                                      reduction=tf.losses.Reduction.NONE)
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy, reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
         for v in t_vars:
@@ -272,7 +271,7 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_n_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *self.nstep_minus_prob/(self.target_n_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
@@ -375,6 +374,11 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input: n_step_states[:, -1],
+                                                          target_dqn.action: n_step_actions[:,-1]})
+    n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
+    n_policy = n_policy**args.power
+    n_minus_prob = prob
     double_q = q_vals[range(batch_size), arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
@@ -441,16 +445,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                        main_dqn.diff: diffs,
                        main_dqn.policy: action_prob
                        })
-
-
-
-
-    # print(loss, q_val.shape, q_values.shape)
-    # for i in range(batch_size):
-    #     if loss[i] > 5:
-    #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
-    # if np.sum(terminal_flags) > 0:
-    #     quit()
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
