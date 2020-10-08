@@ -193,7 +193,6 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
             else:
                 r = min(j + 1, grid - 1)
                 if r == grid - 1:
-                    print(i, j, "here")
                     R[i,j] = final_reward
                 else:
                     R[i,j] = -0.01/grid
@@ -202,7 +201,6 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
     R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
-    quit()
     return V - Q[0+pi[0,0]]
 
 
