@@ -11,7 +11,7 @@ def compute_regret(Q_value,grid,final_reward,gamma):
     P = np.zeros((grid * grid, grid * grid))
     R = np.zeros((grid,grid))
     for i in range(grid-1):
-        for j in range(grid):
+        for j in range(grid-1):
             action = int(pi[i,j])
             l = i+1
             if action == 0:
@@ -52,6 +52,7 @@ def eps_action(action,frame_number,grid):
 
 
 def train(grid=10,eps=True,seed =0 ):
+    print(grid,":::",eps,":::")
     args = utils.argsparser()
     tf.random.set_random_seed(seed)
     np.random.seed(seed)
@@ -60,7 +61,7 @@ def train(grid=10,eps=True,seed =0 ):
     MAX_FRAMES = 6**grid
     final_reward = 50
     gamma = 0.99
-    beta = 3.0
+    beta = 4.0
     eta =1.0
     V = final_reward * gamma ** (grid - 2) - 0.01 * (1 - gamma ** (grid - 3)) / (1 - gamma)
     print("True value for initial state: ",V)
@@ -78,10 +79,6 @@ def train(grid=10,eps=True,seed =0 ):
     sess = tf.Session(config=config)
     sess.run(init)
 
-    tflogger = tensorflowboard_logger(
-        "./" + args.log_dir + "/" + "tabular"+"/"+"grid" + "_" + str(grid) + "_seed_" + str(seed),
-        sess, args)
-
     while frame_number < MAX_FRAMES:
         terminal = False
         state = np.zeros(2,dtype=int)
@@ -92,7 +89,10 @@ def train(grid=10,eps=True,seed =0 ):
         while not terminal:
             traj[count,0] = state[0]; traj[count,1]=state[1];
             Q = Q_value[state[0], state[1], :]
-            action = int(np.argmax(Q))
+            if np.random.uniform(1) < 0.2:
+                action = np.random.random_intergers(0,1)
+            else:
+                action = int(np.argmax(Q))
             #epsilon-greedy action
             if eps:
                 action = eps_action(action,frame_number,grid)
@@ -142,10 +142,10 @@ def train(grid=10,eps=True,seed =0 ):
             reward = traj[i,3]
             # print("state size: ",state.shape)
             update_count[state[0],state[1],action] +=1
-            if state[0]==state[1] and not eps:
+            if state[0]==state[1] and state[0]<grid//2 and not eps:
                 # plus expert correction loss
                 t = int(update_count[state[0],state[1],action])
-                var = (beta**2 +4*t)/(t+3)**2
+                var = (beta**2 +4*t)/(t+beta)**2
                 Q = Q_value[state[0], state[1], :]
                 prob = softmax(eta*Q)
                 expert_correction = eta*var*(action-prob[action])
@@ -158,11 +158,6 @@ def train(grid=10,eps=True,seed =0 ):
                 Q_value[state[0],state[1],action] = (1-alpha) * Q_value[state[0],state[1],action] + alpha * target_q
 
         # regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
-        tflogger.log_scalar("Episode/Reward", episode_reward_sum, frame_number)
-        tflogger.log_scalar("Episode/Exploration", var, frame_number)
-        tflogger.log_scalar("Q_value of initial state", Q_value[0,0,1],frame_number)
-
-        tflogger.log_scalar("Total Episodes", eps_number, frame_number)
 
         if eps_number%5==0:
             state = np.zeros(2, dtype=int)
@@ -188,12 +183,11 @@ def train(grid=10,eps=True,seed =0 ):
                         reward = -0.01
                 if terminal:
                     eval_reward = reward
-            tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
     return -1,[]
 
 import matplotlib.pyplot as plt
 N = 18
-M = 131
+M = 20
 num_seed = 5
 eps = np.zeros((N-5,num_seed))
 expert_frame = []
