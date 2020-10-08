@@ -138,7 +138,7 @@ class MinSegmentTree(SegmentTree):
         return super(MinSegmentTree, self).reduce(start, end)
 
 class ReplayBuffer(object):
-    def __init__(self, size, agent="dqn", var=1.0, state_shape=[84, 84],
+    def __init__(self, size, agent="dqn", var=1.0, bootstrap=-1, state_shape=[84, 84],
                  agent_history_length=4, batch_size=32):
         """Create Replay buffer.
         Parameters
@@ -153,6 +153,10 @@ class ReplayBuffer(object):
         self.expert_idx = 0
         self.var = var
         self.agent = agent
+
+        self.bootstrap = bootstrap
+        if self.bootstrap > 0:
+            self.bootstrap_data = np.empty((self._maxsize, self.bootstrap), dtype=np.uint8)
 
         self.agent_history_length = agent_history_length
         self.batch_size = batch_size
@@ -173,6 +177,9 @@ class ReplayBuffer(object):
         self.new_states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
         self.indices = np.zeros(self.batch_size, dtype=np.int32)
 
+    def sample_boostrap(self, idx):
+        for j in range(self.bootstrap):
+            self.bootstrap_data[idx, j] = np.random.uniform(0, 1) > 0.5
 
     def add_expert(self, obs_t, reward, action,diff, done):
         reward = np.sign(reward) * np.log(1+np.abs(reward))
@@ -199,6 +206,8 @@ class ReplayBuffer(object):
         self.frames[self._next_idx] = obs_t
         self.rewards[self._next_idx] = reward
         self.terminal_flags[self._next_idx] = done
+        if self.bootstrap > 0:
+            self.sample_boostrap(self._next_idx)
 
         self.count = min(self._maxsize, self.count + 1)
         self._next_idx = (self._next_idx + 1) % (self._maxsize)
@@ -284,6 +293,10 @@ class ReplayBuffer(object):
         print(self.count, "Expert Data loaded ... ")
         return max_reward
 
+    def get_bootstrap(self, idxes):
+        mask = np.copy(self.bootstrap_data[idxes])
+        return mask
+
     def sample(self, batch_size, expert=False):
         """Sample a batch of experiences.
         Parameters
@@ -340,7 +353,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=32):
+    def __init__(self, size, alpha, bootstrap=-1, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=32):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -355,7 +368,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, state_shape=state_shape, batch_size=batch_size)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, bootstrap=bootstrap, state_shape=state_shape, batch_size=batch_size)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent
