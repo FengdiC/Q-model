@@ -363,9 +363,10 @@ def train_step_dqfd(sess, args, env, bootstrap_dqns, replay_buffer, frame_num, e
            np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
 
 
-def train(priority=True,grid=128, model_name='model', num_bootstrap=10):
+def train(priority=True, model_name='model', num_bootstrap=10):
     with tf.variable_scope(model_name):
         args = utils.argsparser()
+        grid = args.grid_size
         name = args.agent
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
@@ -434,8 +435,8 @@ def train(priority=True,grid=128, model_name='model', num_bootstrap=10):
         # tflogger.log_scalar("Evaluation/Len", eval_len, eps_number)
         # for i in range(len(eval_pos)):
         #     print(i, eval_pos[i])
-        min_eps = 10
-        regret_list = []
+        min_eps = 100
+        reward_list = []
         while frame_number < MAX_FRAMES:
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
                 sess, args, env, bootstrap_dqns, my_replay_memory,  frame_number,
@@ -473,14 +474,16 @@ def train(priority=True,grid=128, model_name='model', num_bootstrap=10):
             tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
             tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
             print("Eps reward: ", eps_rw, "EPS:", eps_number)
-            regret_list.append(0.99 - eps_rw)
-            if np.mean(regret_list) < 0.9 and min_eps < eps_number:
-                return eps_number, np.mean(regret_list)
+            reward_list.append(eps_rw)
+            if eps_len % 100:
+                print(eps_len, np.mean(reward_list))
+            if np.mean(reward_list) > 0.1 and min_eps < eps_number:
+                print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", np.mean(reward_list[-20:]), "seed", args.seed)
+                return eps_number, np.mean(reward_list)
             # if eps_number % 1000:
             #     eval_rewards, eval_len, eval_pos = eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, 
             #                                                 my_replay_memory,  frame_number, MAX_EPISODE_LENGTH, learn, 
             #                                                 action_getter, grid, pretrain=False)
 
-result = train(grid = 256)
-print("Ze results, regret", result)
+train()
 

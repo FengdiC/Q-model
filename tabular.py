@@ -155,7 +155,7 @@ def train(grid=10,eps=True,seed =0 ):
             else:
                 target_q = reward+gamma*np.max(Q_value[next_state[0],next_state[1]])
                 alpha = beta/(beta+update_count[state[0],state[1],action])
-                Q_value[state[0],state[1],action] = (1-alpha) * Q_value[state[0],state[1],action] + alpha * target_q
+                Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
 
         # regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
         tflogger.log_scalar("Episode/Reward", episode_reward_sum, frame_number)
