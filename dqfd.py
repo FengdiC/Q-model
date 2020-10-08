@@ -134,7 +134,6 @@ class DQN:
             print("Expert Loss no n posterior")
             self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = False
-
         elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
             self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
@@ -239,7 +238,7 @@ class DQN:
                                     reduction=tf.losses.Reduction.NONE)
 
         self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -443,6 +442,13 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     n_step_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
+    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+    prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
+                                                          target_dqn.action: n_step_actions[:,-1]})
+    n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
+    n_policy = n_policy**args.power
+    n_step_prob = mask*prob
+    double_q = q_vals[range(batch_size), arg_q_max]
     n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
     n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
@@ -452,63 +458,55 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     if main_dqn.use_n_step_prio:
         n_step_prob = np.zeros((batch_size, ))
         n_policy = np.ones(batch_size)
+        step = 3
         if np.sum(expert_idxes)>0:
-            idx = np.nonzero(expert_idxes)[0]
-            # print("expert input size: ",n_step_states[idx].shape)
-            n_state_list = []
-            n_action_list = []
-            n_expert_idxes = []
-            for i in range(len(idx)):
-                expert_idx = idx[i]
-                for j in range(n_step_states.shape[1]):
-                    n_state_list.append(np.expand_dims(n_step_states[expert_idx, j], axis=0))
-                    n_action_list.append(n_step_actions[expert_idx, j])
-                    n_expert_idxes.append(expert_idx * n_step_states.shape[1] + j)
+          idx = np.nonzero(expert_idxes)[0]
+          # print("expert input size: ",n_step_states[idx].shape)
+          n_state_list = []
+          n_action_list = []
+          for i in idx:
+              for j in range(step):
+                n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+                n_action_list.append(n_step_actions[i, j])
+          n_step_states = np.concatenate(n_state_list, axis=0)
+          n_step_actions = np.array(n_action_list)
 
-            n_step_states = np.concatenate(n_state_list, axis=0)
-            n_step_actions = np.array(n_action_list)
-            n_expert_idxes = np.array(n_expert_idxes)
+          all_prob = session.run(target_dqn.prob,
+                             feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
 
-            all_prob = session.run(target_dqn.prob,
-                             feed_dict={target_dqn.input: n_step_states[n_expert_idxes], target_dqn.action: n_step_actions[n_expert_idxes]})
-
-            n_policy_expert = []
-            n_step_prob_expert = []
-            for i in range(all_prob.shape[0]//args.dqfd_n_step):
-                #should be a dataset of expert by n_actions
-                prob = all_prob[i * args.dqfd_n_step:(i + 1) * args.dqfd_n_step]
-                n_policy_expert.append(prob)
-                n_step_prob_expert.append(np.sum((1 - prob) * gamma ** i))
-            n_step_prob[idx] = np.array(n_step_prob_expert)
-            n_policy_expert = (np.prod(np.array(n_policy_expert), axis=1)) ** 0.2
-            n_policy[idx] = n_policy_expert
-
-        loss_sample, l_dq, l_n_dq, l_jeq, l_l2, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
-                                                                   main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
-                                                                  feed_dict={main_dqn.input: states,
-                                                                             main_dqn.target_q: target_q,
-                                                                             main_dqn.action: actions,
-                                                                             main_dqn.target_n_q: target_n_q,
-                                                                             main_dqn.expert_state: expert_idxes,
-                                                                             main_dqn.weight: weights,
-                                                                             main_dqn.diff: diffs,
-                                                                             main_dqn.policy: action_prob,
-                                                                             main_dqn.n_policy: n_policy,
-                                                                             main_dqn.nstep_minus_prob: n_step_prob
-                                                                             })
-    else:
-        loss_sample, l_dq, l_n_dq, l_jeq, l_l2, _ = session.run(
-            [main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
-             main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
-            feed_dict={main_dqn.input: states,
-                       main_dqn.target_q: target_q,
-                       main_dqn.action: actions,
-                       main_dqn.target_n_q: target_n_q,
-                       main_dqn.expert_state: expert_idxes,
-                       main_dqn.weight: weights,
-                       main_dqn.diff: diffs,
-                       main_dqn.policy: action_prob
-                       })
+          n_policy_expert = []
+          n_step_prob_expert = []
+          gamma_weight = np.array([gamma**i for i in range(step)])
+          for i in range(all_prob.shape[0]//step):
+              #should be a dataset of expert by n_actions
+              prob = all_prob[i * step:(i +1) * step]
+              n_policy_expert.append(prob)
+              n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
+          n_step_prob[idx] = np.array(n_step_prob_expert)
+          n_policy_expert = np.array(n_policy_expert)[:,0:step]
+          maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+          n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
+          n_policy[idx] = n_policy_expert
+    #   # print(maxx,":::",n_policy[0],":::",action_prob[0])
+    loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                          feed_dict={main_dqn.input:states,
+                                     main_dqn.target_q:target_q,
+                                     main_dqn.action:actions,
+                                     main_dqn.target_n_q:target_n_q,
+                                     main_dqn.expert_state:expert_idxes,
+                                     main_dqn.weight:weights,
+                                     main_dqn.diff: diffs,
+                                     main_dqn.policy:action_prob,
+                                     main_dqn.n_policy:n_policy,
+                                     main_dqn.nstep_minus_prob: n_step_prob
+                                     })
+    # print(loss, q_val.shape, q_values.shape)
+    # for i in range(batch_size):
+    #     if loss[i] > 5:
+    #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
+    # if np.sum(terminal_flags) > 0:
+    #     quit()
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
