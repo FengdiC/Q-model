@@ -176,15 +176,15 @@ class DQN:
 #     quit()            
 
 def compute_regret(Q_value, grid , gamma, V, final_reward=1):
-    # pi = np.zeros((grid, grid), dtype=np.uint8)
-    # for i in range(grid):
-    #     pi[i, i] = 1
+    pi = np.zeros((grid, grid), dtype=np.uint8)
+    for i in range(grid):
+        pi[i, i] = 1
 
-    pi = np.argmax(Q_value,axis=2)
+    # pi = np.argmax(Q_value,axis=2)
     P = np.zeros((grid * grid, grid * grid))
     R = np.zeros((grid,grid))
     for i in range(grid-1):
-        for j in range(grid):
+        for j in range(grid-1):
             action = int(pi[i,j])
             l = i+1
             if action == 0:
@@ -195,13 +195,13 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
                 if r == grid - 1:
                     R[i,j] = final_reward
                 else:
-                    R[i,j] = -0.01/grid
+                    R[i,j] = -0.01
             P[i*grid+j,l*grid+r]=1
-    for j in range(grid):
+    for j in range(grid-1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
     R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
-    return V - Q[0+pi[0,0]]
+    return V - Q[0]
 
 
     # pi = np.argmax(Q_value,axis=2)
@@ -530,7 +530,7 @@ def train(priority=True, model_name='model'):
         # for i in range(len(eval_pos)):
         #     print(i, eval_pos[i])
         max_eps = 1000
-        V = env.final_reward * args.gamma ** (grid - 2) - 0.01 * (1 - args.gamma ** (grid - 3)) / (1 - args.gamma)
+        V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
         while frame_number < MAX_FRAMES:
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory,  frame_number,
@@ -572,9 +572,9 @@ def train(priority=True, model_name='model'):
             
             q_values = MAIN_DQN.get_q_value(sess)
             regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
-            #print(eps_number, regret_list[-1], eps_rw)
+            print(V,eps_number, regret_list[-1], eps_rw)
             #regret_list.append(eps_rw)
-            if np.mean(regret_list[:-10]) < 0.9 or eps_number > max_eps:
+            if np.mean(regret_list[:-3]) < 0.2 or eps_number > max_eps:
                 print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", regret_list[-1], "seed", args.seed)
                 return eps_number, np.mean(regret_list)
             # if eps_number % 1000:
