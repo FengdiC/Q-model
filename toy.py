@@ -201,6 +201,7 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
     R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
+    print(V,  Q[0+pi[0,0]])
     return V - Q[0+pi[0,0]]
 
 
@@ -463,7 +464,7 @@ def train(priority=True, model_name='model'):
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
 
-        MAX_EPISODE_LENGTH = grid 
+        MAX_EPISODE_LENGTH = grid - 1
         EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
 
         REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
@@ -574,6 +575,7 @@ def train(priority=True, model_name='model'):
             regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
             #print(eps_number, regret_list[-1], eps_rw)
             #regret_list.append(eps_rw)
+            print(regret_list[-1], eps_rw)
             if np.mean(regret_list[:-10]) < 0.9 or eps_number > max_eps:
                 print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", regret_list[-1], "seed", args.seed)
                 return eps_number, np.mean(regret_list)

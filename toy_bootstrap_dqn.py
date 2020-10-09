@@ -60,7 +60,7 @@ class DQN:
         MAIN_DQN_VARS = find_vars(name)
         self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
-        self.update = self.optimizer.minimize(self.loss)
+        self.update = self.optimizer.minimize(self.loss, var_list=MAIN_DQN_VARS)
 
     def build_network(self, hidden, index=0):
         #layers
@@ -270,6 +270,26 @@ class toy_env:
     def get_default_shape(self):
         return [self.grid, self.grid]
 
+def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter,grid, pretrain=False, index=-1):
+    if index == -1:
+        MAIN_DQN = ensemble[np.random.randint(0, len(bootstrap_dqns))]["main"]
+    else:
+        MAIN_DQN = ensemble[index]["main"]    
+    episode_reward_sum = 0
+    episode_len = 0
+    eval_pos = []
+    next_frame = env.reset()
+    eval_pos.append(np.argmax(next_frame))
+    for _ in range(eps_length):
+        action = action_getter.get_action(sess, frame_num, next_frame, MAIN_DQN, evaluation=True)
+        next_frame, reward, terminal = env.step(action)
+        episode_reward_sum += reward
+        episode_len += 1
+        eval_pos.append(np.argmax(next_frame))
+        if terminal:
+            break
+    return episode_reward_sum, episode_len, eval_pos
+
 def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps, replay_buf_size, args):
     frame_num = 0
     while frame_num < replay_buf_size:
@@ -371,7 +391,7 @@ def train(priority=True, model_name='model', num_bootstrap=10):
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
 
-        MAX_EPISODE_LENGTH = grid 
+        MAX_EPISODE_LENGTH = grid - 1
         EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
 
         REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
@@ -379,7 +399,7 @@ def train(priority=True, model_name='model', num_bootstrap=10):
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
         MEMORY_SIZE = 32 * 4000#grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
-        HIDDEN = 512
+        HIDDEN = 256
         PRETRAIN = 8*grid
         BS = 8
         # main DQN and target DQN networks:
@@ -473,13 +493,22 @@ def train(priority=True, model_name='model', num_bootstrap=10):
             tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, eps_number)
             tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
             tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
-            print("Eps reward: ", eps_rw, "EPS:", eps_number)
-            reward_list.append(eps_rw)
-            if eps_len % 100:
-                print(eps_len, np.mean(reward_list))
-            if np.mean(reward_list) > 0.1 and min_eps < eps_number:
-                print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", np.mean(reward_list[-20:]), "seed", args.seed)
-                return eps_number, np.mean(reward_list)
+
+            current_list = []
+            for index in range(len(bootstrap_dqns)):
+                eps_rw, _, _ = eval_env(sess, args, env, bootstrap_dqns, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
+                current_list.append(eps_rw)
+            print(eps_number, np.mean(current_list), np.mean(eps_loss), frame_number)
+            if np.mean(current_list) > 0.1:
+                return frame_number
+
+
+            # reward_list.append(eps_rw)
+            # if eps_len % 100:
+            #     print(eps_len, np.mean(reward_list))
+            # if eps_rw > 0.5:
+            #     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", np.mean(reward_list[-20:]), "seed", args.seed, frame_number)
+            #     return frame_number, np.mean(reward_list)
             # if eps_number % 1000:
             #     eval_rewards, eval_len, eval_pos = eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, 
             #                                                 my_replay_memory,  frame_number, MAX_EPISODE_LENGTH, learn, 
