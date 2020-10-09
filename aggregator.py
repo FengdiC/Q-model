@@ -41,9 +41,15 @@ def interpolate(timestep, current_index, timestep_size, dataset):
     #print("showtime: 0", timestep, dataset[current_index].step, current_index, dataset[current_index - 1].step)
     if current_index + 1 >= len(dataset):
         return None, current_index
+    
     x1 = dataset[current_index].step
     x2 = dataset[current_index+1].step
     data_gap = x2 - x1
+    if data_gap == 0:
+        x1 = dataset[current_index].step
+        x2 = dataset[current_index+2].step
+        data_gap = x2 - x1
+
     proportion = (timestep - x1)/data_gap
     if proportion < 0 or 1 - proportion < 0:
         print("ze bug", x1, x2, timestep, proportion)

@@ -15,6 +15,35 @@ def find_vars(name):
     f_vars = [var for var in t_vars if name in var.name]
     return f_vars
 
+
+def compute_regret(Q_value, grid , gamma, V, final_reward=1):
+    pi = np.zeros((grid, grid), dtype=np.uint8)
+    for i in range(grid):
+        pi[i, i] = 1
+
+    # pi = np.argmax(Q_value,axis=2)
+    P = np.zeros((grid * grid, grid * grid))
+    R = np.zeros((grid,grid))
+    for i in range(grid-1):
+        for j in range(grid-1):
+            action = int(pi[i,j])
+            l = i+1
+            if action == 0:
+                r = max(0, j - 1)
+                R[i,j] = 0
+            else:
+                r = min(j + 1, grid - 1)
+                if r == grid - 1:
+                    R[i,j] = final_reward
+                else:
+                    R[i,j] = -0.01
+            P[i*grid+j,l*grid+r]=1
+    for j in range(grid-1):
+        P[(grid-1)*grid+j,(grid-1)*grid+j]=1
+    R = np.ndarray.flatten(R)
+    Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
+    return V - Q[0]
+
 class DQN:
     """Implements a Deep Q Network"""
     def __init__(self, args, n_actions=2, hidden=512, grid=10, bootstrap_dqn_num=20, agent='dqfd', name="dqn"):
@@ -129,7 +158,6 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss+ self.args.LAMBDA_2 * self.l_jeq)
         return loss, loss_per_sample
 
-
     def dqn_loss(self,t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
         l_n_dq = tf.losses.huber_loss(labels=self.target_n_q, predictions=self.Q, weights=self.weight, reduction=tf.losses.Reduction.NONE)
@@ -146,6 +174,16 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+l2_reg_loss)
         return loss, loss_per_sample
 
+    def get_q_value(self, sess):
+        q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
+        for i in range(self.grid):
+            for j in range(self.grid):
+                state = np.zeros((self.grid, self.grid), dtype=np.uint8)
+                state[i, j] = 1
+                state = np.reshape(state, (1, -1))
+                value = sess.run(self.q_values, feed_dict={self.input:state})
+                q_values[i, j] = value[0]
+        return q_values
 
 def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
             weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, args):
@@ -318,7 +356,7 @@ def train_step_dqfd(sess, args, env, bootstrap_dqns, replay_buffer, frame_num, e
 
     expert_ratio = []
 
-    NETW_UPDATE_FREQ = 2048        # Number of chosen actions between updating the target network.
+    NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma           # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = 8
@@ -390,6 +428,7 @@ def train(priority=True, model_name='model', num_bootstrap=10):
         name = args.agent
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
+        NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
 
         MAX_EPISODE_LENGTH = grid - 1
         EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
@@ -457,6 +496,7 @@ def train(priority=True, model_name='model', num_bootstrap=10):
         #     print(i, eval_pos[i])
         min_eps = 100
         reward_list = []
+        V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
         while frame_number < MAX_FRAMES:
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
                 sess, args, env, bootstrap_dqns, my_replay_memory,  frame_number,
@@ -494,12 +534,20 @@ def train(priority=True, model_name='model', num_bootstrap=10):
             tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
             tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
 
-            current_list = []
+            reward_list = []
+            #regret_list = []
             for index in range(len(bootstrap_dqns)):
                 eps_rw, _, _ = eval_env(sess, args, env, bootstrap_dqns, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
-                current_list.append(eps_rw)
-            print(eps_number, np.mean(current_list), np.mean(eps_loss), frame_number)
-            if np.mean(current_list) > 0.1:
+                
+                # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
+                # print("q_mean", np.mean(q_values))
+                # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
+                reward_list.append(eps_rw)
+            #print("------------------")
+            #print(reward_list)
+            #print(regret_list)
+            print(eps_number, np.mean(reward_list[-50:]), np.mean(eps_loss), frame_number)
+            if np.mean(reward_list[-50:]) > 0.1 and eps_number > 50//len(bootstrap_dqns):
                 return frame_number
 
 

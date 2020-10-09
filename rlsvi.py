@@ -16,6 +16,34 @@ def find_vars(name):
     f_vars = [var for var in t_vars if name in var.name]
     return f_vars
 
+
+def compute_regret(Q_value, grid , gamma, V, final_reward=1):
+    pi = np.zeros((grid, grid), dtype=np.uint8)
+    for i in range(grid):
+        pi[i, i] = 1
+    # pi = np.argmax(Q_value,axis=2)
+    P = np.zeros((grid * grid, grid * grid))
+    R = np.zeros((grid,grid))
+    for i in range(grid-1):
+        for j in range(grid-1):
+            action = int(pi[i,j])
+            l = i+1
+            if action == 0:
+                r = max(0, j - 1)
+                R[i,j] = 0
+            else:
+                r = min(j + 1, grid - 1)
+                if r == grid - 1:
+                    R[i,j] = final_reward
+                else:
+                    R[i,j] = -0.01
+            P[i*grid+j,l*grid+r]=1
+    for j in range(grid-1):
+        P[(grid-1)*grid+j,(grid-1)*grid+j]=1
+    R = np.ndarray.flatten(R)
+    Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
+    return V - Q[0]
+
 class DQN:
     """Implements a Deep Q Network"""
 
@@ -72,6 +100,17 @@ class DQN:
         for i in range(batch_size):
             one_hot_q_values[i, int(state[i, 0]), int(state[i, 1]), :] = 1
         return one_hot_Q, one_hot_q_values
+
+    def get_q_value(self, sess):
+        q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
+        for i in range(self.grid):
+            for j in range(self.grid):
+                state = np.zeros((self.grid, self.grid), dtype=np.uint8)
+                state[i, j] = 1
+                state = np.reshape(state, (1, -1))
+                value = sess.run(self.q_values, feed_dict={self.input:state})
+                q_values[i, j] = value[0]
+        return q_values
 
 def learn(session, states, actions, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma, grid=10):
     """
@@ -283,7 +322,7 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
     episode_loss_dq = []
     episode_loss_reg = []
     REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
-    NETW_UPDATE_FREQ = 2048        # Number of chosen actions between updating the target network.
+    NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma  # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq  # Every four actions a gradient descend step is performed
     BS = 32
@@ -367,6 +406,7 @@ def train(priority=True,k=50):
     MAX_EPISODE_LENGTH = grid - 1
     BS = 32
     EVAL_FREQUENCY = args.eval_freq  # Number of frames the agent sees between evaluations
+    NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
 
     REPLAY_MEMORY_START_SIZE = BS * 2  # Number of completely random actions,
     # before the agent starts learning
@@ -409,6 +449,8 @@ def train(priority=True,k=50):
     last_eval = 0
     initial_time = time.time()
     build_initial_replay_buffer(sess, env, ensemble, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
+    
+    V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
 
     gradients = [np.zeros((BS,grid,grid,2)) for i in range(k)]
     while frame_number < MAX_FRAMES:
@@ -420,12 +462,20 @@ def train(priority=True,k=50):
         eps_number += 1
         last_eval += eps_len
 
-        current_list = []
+        reward_list = []
+        regret_list = []
         for index in range(len(ensemble)):
             eps_rw, _, _ = eval_env(sess, args, env, ensemble, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
-            current_list.append(eps_rw)
-        print(eps_number, np.mean(current_list), np.mean(eps_loss), frame_number)
-        if np.mean(current_list) > 0.1:
+            
+            # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
+            # print("q_mean", np.mean(q_values))
+            # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
+            reward_list.append(eps_rw)
+        print("------------------")
+        print(reward_list)
+        # print(regret_list)
+        print(eps_number, np.mean(reward_list[-50:]), np.mean(eps_loss), frame_number)
+        if np.mean(reward_list[-50:]) > 0.1 and eps_number > 50//len(ensemble):
             return frame_number
 
         if eps_number % print_iter == 0:

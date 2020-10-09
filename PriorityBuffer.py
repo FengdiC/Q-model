@@ -644,9 +644,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                             diff = 1.0, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
             #print(data['reward'][i], np.sum(data['terminal']))
-        max_reward = np.max(self.rewards[self.rewards > 0])
+        max_reward = np.max(self.rewards)
         #Reward check
-        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
+        print("Min Reward: ", np.min(self.rewards), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
         return max_reward,num_data
 
