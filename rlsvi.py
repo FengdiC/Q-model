@@ -466,7 +466,6 @@ def train(priority=True,k=50):
         regret_list = []
         for index in range(len(ensemble)):
             eps_rw, _, _ = eval_env(sess, args, env, ensemble, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
-            
             # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
             # print("q_mean", np.mean(q_values))
             # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
