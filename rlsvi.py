@@ -18,10 +18,10 @@ def find_vars(name):
 
 
 def compute_regret(Q_value, grid , gamma, V, final_reward=1):
-    pi = np.zeros((grid, grid), dtype=np.uint8)
-    for i in range(grid):
-        pi[i, i] = 1
-    # pi = np.argmax(Q_value,axis=2)
+    # pi = np.zeros((grid, grid), dtype=np.uint8)
+    # for i in range(grid):
+    #     pi[i, i] = 1
+    pi = np.argmax(Q_value,axis=2)
     P = np.zeros((grid * grid, grid * grid))
     R = np.zeros((grid,grid))
     for i in range(grid-1):
@@ -80,10 +80,14 @@ class DQN:
 
 
         MAIN_DQN_VARS = find_vars(name)
+        self.frame = tf.placeholder(shape=[],dtype=tf.int32)
+        lr = tf.cond(tf.greater(self.frame, 4 * grid), lambda: args.lr / 2, lambda: args.lr)
+        lr = tf.cond(tf.greater(self.frame, 8 * grid), lambda: args.lr / 5, lambda: lr)
+        lr = tf.cond(tf.greater(self.frame, 16*grid), lambda: args.lr/10, lambda: lr)
 
         var = 25.0/(grid*grid)
         self.loss = var*self.dq_loss + var*args.LAMBDA_1 * self.reg_loss
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
 
         self.update = self.optimizer.minimize(self.loss, var_list=MAIN_DQN_VARS)
         self.grad = self.optimizer.compute_gradients(self.loss)
@@ -102,17 +106,10 @@ class DQN:
         return one_hot_Q, one_hot_q_values
 
     def get_q_value(self, sess):
-        q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
-        for i in range(self.grid):
-            for j in range(self.grid):
-                state = np.zeros((self.grid, self.grid), dtype=np.uint8)
-                state[i, j] = 1
-                state = np.reshape(state, (1, -1))
-                value = sess.run(self.q_values, feed_dict={self.input:state})
-                q_values[i, j] = value[0]
-        return q_values
+        return self.Q_values.eval(session=sess)
 
-def learn(session, states, actions, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma, grid=10):
+def learn(session, states, actions, rewards, new_states, terminal_flags, main_dqn, target_dqn, batch_size, gamma,
+          frame_numner,grid=10):
     """
     Args:
         session: A tensorflow sesson object
@@ -145,7 +142,8 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
                                               feed_dict={main_dqn.target: target_q,
                                                          main_dqn.prior: prior,
                                                          main_dqn.one_hot_Q: one_hot_Q,
-                                                         main_dqn.one_hot_q_values:one_hot_q_values
+                                                         main_dqn.one_hot_q_values:one_hot_q_values,
+                                                         main_dqn.frame: frame_numner
                                                          })
     #print(loss)
     #print(1, main_dqn.grad)
@@ -174,7 +172,7 @@ class toy_env:
             state[1] = max(0, state[1] - 1)
             reward = 0
             if state[0] >= grid - 1:
-                print("Not success 2", grid, state[0], state[1])
+                # print("Not success 2", grid, state[0], state[1])
                 terminal = True
         else:
             state[1] = min(state[1] + 1, grid - 1)
@@ -183,11 +181,11 @@ class toy_env:
                 print("success", grid, state[0], state[1])
                 terminal = True
             elif state[0] >= grid - 1:
-                reward = self.other_reward/self.grid
-                print("Not success 1", grid, state[0], state[1])
+                reward = self.other_reward
+                # print("Not success 1", grid, state[0], state[1])
                 terminal = True
             else:
-                reward = self.other_reward/self.grid
+                reward = self.other_reward
         return state, reward, terminal
 
 class ActionGetter:
@@ -321,6 +319,8 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
     episode_loss = []
     episode_loss_dq = []
     episode_loss_reg = []
+    regret_list = []
+    frame_list =[]
     REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
     NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma  # gamma in the Bellman equation
@@ -343,6 +343,12 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
             losses = []
             losses_dq = []
             losses_reg = []
+            q_values = MAIN_DQN.get_q_value(sess)[0]
+            # print(q_values.shape,":::",q_values)
+            V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+            regret = compute_regret(q_values, grid, args.gamma, V, final_reward=env.final_reward)
+            regret_list.append(regret)
+            frame_list.append(frame_num)
             for ensemble_index in range(k):
                 selected_main_dqn = ensemble[ensemble_index]["main"]
 
@@ -353,7 +359,7 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
                 generated_terminal_flags = selected_buffer.sample(BS,  expert=False)
 
                 loss, loss_dq, loss_reg = learn(sess, generated_states, generated_actions, generated_rewards,generated_new_states,
-                                   generated_terminal_flags, selected_main_dqn, selected_target_dqn, BS, DISCOUNT_FACTOR, grid)
+                                   generated_terminal_flags, selected_main_dqn, selected_target_dqn, BS, DISCOUNT_FACTOR,frame_num, grid)
                 losses.append(loss)
                 losses_dq.append(loss_dq)
                 losses_reg.append(loss_reg)
@@ -374,7 +380,7 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
             break
 
     return episode_reward_sum, episode_length, np.mean(episode_loss), time.time() - start_time,\
-           gradients,np.mean(episode_loss_dq),np.mean(episode_loss_reg)
+           gradients,np.mean(episode_loss_dq),np.mean(episode_loss_reg),regret_list,frame_list
 
 def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter,grid, pretrain=False, index=-1):
     if index == -1:
@@ -396,8 +402,9 @@ def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter,gri
             break
     return episode_reward_sum, episode_len, eval_pos
 
-def train(priority=True,k=50):
+def train(priority=True,k=50,seed = 0):
     args = utils.argsparser()
+    args.seed = seed
     grid = args.grid_size
     name = args.agent
     tf.random.set_random_seed(args.seed)
@@ -410,7 +417,7 @@ def train(priority=True,k=50):
 
     REPLAY_MEMORY_START_SIZE = BS * 2  # Number of completely random actions,
     # before the agent starts learning
-    MAX_FRAMES = 2**19 # Total number of frames the agent sees
+    MAX_FRAMES = 400 # Total number of frames the agent sees
     MEMORY_SIZE = BS * 40000
     # main DQN and target DQN networks:
 
@@ -449,35 +456,38 @@ def train(priority=True,k=50):
     last_eval = 0
     initial_time = time.time()
     build_initial_replay_buffer(sess, env, ensemble, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-    
-    V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+
 
     gradients = [np.zeros((BS,grid,grid,2)) for i in range(k)]
+    regrets = []
+    frames = []
     while frame_number < MAX_FRAMES:
-        eps_rw, eps_len, eps_loss, eps_time, gradients,eps_dq,eps_reg = train_step_dqfd(
-            sess, args, env, ensemble, gradients,k, frame_number,
-            MAX_EPISODE_LENGTH, learn, action_getter, grid)
+        eps_rw, eps_len, eps_loss, eps_time, gradients,eps_dq,eps_reg,regret_list,frame_list = train_step_dqfd(
+            sess, args, env, ensemble, gradients,k, frame_number,MAX_EPISODE_LENGTH, learn, action_getter, grid)
 
         frame_number += eps_len
         eps_number += 1
         last_eval += eps_len
+        regrets.extend(regret_list)
+        frames.extend(frame_list)
 
-        reward_list = []
-        regret_list = []
-        for index in range(len(ensemble)):
-            eps_rw, _, _ = eval_env(sess, args, env, ensemble, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
-            
-            # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
-            # print("q_mean", np.mean(q_values))
-            # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
-            reward_list.append(eps_rw)
-        print("------------------")
-        print(reward_list)
+        # reward_list = []
+        # regret_list = []
+        # for index in range(len(ensemble)):
+        #     eps_rw, _, _ = eval_env(sess, args, env, ensemble, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
+        #
+        #     # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
+        #     # print("q_mean", np.mean(q_values))
+        #     # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
+        #     reward_list.append(eps_rw)
+        # print("------------------")
+        # print(reward_list)
         # print(regret_list)
-        print(eps_number, np.mean(reward_list[-50:]), np.mean(eps_loss), frame_number)
-        if np.mean(reward_list[-50:]) > 0.1 and eps_number > 50//len(ensemble):
-            return frame_number
-
+        # print(eps_number, np.mean(reward_list[-50:]), np.mean(eps_loss),np.mean(eps_dq), frame_number)
+        if eps_rw > 0.2 and eps_number > 50//len(ensemble):
+            for i in range(len(regrets)-1):
+                regrets[i+1] += regrets[i]
+            return eps_number,regrets,frames
         if eps_number % print_iter == 0:
             tflogger.log_scalar("Episode/Reward", eps_rw, eps_number)
             tflogger.log_scalar("Episode/Length", eps_len, eps_number)
@@ -486,7 +496,24 @@ def train(priority=True,k=50):
             tflogger.log_scalar("REG/Loss/Total", eps_reg, eps_number)
             tflogger.log_scalar("Episode/Time", eps_time, eps_number)
 
-    return -1
+    for i in range(len(regrets) - 1):
+        regrets[i + 1] += regrets[i]
+    return -1, regrets, frames
 
-
-print("Done exploration: ",train())
+from scipy.interpolate import make_interp_spline, BSpline
+import matplotlib.pyplot as plt
+# 300 represents number of points to make between T.min and T.max
+xnew = np.linspace(0, 200, 300)
+regret = np.zeros(300)
+for seed in range(3):
+    eps, regrets, frames = train(seed=seed)
+    plt.plot(frames,regrets)
+    spl = make_interp_spline(frames, regrets, k=3)
+    power_smooth = spl(xnew)
+    regret += np.array(power_smooth)
+    print("Done exploration: ",eps,seed)
+regret /=5
+plt.plot(xnew,regret,label='rlsvi')
+plt.legend()
+plt.savefig('regrets')
+plt.close()

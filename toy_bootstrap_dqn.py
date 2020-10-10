@@ -17,11 +17,11 @@ def find_vars(name):
 
 
 def compute_regret(Q_value, grid , gamma, V, final_reward=1):
-    pi = np.zeros((grid, grid), dtype=np.uint8)
-    for i in range(grid):
-        pi[i, i] = 1
+    # pi = np.zeros((grid, grid), dtype=np.uint8)
+    # for i in range(grid):
+    #     pi[i, i] = 1
 
-    # pi = np.argmax(Q_value,axis=2)
+    pi = np.argmax(Q_value,axis=2)
     P = np.zeros((grid * grid, grid * grid))
     R = np.zeros((grid,grid))
     for i in range(grid-1):
@@ -36,7 +36,7 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
                 if r == grid - 1:
                     R[i,j] = final_reward
                 else:
-                    R[i,j] = -0.01
+                    R[i,j] = -0./grid
             P[i*grid+j,l*grid+r]=1
     for j in range(grid-1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
@@ -421,11 +421,11 @@ def train_step_dqfd(sess, args, env, bootstrap_dqns, replay_buffer, frame_num, e
            np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
 
 
-def train(priority=True, model_name='model', num_bootstrap=10):
+def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
     with tf.variable_scope(model_name):
         args = utils.argsparser()
-        grid = args.grid_size
         name = args.agent
+        args.seed=seed
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
         NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
@@ -494,9 +494,9 @@ def train(priority=True, model_name='model', num_bootstrap=10):
         # tflogger.log_scalar("Evaluation/Len", eval_len, eps_number)
         # for i in range(len(eval_pos)):
         #     print(i, eval_pos[i])
-        min_eps = 100
-        reward_list = []
-        V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+        max_eps = 100
+        regret_list = []
+        V = env.final_reward * args.gamma ** (grid - 1) - 0.01/grid * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
         while frame_number < MAX_FRAMES:
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
                 sess, args, env, bootstrap_dqns, my_replay_memory,  frame_number,
@@ -534,21 +534,18 @@ def train(priority=True, model_name='model', num_bootstrap=10):
             tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
             tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
 
-            reward_list = []
-            #regret_list = []
-            for index in range(len(bootstrap_dqns)):
-                eps_rw, _, _ = eval_env(sess, args, env, bootstrap_dqns, frame_number, MAX_EPISODE_LENGTH, action_getter, grid, index=index)
-                
-                # q_values = bootstrap_dqns[index]["main"].get_q_value(sess)
-                # print("q_mean", np.mean(q_values))
-                # regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
-                reward_list.append(eps_rw)
-            #print("------------------")
-            #print(reward_list)
-            #print(regret_list)
-            print(eps_number, np.mean(reward_list[-50:]), np.mean(eps_loss), frame_number)
-            if np.mean(reward_list[-50:]) > 0.1 and eps_number > 50//len(bootstrap_dqns):
-                return frame_number
+
+            q_values = MAIN_DQN.get_q_value(sess)
+            if len(regret_list) > 0:
+                regret_list.append(
+                    (compute_regret(q_values, grid, args.gamma, V, final_reward=1) + regret_list[-1]) / eps_number)
+            else:
+                regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
+            print(V, eps_number, regret_list[-1], eps_rw)
+            # regret_list.append(eps_rw)
+            if np.mean(regret_list[-1]) < 0.03 or eps_number > max_eps:
+                print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
+                return eps_number
 
 
             # reward_list.append(eps_rw)
@@ -562,5 +559,30 @@ def train(priority=True, model_name='model', num_bootstrap=10):
             #                                                 my_replay_memory,  frame_number, MAX_EPISODE_LENGTH, learn, 
             #                                                 action_getter, grid, pretrain=False)
 
-train()
+# train(grid=180)
+import matplotlib.pyplot as plt
+N = 100
+M = 180
+num_seed = 5
+expert_frame = []
+boot_eps=np.zeros((M-N,num_seed))
+for seed in range(num_seed):
+    boot_frame = []
+    for grid in range(N,M):
+        eps_num= train(grid = grid,seed=seed)
+        boot_frame.append(eps_num)
 
+    boot_eps[:,seed] = np.array(boot_frame)
+
+from toy import train
+for grid in range(N,M):
+    num = train(grid=grid, eps=False,seed=seed)
+    expert_frame.append(num)
+boot_eps = np.mean(boot_eps,axis=1)
+expert_eps = np.array(expert_frame)
+
+plt.plot(range(N,M),boot_eps,label='bootstrapped DQN')
+plt.plot(range(N,M),expert_eps,label='expert')
+plt.legend()
+plt.savefig('toy_explor')
+plt.close()

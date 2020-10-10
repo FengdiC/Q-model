@@ -28,7 +28,7 @@ def compute_regret(Q_value,grid,final_reward,gamma):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
     R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
-    return Q[0+pi[0,0]]
+    return Q[0]
 
 def eps_action(action,frame_number,grid):
     c = grid/2
@@ -123,6 +123,8 @@ def train(grid=10,eps=True,seed =0 ):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
+            for i in range(len(regret) - 1):
+                regret[i + 1] += regret[i]
             return frame_number,regret
         traj[count,0] = state[0]; traj[count,1]=state[1];
         frame_number += episode_length
@@ -142,7 +144,7 @@ def train(grid=10,eps=True,seed =0 ):
             reward = traj[i,3]
             # print("state size: ",state.shape)
             update_count[state[0],state[1],action] +=1
-            if state[0]==state[1] and state[0]<grid//2 and not eps:
+            if state[0]==state[1] and state[0]<grid and not eps:
                 # plus expert correction loss
                 t = int(update_count[state[0],state[1],action])
                 var = (beta**2 +4*t)/(t+beta)**2
@@ -157,7 +159,8 @@ def train(grid=10,eps=True,seed =0 ):
                 alpha = beta/(beta+update_count[state[0],state[1],action])
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
 
-        # regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
+        regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
+        print(V - compute_regret(Q_value, grid, final_reward, gamma))
 
         if eps_number%5==0:
             state = np.zeros(2, dtype=int)
@@ -185,37 +188,38 @@ def train(grid=10,eps=True,seed =0 ):
                     eval_reward = reward
     return -1,[]
 
-import matplotlib.pyplot as plt
-N = 18
-M = 20
-num_seed = 5
-eps = np.zeros((N-5,num_seed))
-expert_frame = []
-exponential = []
-for grid in range(5,15):
-    exponential.append(2 ** grid)
-for seed in range(num_seed):
-    eps_frame = []
-    for grid in range(5,N):
-        eps_num,eps_reg = train(grid = grid,eps=True,seed=seed)
-        eps_frame.append(eps_num/grid)
-
-    eps[:,seed] = np.array(eps_frame)
-
-for grid in range(5,M):
-    num, reg = train(grid=grid, eps=False,seed=seed)
-    expert_frame.append(num/grid)
-exponential = np.array(exponential)
-eps_frame = np.mean(eps,axis=1)
-eps_err = np.std(eps,axis=1)
-expert_frame = np.array(expert_frame)
-
-plt.plot(range(5,15), exponential,label='dithering')
-plt.plot(range(5,N),eps_frame,label='epsilon_greedy')
-plt.plot(range(5,M),expert_frame,label='expert')
-plt.legend()
-plt.savefig('toy_explor')
-plt.close()
+train(grid=8, eps=False,seed=1)
+# import matplotlib.pyplot as plt
+# N = 18
+# M = 20
+# num_seed = 5
+# eps = np.zeros((N-5,num_seed))
+# expert_frame = []
+# exponential = []
+# for grid in range(5,15):
+#     exponential.append(2 ** grid)
+# for seed in range(num_seed):
+#     eps_frame = []
+#     for grid in range(5,N):
+#         eps_num,eps_reg = train(grid = grid,eps=True,seed=seed)
+#         eps_frame.append(eps_num/grid)
+#
+#     eps[:,seed] = np.array(eps_frame)
+#
+# for grid in range(5,M):
+#     num, reg = train(grid=grid, eps=False,seed=seed)
+#     expert_frame.append(num/grid)
+# exponential = np.array(exponential)
+# eps_frame = np.mean(eps,axis=1)
+# eps_err = np.std(eps,axis=1)
+# expert_frame = np.array(expert_frame)
+#
+# plt.plot(range(5,15), exponential,label='dithering')
+# plt.plot(range(5,N),eps_frame,label='epsilon_greedy')
+# plt.plot(range(5,M),expert_frame,label='expert')
+# plt.legend()
+# plt.savefig('toy_explor')
+# plt.close()
 
 # num_seed=3
 # for seed in range(num_seed):
