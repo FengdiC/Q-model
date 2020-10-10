@@ -229,7 +229,7 @@ class DQN:
                                     reduction=tf.losses.Reduction.NONE)
 
         self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy,
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
@@ -375,6 +375,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
     double_q = q_vals[range(batch_size), arg_q_max]
+    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:n_step_states[:, -1]})
+
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_n_q = n_step_rewards[:, -1] + (gamma*double_q * not_terminal[:, -1])
@@ -393,8 +395,9 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
       # print("expert input size: ",n_step_states[idx].shape)
       n_state_list = []
       n_action_list = []
+      step = 3
       for i in idx:
-          for j in range(n_step_states.shape[1]):
+          for j in range(step):
             n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
             n_action_list.append(n_step_actions[i, j])
       n_step_states = np.concatenate(n_state_list, axis=0)
@@ -405,14 +408,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
       n_policy_expert = []
       n_step_prob_expert = []
-      gamma_weight = np.array([gamma**i for i in range(args.dqfd_n_step)])
-      for i in range(all_prob.shape[0]//args.dqfd_n_step):
+      gamma_weight = np.array([gamma**i for i in range(step)])
+      for i in range(all_prob.shape[0]//step):
           #should be a dataset of expert by n_actions
-          prob = all_prob[i * args.dqfd_n_step:(i ) * args.dqfd_n_step+3]
+          prob = all_prob[i * step:(i+1 ) * step]
           n_policy_expert.append(prob)
-          n_step_prob_expert.append(np.sum((1 - prob[1:3])*gamma_weight[1:3]))
+          n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
       n_step_prob[idx] = np.array(n_step_prob_expert)
-      n_policy_expert = np.array(n_policy_expert)[:,0:3]
+      n_policy_expert = np.array(n_policy_expert)
       maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
       n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
       n_policy[idx] = n_policy_expert
