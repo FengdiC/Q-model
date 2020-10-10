@@ -158,28 +158,11 @@ class DQN:
                 q_values[i, j] = value[0]
         return q_values
 
-# def compute_one_step_regret(Q_value, grid, final_reward, gamma):
-#     pi = np.argmax(Q_value,axis=2)
-#     R = np.zeros((grid,grid))
-#     Regret = np.zeros((grid, grid))
-#     for i in range(grid):
-#         for j in range(grid):
-#             if action == 1:
-#                 if (i == grid - 1) and (j == grid - 1):
-#                     R[i, j] = 1
-#                 else:
-#                     R[i, j] = -0.01/grid
-#     for i in range(grid):
-#         for j in range(grid):
-            
-#     print(R)    
-#     quit()            
-
 def compute_regret(Q_value, grid , gamma, V, final_reward=1):
-    pi = np.zeros((grid, grid), dtype=np.uint8)
-    for i in range(grid):
-        pi[i, i] = 1
-    # pi = np.argmax(Q_value,axis=2)
+    # pi = np.zeros((grid, grid), dtype=np.uint8)
+    # for i in range(grid):
+    #     pi[i, i] = 1
+    pi = np.argmax(Q_value,axis=2)
     P = np.zeros((grid * grid, grid * grid))
     R = np.zeros((grid,grid))
     for i in range(grid-1):
@@ -194,49 +177,13 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
                 if r == grid - 1:
                     R[i,j] = final_reward
                 else:
-                    R[i,j] = -0.01
+                    R[i,j] = -0.01/grid
             P[i*grid+j,l*grid+r]=1
     for j in range(grid-1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
     R = np.ndarray.flatten(R)
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
     return V - Q[0]
-
-
-    # pi = np.argmax(Q_value,axis=2)
-    # P = np.zeros((grid * grid, grid * grid))
-    # R = np.zeros((grid,grid))
-    # for i in range(grid):
-    #     for j in range(grid):
-    #         action = int(pi[i,j])
-    #         next_x = min(i+1, grid - 1)
-            
-    #         if action == 0:
-    #             next_y = max(0, j - 1)
-    #             R[i,j] = 0
-    #         else:
-    #             next_y = min(j + 1, grid - 1)
-                
-    #             if next_y == grid - 1 and next_x == grid - 1:
-    #                 R[i,j] = final_reward
-    #             else:
-    #                 R[i,j] = -0.01/grid
-            
-    #         if i == grid -1 or j == grid - 1:
-    #             next_x = i
-    #             next_j = j
-    #         # if i == grid - 1:
-    #         #     print(i, j, next_x, next_y)
-    #         # if j == grid - 1:
-    #         #     print(i, j, next_x, next_y)
-    #         P[i*grid+j,next_x*grid+next_y]=1
-    # print(P[-1, -1])
-    # for j in range(grid):
-    #     P[(grid-1)*grid+j,(grid-1)*grid+j]=1
-    # R = np.ndarray.flatten(R)
-    # Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
-    # print(Q[0+pi[0,0]])
-    # return V - Q[0+pi[0,0]]
 
 def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
             weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, args):
@@ -330,7 +277,7 @@ class toy_env:
 
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=2):
         expert = {}
-        half_expert_traj = self.grid//expert_ratio
+        half_expert_traj = min(self.grid//expert_ratio,20)
         print("Expert Generated!")
         print("Expert Length: ", half_expert_traj, "out of", self.grid)
         num_batches = math.ceil(min_expert_frames/half_expert_traj)
@@ -402,6 +349,8 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
+    regret_list = []
+    frame_list = []
 
     episode_dq_loss = []
     episode_jeq_loss = []
@@ -440,6 +389,11 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                                             min_expert_priority=args.min_expert_priority,pretrain = pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
+            # q_values = MAIN_DQN.get_q_value(sess)[0]
+            # V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+            # regret = compute_regret(q_values, grid, args.gamma, V, final_reward=env.final_reward)
+            # regret_list.append(regret)
+            # frame_list.append(frame_num)
         if pretrain:
             if frame_num % (NETW_UPDATE_FREQ//UPDATE_FREQ) == 0 and frame_num > 0:
                 print("UPDATING Network ... ")
@@ -451,13 +405,13 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             if terminal:
                 break
     return episode_reward_sum, episode_length, np.mean(episode_loss), np.mean(episode_dq_loss), \
-           np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
+           np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio),regret_list,frame_list
 
 
-def train(priority=True, model_name='model'):
+def train(priority=True, model_name='model',grid=10,seed=0):
     with tf.variable_scope(model_name):
         args = utils.argsparser()
-        grid = args.grid_size
+        args.seed=seed
         name = args.agent
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
@@ -503,7 +457,9 @@ def train(priority=True, model_name='model'):
         # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
 
         eps_number = 0
-        frame_number = grid
+        frame_number = 0
+        regrets=[]
+        frames = []
 
         tflogger = tensorflowboard_logger(
             "./" + args.log_dir + "/" + "toy"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
@@ -528,15 +484,17 @@ def train(priority=True, model_name='model'):
         # tflogger.log_scalar("Evaluation/Len", eval_len, eps_number)
         # for i in range(len(eval_pos)):
         #     print(i, eval_pos[i])
-        max_eps = 1000
-        V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+        max_eps = 100
+        V = env.final_reward * args.gamma ** (grid - 1) - 0.01/grid * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
         while frame_number < MAX_FRAMES:
-            eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio = train_step_dqfd(
+            eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio,_,_ = train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory,  frame_number,
                 MAX_EPISODE_LENGTH, learn, action_getter, grid, pretrain=False)
             frame_number += eps_len
             eps_number += 1
             last_eval += eps_len
+            # regrets.extend(regret_list)
+            # frames.extend(frame_list)
 
             if eps_number % print_iter == 0:
                 if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
@@ -570,12 +528,15 @@ def train(priority=True, model_name='model'):
             
             
             q_values = MAIN_DQN.get_q_value(sess)
-            regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
+            if len(regret_list)>0:
+                regret_list.append((compute_regret(q_values, grid, args.gamma, V, final_reward=1)+regret_list[-1])/eps_number)
+            else:
+                regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
             print(V,eps_number, regret_list[-1], eps_rw)
             #regret_list.append(eps_rw)
-            if np.mean(regret_list[:-3]) < 0.2 or eps_number > max_eps:
-                print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", regret_list[-1], "seed", args.seed)
-                return eps_number, np.mean(regret_list)
+            if np.mean(regret_list[-1]) < 0.03 or eps_number > max_eps:
+                print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
+                return eps_number
             # if eps_number % 1000:
             #     eval_rewards, eval_len, eval_pos = eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, 
             #                                                 my_replay_memory,  frame_number, MAX_EPISODE_LENGTH, learn, 
