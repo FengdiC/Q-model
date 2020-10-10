@@ -410,11 +410,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
-    prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
-                                                          target_dqn.action: n_step_actions[:,-1]})
-    n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
-    n_policy = n_policy**args.power
-    n_step_prob = mask*prob
+
     double_q = q_vals[range(batch_size), arg_q_max]
     n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
     n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
@@ -423,6 +419,12 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     target_n_q = n_step_rewards[:, -1] + (last_step_gamma[:, -1]*n_step_double_q * not_terminal[:, -1])
     # Gradient descend step to update the parameters of the main network
     if main_dqn.use_n_step_prio:
+        prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
+                                                            target_dqn.action: n_step_actions[:,-1]})
+        n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
+        n_policy = n_policy**args.power
+        n_step_prob = mask*prob
+
         n_step_prob = np.zeros((batch_size, ))
         n_policy = np.ones(batch_size)
         step = 3
