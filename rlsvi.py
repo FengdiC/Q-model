@@ -36,7 +36,7 @@ def compute_regret(Q_value, grid , gamma, V, final_reward=1):
                 if r == grid - 1:
                     R[i,j] = final_reward
                 else:
-                    R[i,j] = -0.01
+                    R[i,j] = -0.01/grid
             P[i*grid+j,l*grid+r]=1
     for j in range(grid-1):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
@@ -148,7 +148,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
                                                          main_dqn.prior: prior,
                                                          main_dqn.one_hot_Q: one_hot_Q,
                                                          main_dqn.one_hot_q_values:one_hot_q_values,
-                                                         main_dqn.lr: lr
+                                                         main_dqn.lr: np.ones(batch_size)
                                                          })
     #print(loss)
     #print(1, main_dqn.grad)
@@ -186,7 +186,7 @@ class toy_env:
                 print("success", grid, state[0], state[1])
                 terminal = True
             elif state[0] >= grid - 1:
-                reward = self.other_reward
+                reward = self.other_reward/grid
                 # print("Not success 1", grid, state[0], state[1])
                 terminal = True
             else:
@@ -337,7 +337,6 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
     for _ in range(eps_length):
         action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN)
         update_count[frame[0], frame[1], action] += 1
-        print(np.sum(update_count))
         next_frame, reward, terminal = env.step(action)
         for i in range(k):
             noise = np.random.normal(0,grid*grid/25)
@@ -352,7 +351,7 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
             losses_reg = []
             q_values = MAIN_DQN.get_q_value(sess)[0]
             # print(q_values.shape,":::",q_values)
-            V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
+            V = env.final_reward * args.gamma ** (grid - 1) - 0.01/grid * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
             regret = compute_regret(q_values, grid, args.gamma, V, final_reward=env.final_reward)
             regret_list.append(regret)
             frame_list.append(frame_num)
