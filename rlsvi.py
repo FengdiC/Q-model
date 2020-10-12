@@ -155,7 +155,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
                                                          main_dqn.prior: prior,
                                                          main_dqn.one_hot_Q: one_hot_Q,
                                                          main_dqn.one_hot_q_values:one_hot_q_values,
-                                                         main_dqn.lr: lr
+                                                         main_dqn.lr: np.ones(batch_size)
                                                          })
     #print(loss)
     #print(1, main_dqn.grad)
@@ -359,7 +359,6 @@ def train_step_dqfd(sess, args, env, ensemble, gradients, k,frame_num, eps_lengt
             losses_reg = []
             # print(q_values.shape,":::",q_values)
             V = env.final_reward * args.gamma ** (grid - 1) - 0.01 * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
-
 
             frame_list.append(frame_num)
             for ensemble_index in range(k):
