@@ -31,20 +31,36 @@ class BaseEvent:
 def interpolate(timestep, current_index, timestep_size, dataset):
     if current_index + 1 >= len(dataset):
         return None, current_index
-    step_skips = (timestep - dataset[current_index].step)//timestep_size #
+    
+    step_skips = 0
+    while int(current_index + step_skips + 1) < len(dataset) and dataset[int(current_index + step_skips + 1)].step < timestep:
+        step_skips += 1
+    #step_skips = (timestep - dataset[current_index].step)//skip_gap #
+    #print(step_skips)
     current_index = int(current_index + step_skips)
+    #print("showtime: 0", timestep, dataset[current_index].step, current_index, dataset[current_index - 1].step)
     if current_index + 1 >= len(dataset):
         return None, current_index
+    
     x1 = dataset[current_index].step
     x2 = dataset[current_index+1].step
-    proportion = (timestep - x1)/timestep_size
+    data_gap = x2 - x1
+    if data_gap == 0:
+        x1 = dataset[current_index].step
+        x2 = dataset[current_index+2].step
+        data_gap = x2 - x1
 
+    proportion = (timestep - x1)/data_gap
+    if proportion < 0 or 1 - proportion < 0:
+        print("ze bug", x1, x2, timestep, proportion)
+        quit()
     wall_time = dataset[current_index].wall_time * (1 - proportion) + dataset[current_index + 1].wall_time * proportion
     value = dataset[current_index].value * (1 - proportion) + dataset[current_index + 1].value * proportion
     step = timestep
     newEvent = BaseEvent(wall_time, value, step)
     newEvent.index1 = current_index
     newEvent.index2 = current_index + 1
+
     return newEvent, current_index
 
 

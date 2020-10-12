@@ -115,6 +115,7 @@ class DQN:
         #self.loss = tf.reduce_mean(self.loss_per_sample)
 
         MAIN_DQN_VARS = tf.trainable_variables(scope=name)
+        self.use_n_step_prio = False
         if agent == "dqn":
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
@@ -127,11 +128,16 @@ class DQN:
         elif agent == "expert":
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
+            self.use_n_step_prio = True
 
+        elif agent == "expert_no_n_posterior":
+            print("Expert Loss no n posterior")
+            self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
+            self.use_n_step_prio = False
         elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
             self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
-
+            self.use_n_step_prio = True
         elif agent == "dqfd_with_priority_weight":
             print("DQFD with priority")
             self.loss, self.loss_per_sample = self.dqfd_loss_with_priority_weights(MAIN_DQN_VARS)
@@ -245,6 +251,39 @@ class DQN:
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
 
+    def expert_no_n_posterior_loss(self, t_vars, decay='t', loss_cap=None):
+        # decay 't' means order one decay 1/(beta+t)
+        #       's' means beta^2+t/(beta+t)^2
+        # here set beta = 3
+        if decay == 't':
+            ratio = 1 / (4 + self.diff)
+        elif decay == 's':
+            ratio = (16 + 4 * self.diff) / tf.square(4 + self.diff)
+        self.prob = tf.reduce_sum(
+            tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+            axis=1)
+
+        self.posterior = self.target_q + self.eta * self.var * ratio * (1 - self.prob) * self.expert_state
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight * self.policy,
+                                    reduction=tf.losses.Reduction.NONE)
+
+        self.n_posterior = self.target_n_q
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight * self.policy,
+                                      reduction=tf.losses.Reduction.NONE)
+
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = self.eta * self.var * ratio / (self.target_n_q + 0.001)
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample + self.l2_reg_loss)
+        return loss, loss_per_sample
+
     def expert_loss(self, t_vars, decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
@@ -257,12 +296,10 @@ class DQN:
                                axis=1)
         
         self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
-                                    reduction=tf.losses.Reduction.NONE)
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy, reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * (1-self.prob) * self.expert_state
-        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.policy,
-                                      reduction=tf.losses.Reduction.NONE)
+        self.n_posterior = self.target_n_q +self.eta*self.var*ratio * self.nstep_minus_prob * self.expert_state
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight*self.n_policy, reduction=tf.losses.Reduction.NONE)
 
         l2_reg_loss = 0
         for v in t_vars:
@@ -271,12 +308,11 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = self.eta*self.var*ratio *(1-self.prob)/(self.target_n_q+0.001)
+        self.l_jeq = self.eta*self.var*ratio *self.nstep_minus_prob/(self.target_n_q+0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
         return loss, loss_per_sample
-
 
     def dqn_loss(self,t_vars):
         l_dq = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q, reduction=tf.losses.Reduction.NONE)
@@ -370,17 +406,24 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     #if np.sum(target_pos)>0:
     #  print("Check if target values are positive: ", np.sum(target_pos))
 
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
+    n_step_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
     # The target network estimates the Q-values (in the next state s', new_states is passed!)
     # for every transition in the minibatch
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+
     double_q = q_vals[range(batch_size), arg_q_max]
+<<<<<<< HEAD
     prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:n_step_states[:, -1]})
 
+=======
+    n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+    n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
+>>>>>>> 5fa75fbfba06607f715b5cb311febb873a3dc3d8
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
-    target_n_q = n_step_rewards[:, -1] + (gamma*double_q * not_terminal[:, -1])
+    target_n_q = n_step_rewards[:, -1] + (last_step_gamma[:, -1]*n_step_double_q * not_terminal[:, -1])
     # Gradient descend step to update the parameters of the main network
+<<<<<<< HEAD
     #print(np.max(rewards), np.min(rewards))
 
     # self.l2_reg_loss = l2_reg_loss
@@ -439,6 +482,71 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
     # if np.sum(terminal_flags) > 0:
     #     quit()
+=======
+    if main_dqn.use_n_step_prio:
+        # prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
+        #                                                     target_dqn.action: n_step_actions[:,-1]})
+        # n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
+        # n_policy = n_policy**args.power
+        # n_step_prob = mask*prob
+        n_step_prob = np.zeros((batch_size, ))
+        n_policy = np.ones(batch_size)
+        step = 3
+        if np.sum(expert_idxes)>0:
+          idx = np.nonzero(expert_idxes)[0]
+          # print("expert input size: ",n_step_states[idx].shape)
+          n_state_list = []
+          n_action_list = []
+          for i in idx:
+              for j in range(step):
+                n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+                n_action_list.append(n_step_actions[i, j])
+          n_step_states = np.concatenate(n_state_list, axis=0)
+          n_step_actions = np.array(n_action_list)
+
+          all_prob = session.run(target_dqn.prob,
+                             feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
+
+          n_policy_expert = []
+          n_step_prob_expert = []
+          gamma_weight = np.array([gamma**i for i in range(step)])
+          for i in range(all_prob.shape[0]//step):
+              #should be a dataset of expert by n_actions
+              prob = all_prob[i * step:(i +1) * step]
+              n_policy_expert.append(prob)
+              n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
+          n_step_prob[idx] = np.array(n_step_prob_expert)
+          n_policy_expert = np.array(n_policy_expert)[:,0:step]
+          maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+          n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
+          n_policy[idx] = n_policy_expert
+        loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                    main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                            feed_dict={main_dqn.input:states,
+                                        main_dqn.target_q:target_q,
+                                        main_dqn.action:actions,
+                                        main_dqn.target_n_q:target_n_q,
+                                        main_dqn.expert_state:expert_idxes,
+                                        main_dqn.weight:weights,
+                                        main_dqn.diff: diffs,
+                                        main_dqn.policy:action_prob,
+                                        main_dqn.n_policy:n_policy,
+                                        main_dqn.nstep_minus_prob: n_step_prob
+                                        })
+
+    else:
+        loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                    main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                            feed_dict={main_dqn.input:states,
+                                        main_dqn.target_q:target_q,
+                                        main_dqn.action:actions,
+                                        main_dqn.target_n_q:target_n_q,
+                                        main_dqn.expert_state:expert_idxes,
+                                        main_dqn.weight:weights,
+                                        main_dqn.diff: diffs,
+                                        main_dqn.policy:action_prob,
+                                        })
+>>>>>>> 5fa75fbfba06607f715b5cb311febb873a3dc3d8
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
