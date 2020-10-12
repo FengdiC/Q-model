@@ -422,6 +422,7 @@ def train_step_dqfd(sess, args, env, bootstrap_dqns, replay_buffer, frame_num, e
 
 
 def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
+    tf.reset_default_graph()
     with tf.variable_scope(model_name):
         args = utils.argsparser()
         name = args.agent
@@ -477,9 +478,9 @@ def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
         eps_number = 0
         frame_number = grid
 
-        tflogger = tensorflowboard_logger(
-            "./" + args.log_dir + "/" + "toy_bootstrap_"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
-            sess, args)
+        # tflogger = tensorflowboard_logger(
+        #     "./" + args.log_dir + "/" + "toy_bootstrap_"+"/"+name + "_" + args.env_id + "_seed_" + str(args.seed),
+        #     sess, args)
 
         env = toy_env(grid, expert=False)
         print("Agent: ", name)
@@ -505,34 +506,34 @@ def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
             eps_number += 1
             last_eval += eps_len
 
-            if eps_number % print_iter == 0:
-                if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
-                    tflogger.log_scalar("Expert Priorities",
-                                        my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
-                                                                    my_replay_memory.expert_idx), eps_number)
-                    tflogger.log_scalar("Total Priorities",
-                                        my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
-                                                                    my_replay_memory.count - 1), eps_number)
-            tflogger.log_scalar("Episode/Reward", eps_rw, eps_number)
-            tflogger.log_scalar("Episode/Length", eps_len, eps_number)
-            tflogger.log_scalar("Episode/Loss/Total", eps_loss, eps_number)
-            tflogger.log_scalar("Episode/Time", eps_time, eps_number)
-            tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
-                                eps_number)
-            tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
-            tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
-            tflogger.log_scalar("Episode/Loss/DQ", eps_dq_loss, eps_number)
-            tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, eps_number)
-            tflogger.log_scalar("Episode/Time", eps_time, eps_number)
-            tflogger.log_scalar("Episode/Reward/Reward Per Frame", eps_rw / max(1, eps_len),
-                                eps_number)
-            tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
-            tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
-
-            tflogger.log_scalar("Total Episodes", eps_number, frame_number)
-            tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, eps_number)
-            tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
-            tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
+            # if eps_number % print_iter == 0:
+            #     if my_replay_memory.expert_idx > my_replay_memory.agent_history_length:
+            #         tflogger.log_scalar("Expert Priorities",
+            #                             my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
+            #                                                         my_replay_memory.expert_idx), eps_number)
+            #         tflogger.log_scalar("Total Priorities",
+            #                             my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length,
+            #                                                         my_replay_memory.count - 1), eps_number)
+            # tflogger.log_scalar("Episode/Reward", eps_rw, eps_number)
+            # tflogger.log_scalar("Episode/Length", eps_len, eps_number)
+            # tflogger.log_scalar("Episode/Loss/Total", eps_loss, eps_number)
+            # tflogger.log_scalar("Episode/Time", eps_time, eps_number)
+            # tflogger.log_scalar("Episode/Reward Per Frame", eps_rw / max(1, eps_len),
+            #                     eps_number)
+            # tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
+            # tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
+            # tflogger.log_scalar("Episode/Loss/DQ", eps_dq_loss, eps_number)
+            # tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, eps_number)
+            # tflogger.log_scalar("Episode/Time", eps_time, eps_number)
+            # tflogger.log_scalar("Episode/Reward/Reward Per Frame", eps_rw / max(1, eps_len),
+            #                     eps_number)
+            # tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, eps_number)
+            # tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), eps_number)
+            #
+            # tflogger.log_scalar("Total Episodes", eps_number, frame_number)
+            # tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, eps_number)
+            # tflogger.log_scalar("Elapsed Time", time.time() - initial_time, eps_number)
+            # tflogger.log_scalar("Frames Per Hour", frame_number / ((time.time() - initial_time) / 3600), eps_number)
 
 
             q_values = MAIN_DQN.get_q_value(sess)
@@ -543,7 +544,7 @@ def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
                 regret_list.append(compute_regret(q_values, grid, args.gamma, V, final_reward=1))
             print(V, eps_number, regret_list[-1], eps_rw)
             # regret_list.append(eps_rw)
-            if np.mean(regret_list[-1]) < 0.03 or eps_number > max_eps:
+            if np.mean(regret_list[-1]) < 0.02 or eps_number > max_eps:
                 print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                 return eps_number
 
