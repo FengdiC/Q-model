@@ -188,7 +188,7 @@ def train(grid=10,eps=True,seed =0 ):
                     eval_reward = reward
     return -1,[]
 
-train(grid=8, eps=False,seed=1)
+train(grid=20, eps=False,seed=1)
 # import matplotlib.pyplot as plt
 # N = 18
 # M = 20
