@@ -129,7 +129,10 @@ class DQN:
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = True
-
+        elif agent == "expert_no_policy":
+            print("Expert Loss no Policy")
+            self.loss, self.loss_per_sample = self.expert_no_policy(MAIN_DQN_VARS,decay=args.decay)
+            self.use_n_step_prio = False
         elif agent == "expert_no_n_posterior":
             print("Expert Loss no n posterior")
             self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
@@ -249,6 +252,37 @@ class DQN:
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
+        return loss, loss_per_sample
+
+    def expert_no_policy(self, t_vars, decay='t', loss_cap=None):
+        # decay 't' means order one decay 1/(beta+t)
+        #       's' means beta^2+t/(beta+t)^2
+        # here set beta = 3
+        if decay == 't':
+            ratio = 1 / (4 + self.diff)
+        elif decay == 's':
+            ratio = (16 + 4 * self.diff) / tf.square(4 + self.diff)
+        self.prob = tf.reduce_sum(
+            tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+            axis=1)
+
+        self.posterior = self.target_q + self.eta * self.var * ratio * (1 - self.prob) * self.expert_state
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        self.n_posterior = self.target_n_q
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = self.eta * self.var * ratio / (self.target_n_q + 0.001)
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample + self.l2_reg_loss)
         return loss, loss_per_sample
 
     def expert_no_n_posterior_loss(self, t_vars, decay='t', loss_cap=None):
