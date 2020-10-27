@@ -430,11 +430,12 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
             return data[s<m]
 
         diff_array = np.array(diff_list)
+        td_array = np.array(td_error_list)
         cleaned_data = reject_outliers(diff_array)
         std = np.std(cleaned_data)
         mean = np.median(cleaned_data)
 
-        cleaned_data = reject_outliers(td_error_list)
+        cleaned_data = reject_outliers(td_array)
         std_td = np.std(cleaned_data)
         mean_td = np.mean(cleaned_data)
 
@@ -444,7 +445,6 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
         # scaled_td = (np.array(td_error_list) - np.mean(td_error_list))/np.maximum(0.01, np.std(td_error_list))
         # scaled_q_value = (np.array(max_q_value_list) - np.mean(max_q_value_list))/np.maximum(0.01, np.std(max_q_value_list))
         # scaled_diff = (np.array(diff_list) - np.mean(diff_list))/np.maximum(0.01, np.std(diff_list))
-        td_array = np.array(td_error_list)
         q_value_array = np.array(max_q_value_list)
 
         outlier_list = np.ones((len(frames_for_gif,)))
@@ -455,17 +455,43 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
         #     terminal_indices = np.nonzero(gif_terminal_values)[0]
         #     print(terminal_indices)
 
-        # terminal_indices = np.nonzero(gif_terminal_values)[0]
-        # if len(terminal_indices) > 1:
-        #     print(terminal_indices)
-        #     quit()
+        terminal_indices = np.nonzero(gif_terminal_values)[0]
+        if not hasattr(MAIN_DQN, 'q_prediction_ability'):
+            MAIN_DQN.q_prediction_ability = []
+            MAIN_DQN.td_prediction_ability = [] 
+        if len(terminal_indices) > 1:
+            #find a prediction length 
+            q_diff_term_pred = []
+            td_term_pred = []
+            for idx in terminal_indices:
+                q_diff_term_pred.append(0)
+                td_term_pred.append(0)
+                for i in range(max(0, idx - 30), idx):
+                    if np.abs(diff_array[i] - mean) > 3 * std:
+                        q_diff_term_pred[-1] = max(q_diff_term_pred[-1], idx - i)
+                    if np.abs(td_array[i] - mean_td) > 3 * std_td:
+                        td_term_pred[-1] = max(td_term_pred[-1], idx - i)
+            
+            MAIN_DQN.q_prediction_ability.append(np.mean(q_diff_term_pred))
+            MAIN_DQN.td_prediction_ability.append(np.mean(td_term_pred))
+            print("Prediction: ", q_diff_term_pred, td_term_pred)
+        else:
+            MAIN_DQN.q_prediction_ability.append(0)
+            MAIN_DQN.td_prediction_ability.append(0)
+
+        plt.plot(np.arange(len(MAIN_DQN.q_prediction_ability)), MAIN_DQN.q_prediction_ability, label="Q Pred Turns");
+        plt.plot(np.arange(len(MAIN_DQN.td_prediction_ability)), MAIN_DQN.td_prediction_ability, label="TD Pred Turns");
+        plt.title("Q-value and TD Death Predictions(Steps before death")
+        plt.legend(bbox_to_anchor=(0.75, 0.95), loc='upper left')
+        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/death_pred.png")
+        plt.close()
 
         for i in range(len(frames_for_gif) - 1):
             if gif_terminal_values[i]:
                 continue
             if gif_terminal_values[i + 1]:
                 continue
-            if np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))) > 4 * std:
+            if np.abs(diff_array[i] - mean) > 3 * std:
                 lower_bound = max(0, i - window)
                 higher_bound = min(i + window, len(frames_for_gif))
                 if np.sum(gif_terminal_values[lower_bound:i]) > 0:
@@ -504,7 +530,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
         plt.close()
 
         plt.bar(np.arange(outlier_list.shape[0]), (1 - outlier_list) * outlier_sign, label="Q_diff > 4", width=2);
-        plt.title("Q_diff > 4 std vs Timestep(t)")
+        plt.title("Q_diff > 3 std vs Timestep(t)")
         #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_outlier.png")
         plt.close()
