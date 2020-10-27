@@ -342,254 +342,14 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
 
 
 
-def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, 
-                    frame_num, model_name="dqn", window=5, gif=False, random=False):
-    frames_for_gif = []
-    eval_rewards = []
-    gif_q_values = []
-    gif_terminal_values = []
-    gif_reward_values = []
-    evaluate_frame_number = 0
-    if random:
-        print("Random Action Evaluation Baseline .... ")
-    else:
-        print("Evaluating Current Models .... ")
-    while evaluate_frame_number < eval_steps:
-        terminal_life_lost, _ = atari.reset(sess, evaluation=True)
-        episode_reward_sum = 0
-        for _ in range(max_eps_len):
-            # Fire (action 1), when a life was lost or the game just started,
-            # so that the agent does not stand around doing nothing. When playing
-            # with other environments, you might want to change this...
-            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
-                action = 1
-            else:
-                if not random:
-                    if args.stochastic_exploration == "True":
-                        action = action_getter.get_stochastic_action(sess, frame_num,
-                                                        atari.state,
-                                                        x_values,
-                                                        MAIN_DQN,
-                                                        evaluation=True)
-                    else:
-                        action = action_getter.get_action(sess, frame_num,
-                                                        atari.state,
-                                                        MAIN_DQN,
-                                                        evaluation=True)
-                else:
-                    action = action_getter.get_random_action()
-            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
-            evaluate_frame_number += 1
-            episode_reward_sum += reward
-            if gif:
-                #get the q_value ... 
-                q_values = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input:[atari.state]})
-                gif_q_values.append(q_values)
-                frames_for_gif.append(new_frame)
-                gif_terminal_values.append(terminal_life_lost)
-                gif_reward_values.append(reward)
-            if terminal and len(eval_rewards) == 0:
-                gif = False  # Save only the first game of the evaluation as a gif
-                break
-            elif terminal:
-                break
-        if terminal:
-            eval_rewards.append(episode_reward_sum)
-        print("Eval", len(eval_rewards), "Eval Reward", episode_reward_sum, "frame_num", evaluate_frame_number)
-        # if len(eval_rewards) % 10 == 0:
-        #     print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
-
-    if len(eval_rewards) == 0:
-        eval_rewards.append(episode_reward_sum)
-    if len(frames_for_gif) > 0:
-
-        if not os.path.exists("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/"):
-            os.makedirs("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/")
-
-        if len(frames_for_gif) == max_eps_len:
-            gif_terminal_values[-1] = 1
-        diff_list = []
-        td_error_list = []
-        max_q_value_list = []
-
-        for i in range(len(frames_for_gif) - 1):
-            if gif_terminal_values[i]:
-                diff_list.append(0)
-                max_q_value_list.append(0)
-                td_error_list.append(0)
-                continue
-            diff_list.append(np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))))
-            adjusted_rewards = np.sign(gif_reward_values[i]) * np.log(1+np.abs(gif_reward_values[i]))
-            max_q_value_list.append(np.max(gif_q_values[i]))            
-            target_q_value = adjusted_rewards + (1 - gif_terminal_values[i]) * args.gamma * np.max(gif_q_values[i + 1])
-            td_error = huber(1, np.max(gif_q_values[i]) - target_q_value)
-            td_error_list.append(td_error)
-
-        def reject_outliers(data, m = 10):
-            d = np.abs(data - np.median(data))
-            mdev = np.median(d)
-            s = d/mdev if mdev else 0.
-            return data[s<m]
-
-        diff_array = np.array(diff_list)
-        td_array = np.array(td_error_list)
-        cleaned_data = reject_outliers(diff_array)
-        std = np.std(cleaned_data)
-        mean = np.median(cleaned_data)
-
-        cleaned_data = reject_outliers(td_array)
-        std_td = np.std(cleaned_data)
-        mean_td = np.mean(cleaned_data)
-
-        #diff_list[np.abs(diff_list - mean) > 6 * std] = 6 * std #cap the outliers ... 
-        max_td_error = np.max(td_error_list)
-        min_td_error = np.min(td_error_list)
-        # scaled_td = (np.array(td_error_list) - np.mean(td_error_list))/np.maximum(0.01, np.std(td_error_list))
-        # scaled_q_value = (np.array(max_q_value_list) - np.mean(max_q_value_list))/np.maximum(0.01, np.std(max_q_value_list))
-        # scaled_diff = (np.array(diff_list) - np.mean(diff_list))/np.maximum(0.01, np.std(diff_list))
-        q_value_array = np.array(max_q_value_list)
-
-        outlier_list = np.ones((len(frames_for_gif,)))
-        lower_outlier_list = np.ones((len(frames_for_gif,)))
-        outlier_sign = np.ones((len(frames_for_gif,)))
-
-        # if np.sum(gif_terminal_values) > 1:
-        #     terminal_indices = np.nonzero(gif_terminal_values)[0]
-        #     print(terminal_indices)
-
-        terminal_indices = np.nonzero(gif_terminal_values)[0]
-        if not hasattr(MAIN_DQN, 'q_prediction_ability'):
-            MAIN_DQN.q_prediction_ability = []
-            MAIN_DQN.td_prediction_ability = [] 
-        if len(terminal_indices) > 1:
-            #find a prediction length 
-            q_diff_term_pred = []
-            td_term_pred = []
-            for idx in terminal_indices:
-                q_diff_term_pred.append(0)
-                td_term_pred.append(0)
-                for i in range(max(0, idx - 30), idx):
-                    if np.abs(diff_array[i] - mean) > 4 * std:
-                        q_diff_term_pred[-1] = max(q_diff_term_pred[-1], idx - i)
-                    if np.abs(td_array[i] - mean_td) > 4 * std_td:
-                        td_term_pred[-1] = max(td_term_pred[-1], idx - i)
-            
-            MAIN_DQN.q_prediction_ability.append(np.mean(q_diff_term_pred))
-            MAIN_DQN.td_prediction_ability.append(np.mean(td_term_pred))
-            print("Prediction: ", q_diff_term_pred, td_term_pred)
-        else:
-            MAIN_DQN.q_prediction_ability.append(0)
-            MAIN_DQN.td_prediction_ability.append(0)
-
-        plt.plot(np.arange(len(MAIN_DQN.q_prediction_ability)), MAIN_DQN.q_prediction_ability, label="Q Pred Turns");
-        plt.plot(np.arange(len(MAIN_DQN.td_prediction_ability)), MAIN_DQN.td_prediction_ability, label="TD Pred Turns");
-        plt.title("Q-value and TD Death Predictions(Steps before death")
-        plt.legend(bbox_to_anchor=(0.75, 0.95), loc='upper left')
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/death_pred.png")
-        plt.close()
-
-        for i in range(len(frames_for_gif) - 1):
-            if gif_terminal_values[i]:
-                continue
-            if gif_terminal_values[i + 1]:
-                continue
-            if np.abs(diff_array[i] - mean) > 4 * std:
-                lower_bound = max(0, i - window)
-                higher_bound = min(i + window, len(frames_for_gif))
-                if np.sum(gif_terminal_values[lower_bound:i]) > 0:
-                    #there is a terminal .... 
-                    for terminal_index in range(lower_bound, i):
-                        if gif_terminal_values[terminal_index]:
-                            break
-                    lower_bound = terminal_index + 1
-                if np.sum(gif_terminal_values[i:higher_bound]) > 0:
-                    #there is a terminal .... 
-                    for terminal_index in range(i, higher_bound):
-                        if gif_terminal_values[terminal_index]:
-                            break
-                    higher_bound = min(i+1, terminal_index - 1)
-                outlier_list[lower_bound:higher_bound] = 0
-                lower_outlier_list[i:higher_bound] = 0
-                outlier_sign[lower_bound:higher_bound] = np.sign(np.sum(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i])))
-
-        low_gifs = []
-        normal_gifs = []
-        plt.plot(np.arange(td_array.shape[0]), td_array, label="TD Loss");
-        plt.title("TD Loss(Huber) vs Timestep(t)")
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_td_loss.png")
-        plt.close()
-
-        plt.plot(np.arange(q_value_array.shape[0]), q_value_array, label="Max Q");
-        plt.title("max Q(s,a) vs Timestep(t)")
-        #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_max_q_value.png")
-        plt.close()
-
-        plt.plot(np.arange(diff_array.shape[0]), diff_array, label="max Q(s', a') - Q(s, a)");
-        plt.title("max Q(s', a') - Q(s, a) vs Timestep(t)")
-        #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_q_diff.png")
-        plt.close()
-
-        plt.bar(np.arange(outlier_list.shape[0]), (1 - outlier_list) * outlier_sign, label="Q_diff > 4", width=2);
-        plt.title("Q_diff > 4 std vs Timestep(t)")
-        #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_outlier.png")
-        plt.close()
-
-        max_reward = np.max(gif_reward_values)
-        plt.bar(np.arange(len(gif_reward_values)), np.array(gif_reward_values), label="Reward", width=10)
-        plt.bar(np.arange(len(gif_terminal_values)), -1 * max(1, np.max(gif_reward_values)) * np.array(gif_terminal_values), label="Termination", width=10)
-        plt.title("Reward + Termination vs Timestep(t)")
-        plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_reward_termination.png")
-        plt.close()
-
-        for i in range(len(frames_for_gif)):    
-            if lower_outlier_list[i] == 0:
-                #positive, green
-                #negative, blue
-                mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
-                if outlier_sign[i] == 1:
-                    gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
-                else:
-                    gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
-                #slowmo for focused states ... 
-                for _ in range(12):
-                    low_gifs.append(np.copy(gif_frame))
-            else:
-                low_gifs.append(frames_for_gif[i])
-
-            # print("Q_values:", gif_q_values[i])
-            # if gif_terminal_values[i]:
-            #     print("Frame:", i, "Out:", outlier_list[i], "\n\n")
-            # else:
-            #     print("Frame:", i, "Reward:", gif_reward_values[i], "TD Loss", td_error_list[i], "Diff: ", np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))), outlier_sign[i], "Out:", outlier_list[i])
-            if outlier_list[i] == 0:
-                mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
-                if outlier_sign[i] == 1:
-                    gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
-                else:
-                    gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
-                for _ in range(6):
-                    normal_gifs.append(np.copy(gif_frame))
-            else:
-                normal_gifs.append(frames_for_gif[i])
-        print(np.sum(gif_terminal_values))
-        print("Mean Difference: ", mean, "STD: ", std, "Ratio:", 1 - np.mean(outlier_list))
-        try:
-            generate_gif(frame_num, frames_for_gif, eval_rewards[0],
-                            "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
-            generate_gif(frame_num, low_gifs, eval_rewards[0],
-                            "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "low_bound_gif_")
-        except IndexError:
-            print("No evaluation game finished")
-    return np.mean(eval_rewards),np.var(eval_rewards)
-
-# def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
+# def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, 
+#                     frame_num, model_name="dqn", window=5, gif=False, random=False):
 #     frames_for_gif = []
 #     eval_rewards = []
+#     gif_q_values = []
+#     gif_terminal_values = []
+#     gif_reward_values = []
 #     evaluate_frame_number = 0
-#     total_reward = 0
 #     if random:
 #         print("Random Action Evaluation Baseline .... ")
 #     else:
@@ -605,36 +365,276 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
 #                 action = 1
 #             else:
 #                 if not random:
-#                     action = action_getter.get_action(sess, frame_num,
-#                                                       atari.state,
-#                                                       MAIN_DQN,
-#                                                       evaluation=True)
+#                     if args.stochastic_exploration == "True":
+#                         action = action_getter.get_stochastic_action(sess, frame_num,
+#                                                         atari.state,
+#                                                         x_values,
+#                                                         MAIN_DQN,
+#                                                         evaluation=True)
+#                     else:
+#                         action = action_getter.get_action(sess, frame_num,
+#                                                         atari.state,
+#                                                         MAIN_DQN,
+#                                                         evaluation=True)
 #                 else:
 #                     action = action_getter.get_random_action()
-
 #             processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
 #             evaluate_frame_number += 1
 #             episode_reward_sum += reward
-#             total_reward += reward
 #             if gif:
+#                 #get the q_value ... 
+#                 q_values = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input:[atari.state]})
+#                 gif_q_values.append(q_values)
 #                 frames_for_gif.append(new_frame)
+#                 gif_terminal_values.append(terminal_life_lost)
+#                 gif_reward_values.append(reward)
 #             if terminal and len(eval_rewards) == 0:
-#                 eval_rewards.append(episode_reward_sum)
 #                 gif = False  # Save only the first game of the evaluation as a gif
 #                 break
-#         if len(eval_rewards) % 10 == 0:
-#             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
-#     eval_rewards.append(episode_reward_sum)
-#     # print("\n\n\n-------------------------------------------")
-#     # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
-#     # print("-------------------------------------------\n\n\n")
-#     try:
-#         if len(frames_for_gif) > 0:
+#             elif terminal:
+#                 break
+#         if terminal:
+#             eval_rewards.append(episode_reward_sum)
+#         print("Eval", len(eval_rewards), "Eval Reward", episode_reward_sum, "frame_num", evaluate_frame_number)
+#         # if len(eval_rewards) % 10 == 0:
+#         #     print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
+
+#     if len(eval_rewards) == 0:
+#         eval_rewards.append(episode_reward_sum)
+#     if len(frames_for_gif) > 0:
+
+#         if not os.path.exists("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/"):
+#             os.makedirs("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/")
+
+#         if len(frames_for_gif) == max_eps_len:
+#             gif_terminal_values[-1] = 1
+#         diff_list = []
+#         td_error_list = []
+#         max_q_value_list = []
+
+#         for i in range(len(frames_for_gif) - 1):
+#             if gif_terminal_values[i]:
+#                 diff_list.append(0)
+#                 max_q_value_list.append(0)
+#                 td_error_list.append(0)
+#                 continue
+#             diff_list.append(np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))))
+#             adjusted_rewards = np.sign(gif_reward_values[i]) * np.log(1+np.abs(gif_reward_values[i]))
+#             max_q_value_list.append(np.max(gif_q_values[i]))            
+#             target_q_value = adjusted_rewards + (1 - gif_terminal_values[i]) * args.gamma * np.max(gif_q_values[i + 1])
+#             td_error = huber(1, np.max(gif_q_values[i]) - target_q_value)
+#             td_error_list.append(td_error)
+
+#         def reject_outliers(data, m = 10):
+#             d = np.abs(data - np.median(data))
+#             mdev = np.median(d)
+#             s = d/mdev if mdev else 0.
+#             return data[s<m]
+
+#         diff_array = np.array(diff_list)
+#         td_array = np.array(td_error_list)
+#         cleaned_data = reject_outliers(diff_array)
+#         std = np.std(cleaned_data)
+#         mean = np.median(cleaned_data)
+
+#         cleaned_data = reject_outliers(td_array)
+#         std_td = np.std(cleaned_data)
+#         mean_td = np.mean(cleaned_data)
+
+#         #diff_list[np.abs(diff_list - mean) > 6 * std] = 6 * std #cap the outliers ... 
+#         max_td_error = np.max(td_error_list)
+#         min_td_error = np.min(td_error_list)
+#         # scaled_td = (np.array(td_error_list) - np.mean(td_error_list))/np.maximum(0.01, np.std(td_error_list))
+#         # scaled_q_value = (np.array(max_q_value_list) - np.mean(max_q_value_list))/np.maximum(0.01, np.std(max_q_value_list))
+#         # scaled_diff = (np.array(diff_list) - np.mean(diff_list))/np.maximum(0.01, np.std(diff_list))
+#         q_value_array = np.array(max_q_value_list)
+
+#         outlier_list = np.ones((len(frames_for_gif,)))
+#         lower_outlier_list = np.ones((len(frames_for_gif,)))
+#         outlier_sign = np.ones((len(frames_for_gif,)))
+
+#         # if np.sum(gif_terminal_values) > 1:
+#         #     terminal_indices = np.nonzero(gif_terminal_values)[0]
+#         #     print(terminal_indices)
+
+#         terminal_indices = np.nonzero(gif_terminal_values)[0]
+#         if not hasattr(MAIN_DQN, 'q_prediction_ability'):
+#             MAIN_DQN.q_prediction_ability = []
+#             MAIN_DQN.td_prediction_ability = [] 
+#         if len(terminal_indices) > 1:
+#             #find a prediction length 
+#             q_diff_term_pred = []
+#             td_term_pred = []
+#             for idx in terminal_indices:
+#                 q_diff_term_pred.append(0)
+#                 td_term_pred.append(0)
+#                 for i in range(max(0, idx - 30), idx):
+#                     if np.abs(diff_array[i] - mean) > 4 * std:
+#                         q_diff_term_pred[-1] = max(q_diff_term_pred[-1], idx - i)
+#                     if np.abs(td_array[i] - mean_td) > 4 * std_td:
+#                         td_term_pred[-1] = max(td_term_pred[-1], idx - i)
+            
+#             MAIN_DQN.q_prediction_ability.append(np.mean(q_diff_term_pred))
+#             MAIN_DQN.td_prediction_ability.append(np.mean(td_term_pred))
+#             print("Prediction: ", q_diff_term_pred, td_term_pred)
+#         else:
+#             MAIN_DQN.q_prediction_ability.append(0)
+#             MAIN_DQN.td_prediction_ability.append(0)
+
+#         plt.plot(np.arange(len(MAIN_DQN.q_prediction_ability)), MAIN_DQN.q_prediction_ability, label="Q Pred Turns");
+#         plt.plot(np.arange(len(MAIN_DQN.td_prediction_ability)), MAIN_DQN.td_prediction_ability, label="TD Pred Turns");
+#         plt.title("Q-value and TD Death Predictions(Steps before death")
+#         plt.legend(bbox_to_anchor=(0.75, 0.95), loc='upper left')
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/death_pred.png")
+#         plt.close()
+
+#         for i in range(len(frames_for_gif) - 1):
+#             if gif_terminal_values[i]:
+#                 continue
+#             if gif_terminal_values[i + 1]:
+#                 continue
+#             if np.abs(diff_array[i] - mean) > 4 * std:
+#                 lower_bound = max(0, i - window)
+#                 higher_bound = min(i + window, len(frames_for_gif))
+#                 if np.sum(gif_terminal_values[lower_bound:i]) > 0:
+#                     #there is a terminal .... 
+#                     for terminal_index in range(lower_bound, i):
+#                         if gif_terminal_values[terminal_index]:
+#                             break
+#                     lower_bound = terminal_index + 1
+#                 if np.sum(gif_terminal_values[i:higher_bound]) > 0:
+#                     #there is a terminal .... 
+#                     for terminal_index in range(i, higher_bound):
+#                         if gif_terminal_values[terminal_index]:
+#                             break
+#                     higher_bound = min(i+1, terminal_index - 1)
+#                 outlier_list[lower_bound:higher_bound] = 0
+#                 lower_outlier_list[i:higher_bound] = 0
+#                 outlier_sign[lower_bound:higher_bound] = np.sign(np.sum(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i])))
+
+#         low_gifs = []
+#         normal_gifs = []
+#         plt.plot(np.arange(td_array.shape[0]), td_array, label="TD Loss");
+#         plt.title("TD Loss(Huber) vs Timestep(t)")
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_td_loss.png")
+#         plt.close()
+
+#         plt.plot(np.arange(q_value_array.shape[0]), q_value_array, label="Max Q");
+#         plt.title("max Q(s,a) vs Timestep(t)")
+#         #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_max_q_value.png")
+#         plt.close()
+
+#         plt.plot(np.arange(diff_array.shape[0]), diff_array, label="max Q(s', a') - Q(s, a)");
+#         plt.title("max Q(s', a') - Q(s, a) vs Timestep(t)")
+#         #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_q_diff.png")
+#         plt.close()
+
+#         plt.bar(np.arange(outlier_list.shape[0]), (1 - outlier_list) * outlier_sign, label="Q_diff > 4", width=2);
+#         plt.title("Q_diff > 4 std vs Timestep(t)")
+#         #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_outlier.png")
+#         plt.close()
+
+#         max_reward = np.max(gif_reward_values)
+#         plt.bar(np.arange(len(gif_reward_values)), np.array(gif_reward_values), label="Reward", width=10)
+#         plt.bar(np.arange(len(gif_terminal_values)), -1 * max(1, np.max(gif_reward_values)) * np.array(gif_terminal_values), label="Termination", width=10)
+#         plt.title("Reward + Termination vs Timestep(t)")
+#         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_reward_termination.png")
+#         plt.close()
+
+#         for i in range(len(frames_for_gif)):    
+#             if lower_outlier_list[i] == 0:
+#                 #positive, green
+#                 #negative, blue
+#                 mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
+#                 if outlier_sign[i] == 1:
+#                     gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
+#                 else:
+#                     gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
+#                 #slowmo for focused states ... 
+#                 for _ in range(12):
+#                     low_gifs.append(np.copy(gif_frame))
+#             else:
+#                 low_gifs.append(frames_for_gif[i])
+
+#             # print("Q_values:", gif_q_values[i])
+#             # if gif_terminal_values[i]:
+#             #     print("Frame:", i, "Out:", outlier_list[i], "\n\n")
+#             # else:
+#             #     print("Frame:", i, "Reward:", gif_reward_values[i], "TD Loss", td_error_list[i], "Diff: ", np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))), outlier_sign[i], "Out:", outlier_list[i])
+#             if outlier_list[i] == 0:
+#                 mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
+#                 if outlier_sign[i] == 1:
+#                     gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
+#                 else:
+#                     gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
+#                 for _ in range(6):
+#                     normal_gifs.append(np.copy(gif_frame))
+#             else:
+#                 normal_gifs.append(frames_for_gif[i])
+#         print(np.sum(gif_terminal_values))
+#         print("Mean Difference: ", mean, "STD: ", std, "Ratio:", 1 - np.mean(outlier_list))
+#         try:
 #             generate_gif(frame_num, frames_for_gif, eval_rewards[0],
-#                         "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
-#     except IndexError:
-#         print("No evaluation game finished")
+#                             "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
+#             generate_gif(frame_num, low_gifs, eval_rewards[0],
+#                             "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "low_bound_gif_")
+#         except IndexError:
+#             print("No evaluation game finished")
 #     return np.mean(eval_rewards),np.var(eval_rewards)
+
+def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
+    frames_for_gif = []
+    eval_rewards = []
+    evaluate_frame_number = 0
+    total_reward = 0
+    if random:
+        print("Random Action Evaluation Baseline .... ")
+    else:
+        print("Evaluating Current Models .... ")
+    while evaluate_frame_number < eval_steps:
+        terminal_life_lost, _ = atari.reset(sess, evaluation=True)
+        episode_reward_sum = 0
+        for _ in range(max_eps_len):
+            # Fire (action 1), when a life was lost or the game just started,
+            # so that the agent does not stand around doing nothing. When playing
+            # with other environments, you might want to change this...
+            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+                action = 1
+            else:
+                if not random:
+                    action = action_getter.get_action(sess, frame_num,
+                                                      atari.state,
+                                                      MAIN_DQN,
+                                                      evaluation=True)
+                else:
+                    action = action_getter.get_random_action()
+
+            processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+            evaluate_frame_number += 1
+            episode_reward_sum += reward
+            total_reward += reward
+            if gif:
+                frames_for_gif.append(new_frame)
+            if terminal and len(eval_rewards) == 0:
+                eval_rewards.append(episode_reward_sum)
+                gif = False  # Save only the first game of the evaluation as a gif
+                break
+        if len(eval_rewards) % 10 == 0:
+            print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
+    eval_rewards.append(episode_reward_sum)
+    # print("\n\n\n-------------------------------------------")
+    # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
+    # print("-------------------------------------------\n\n\n")
+    try:
+        if len(frames_for_gif) > 0:
+            generate_gif(frame_num, frames_for_gif, eval_rewards[0],
+                        "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
+    except IndexError:
+        print("No evaluation game finished")
+    return np.mean(eval_rewards),np.var(eval_rewards)
 
 
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
