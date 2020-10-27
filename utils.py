@@ -164,8 +164,8 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
-        eps_final = min(eps_initial, eps_final)
-        eps_final_frame = min(eps_final, eps_final_frame)
+        eps_final = min(eps_initial, eps_final * eps_initial)
+        eps_final_frame = min(eps_final, eps_final_frame * eps_initial)
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
