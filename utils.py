@@ -619,15 +619,16 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
             if gif:
                 frames_for_gif.append(new_frame)
             if terminal and len(eval_rewards) == 0:
-                eval_rewards.append(episode_reward_sum)
                 gif = False  # Save only the first game of the evaluation as a gif
                 break
+            elif terminal:
+                break
+        if terminal:
+            eval_rewards.append(episode_reward_sum)
         if len(eval_rewards) % 10 == 0:
             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
-    eval_rewards.append(episode_reward_sum)
-    # print("\n\n\n-------------------------------------------")
-    # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
-    # print("-------------------------------------------\n\n\n")
+    if len(eval_rewards) == 0:
+        eval_rewards.append(episode_reward_sum)
     try:
         if len(frames_for_gif) > 0:
             generate_gif(frame_num, frames_for_gif, eval_rewards[0],
