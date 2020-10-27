@@ -584,8 +584,10 @@ def train( priority=True):
                              model_name=name, gif=True, random=False)
         tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
         tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
-
-    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
+                                      MAIN_DQN, args)
+    else:
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                       MAIN_DQN, args)
     print_iter = 25
     last_eval = EVAL_FREQUENCY * 0.8

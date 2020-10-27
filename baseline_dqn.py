@@ -203,18 +203,18 @@ def train(name="dqn", priority=True):
         print("No Expert Data ... ")
     #utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0, args.pretrain_bc_iter, learn, pretrain=True, priority=False)
     utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, MAIN_DQN, args)
-    eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
+    #eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number, model_name=name, gif=True, random=False)
     tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
     tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
 
-    last_eval = 0
+    last_eval = EVAL_FREQUENCY * 0.8
     last_gif = 0
     initial_time = time.time()
     while frame_number < MAX_FRAMES:
         eps_rw, eps_len, eps_loss, eps_time, exp_ratio = utils.train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, frame_number, MAX_EPISODE_LENGTH, learn, priority=priority, pretrain=False)
         frame_number += eps_len
         eps_number += 1
-        last_gif += 1
+        last_gif += eps_len
         last_eval += eps_len
 
         tflogger.log_scalar("No N-step DQN Episode/Reward", eps_rw, frame_number)
