@@ -401,6 +401,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
     if len(eval_rewards) == 0:
         eval_rewards.append(episode_reward_sum)
     if len(frames_for_gif) > 0:
+
         if not os.path.exists("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/"):
             os.makedirs("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/")
 
@@ -467,9 +468,9 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
                 q_diff_term_pred.append(0)
                 td_term_pred.append(0)
                 for i in range(max(0, idx - 30), idx):
-                    if np.abs(diff_array[i] - mean) > 3 * std:
+                    if np.abs(diff_array[i] - mean) > 4 * std:
                         q_diff_term_pred[-1] = max(q_diff_term_pred[-1], idx - i)
-                    if np.abs(td_array[i] - mean_td) > 3 * std_td:
+                    if np.abs(td_array[i] - mean_td) > 4 * std_td:
                         td_term_pred[-1] = max(td_term_pred[-1], idx - i)
             
             MAIN_DQN.q_prediction_ability.append(np.mean(q_diff_term_pred))
@@ -491,7 +492,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
                 continue
             if gif_terminal_values[i + 1]:
                 continue
-            if np.abs(diff_array[i] - mean) > 3 * std:
+            if np.abs(diff_array[i] - mean) > 4 * std:
                 lower_bound = max(0, i - window)
                 higher_bound = min(i + window, len(frames_for_gif))
                 if np.sum(gif_terminal_values[lower_bound:i]) > 0:
@@ -530,7 +531,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
         plt.close()
 
         plt.bar(np.arange(outlier_list.shape[0]), (1 - outlier_list) * outlier_sign, label="Q_diff > 4", width=2);
-        plt.title("Q_diff > 3 std vs Timestep(t)")
+        plt.title("Q_diff > 4 std vs Timestep(t)")
         #plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
         plt.savefig("./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/gif_figures/" + str(frame_num) + "_outlier.png")
         plt.close()

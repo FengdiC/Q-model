@@ -574,10 +574,9 @@ def train( priority=True):
         my_replay_memory.delete_expert(MEMORY_SIZE)
     print("Agent: ", name)
 
-
-    
     if args.load_frame_num > 0:
         #load model ... 
+        print("Model Loaded .... ")
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
         saver.restore(sess, load_path);
         eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
