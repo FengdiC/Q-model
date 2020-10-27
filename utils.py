@@ -34,7 +34,7 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=1000)
+    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=500000)
     parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=50000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
@@ -78,6 +78,8 @@ def argsparser():
 
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
+
+    parser.add_argument('--load_frame_num', type=int, help='If load model 0, else load frame num ....', default=0)
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     parser.add_argument('--custom_id', type=str, default='')
@@ -338,11 +340,15 @@ def generate_gif(frame_number, frames_for_gif, reward, path):
                     frames_for_gif, duration=1 / 30)
 
 
-def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
+
+def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, 
+                    frame_num, model_name="dqn", window=5, gif=False, random=False):
     frames_for_gif = []
     eval_rewards = []
+    gif_q_values = []
+    gif_terminal_values = []
+    gif_reward_values = []
     evaluate_frame_number = 0
-    total_reward = 0
     if random:
         print("Random Action Evaluation Baseline .... ")
     else:
@@ -358,36 +364,176 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
                 action = 1
             else:
                 if not random:
-                    action = action_getter.get_action(sess, frame_num,
-                                                      atari.state,
-                                                      MAIN_DQN,
-                                                      evaluation=True)
+                    if args.stochastic_exploration == "True":
+                        action = action_getter.get_stochastic_action(sess, frame_num,
+                                                        atari.state,
+                                                        x_values,
+                                                        MAIN_DQN,
+                                                        evaluation=True)
+                    else:
+                        action = action_getter.get_action(sess, frame_num,
+                                                        atari.state,
+                                                        MAIN_DQN,
+                                                        evaluation=True)
                 else:
                     action = action_getter.get_random_action()
-
             processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
             evaluate_frame_number += 1
             episode_reward_sum += reward
-            total_reward += reward
             if gif:
+                #get the q_value ... 
+                q_values = sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input:[atari.state]})
+                gif_q_values.append(q_values)
                 frames_for_gif.append(new_frame)
+                gif_terminal_values.append(terminal_life_lost)
+                gif_reward_values.append(reward)
             if terminal and len(eval_rewards) == 0:
-                eval_rewards.append(episode_reward_sum)
                 gif = False  # Save only the first game of the evaluation as a gif
                 break
-        if len(eval_rewards) % 10 == 0:
-            print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
-    eval_rewards.append(episode_reward_sum)
-    # print("\n\n\n-------------------------------------------")
-    # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
-    # print("-------------------------------------------\n\n\n")
-    try:
-        if len(frames_for_gif) > 0:
-            generate_gif(frame_num, frames_for_gif, eval_rewards[0],
-                        "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
-    except IndexError:
-        print("No evaluation game finished")
+            elif terminal:
+                break
+        if terminal:
+            eval_rewards.append(episode_reward_sum)
+        print("Eval", len(eval_rewards), "Eval Reward", episode_reward_sum, "frame_num", evaluate_frame_number)
+        # if len(eval_rewards) % 10 == 0:
+        #     print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
+
+    if len(eval_rewards) == 0:
+        eval_rewards.append(episode_reward_sum)
+    if len(frames_for_gif) > 0:
+        if len(frames_for_gif) == max_eps_len:
+            gif_terminal_values[-1] = 1
+        diff_list = []
+        for i in range(len(frames_for_gif) - 1):
+            if gif_terminal_values[i]:
+                continue
+            diff_list.append(np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))))
+        std = np.std(diff_list)
+        mean = np.mean(diff_list)
+
+        outlier_list = np.ones((len(frames_for_gif,)))
+        lower_outlier_list = np.ones((len(frames_for_gif,)))
+        outlier_sign = np.ones((len(frames_for_gif,)))
+        for i in range(len(frames_for_gif) - 1):
+            if gif_terminal_values[i]:
+                continue
+            if gif_terminal_values[i + 1]:
+                continue
+            if np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))) > 3 * std:
+                lower_bound = max(0, i - window)
+                higher_bound = min(i + window, len(frames_for_gif))
+                if np.sum(gif_terminal_values[lower_bound:i]) > 0:
+                    #there is a terminal .... 
+                    for terminal_index in range(lower_bound, i):
+                        if gif_terminal_values[terminal_index]:
+                            break
+                    lower_bound = terminal_index + 1
+                if np.sum(gif_terminal_values[i:higher_bound]) > 0:
+                    #there is a terminal .... 
+                    for terminal_index in range(i, higher_bound):
+                        if gif_terminal_values[terminal_index]:
+                            break
+                    higher_bound = min(i+1, terminal_index - 1)
+                outlier_list[lower_bound:higher_bound] = 0
+                lower_outlier_list[i:higher_bound] = 0
+                outlier_sign[lower_bound:higher_bound] = np.sign(np.sum(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i])))
+
+        print(outlier_list.shape, len(frames_for_gif))
+        low_gifs = []
+        normal_gifs = []
+        
+        for i in range(len(frames_for_gif)):    
+            if lower_outlier_list[i] == 0:
+                #positive, green
+                #negative, blue
+                mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
+                if outlier_sign[i] == 1:
+                    gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
+                else:
+                    gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
+                #slowmo for focused states ... 
+                for _ in range(12):
+                    low_gifs.append(np.copy(gif_frame))
+            else:
+                low_gifs.append(frames_for_gif[i])
+
+            print("Q_values:", gif_q_values[i])
+            if gif_terminal_values[i]:
+                print("Frame:", i, "Out:", outlier_list[i], "\n\n")
+            else:
+                print("Frame:", i, "Reward:", gif_reward_values[i], "Diff: ", np.sum(np.abs(np.max(gif_q_values[i + 1]) - np.max(gif_q_values[i]))), outlier_sign[i], "Out:", outlier_list[i])
+            if outlier_list[i] == 0:
+                mean_frame = np.expand_dims(np.mean(frames_for_gif[i], axis=2), axis=2)
+                if outlier_sign[i] == 1:
+                    gif_frame = np.concatenate([mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,1]), axis=2), mean_frame], axis=2)
+                else:
+                    gif_frame = np.concatenate([mean_frame, mean_frame, np.expand_dims(np.copy(frames_for_gif[i][:,:,2]), axis=2)], axis=2)
+                for _ in range(6):
+                    normal_gifs.append(np.copy(gif_frame))
+            else:
+                normal_gifs.append(frames_for_gif[i])
+
+        print("Mean Difference: ", mean, "STD: ", std, "Ratio:", 1 - np.mean(outlier_list))
+        try:
+            #to save space .... 
+            # generate_gif(frame_num, normal_gifs, eval_rewards[0],
+            #                 "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
+            generate_gif(frame_num, low_gifs, eval_rewards[0],
+                            "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "low_bound_gif_")
+        except IndexError:
+            print("No evaluation game finished")
     return np.mean(eval_rewards),np.var(eval_rewards)
+
+# def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
+#     frames_for_gif = []
+#     eval_rewards = []
+#     evaluate_frame_number = 0
+#     total_reward = 0
+#     if random:
+#         print("Random Action Evaluation Baseline .... ")
+#     else:
+#         print("Evaluating Current Models .... ")
+#     while evaluate_frame_number < eval_steps:
+#         terminal_life_lost, _ = atari.reset(sess, evaluation=True)
+#         episode_reward_sum = 0
+#         for _ in range(max_eps_len):
+#             # Fire (action 1), when a life was lost or the game just started,
+#             # so that the agent does not stand around doing nothing. When playing
+#             # with other environments, you might want to change this...
+#             if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+#                 action = 1
+#             else:
+#                 if not random:
+#                     action = action_getter.get_action(sess, frame_num,
+#                                                       atari.state,
+#                                                       MAIN_DQN,
+#                                                       evaluation=True)
+#                 else:
+#                     action = action_getter.get_random_action()
+
+#             processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+#             evaluate_frame_number += 1
+#             episode_reward_sum += reward
+#             total_reward += reward
+#             if gif:
+#                 frames_for_gif.append(new_frame)
+#             if terminal and len(eval_rewards) == 0:
+#                 eval_rewards.append(episode_reward_sum)
+#                 gif = False  # Save only the first game of the evaluation as a gif
+#                 break
+#         if len(eval_rewards) % 10 == 0:
+#             print("Evaluation Completion: ", str(evaluate_frame_number) + "/" + str(eval_steps))
+#     eval_rewards.append(episode_reward_sum)
+#     # print("\n\n\n-------------------------------------------")
+#     # print("Evaluation score:\n", np.mean(eval_rewards),':::',np.var(eval_rewards))
+#     # print("-------------------------------------------\n\n\n")
+#     try:
+#         if len(frames_for_gif) > 0:
+#             generate_gif(frame_num, frames_for_gif, eval_rewards[0],
+#                         "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
+#     except IndexError:
+#         print("No evaluation game finished")
+#     return np.mean(eval_rewards),np.var(eval_rewards)
 
 
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
