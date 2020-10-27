@@ -562,7 +562,7 @@ def train( priority=True):
     tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
 
     #Pretrain step ..
-    if args.pretrain_bc_iter > 0:
+    if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
         utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
                               args.pretrain_bc_iter, learn, pretrain=True)
         print("done pretraining ,test prioritized buffer")
