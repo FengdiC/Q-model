@@ -586,7 +586,7 @@ def train( priority=True):
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=50000000,
                                  eps_initial=args.initial_exploration)
-    saver = tf.train.Saver(max_to_keep=10)
+    saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
     sess.run(init)
 
