@@ -212,7 +212,7 @@ class ActionGetter:
     def get_random_action(self):
         return np.random.randint(0, self.n_actions)
 
-    def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
+    def get_action(self, session, frame_number, state, main_dqn, evaluation=False, building_replay=False):
         """
         Args:
             session: A tensorflow session object
@@ -232,6 +232,8 @@ class ActionGetter:
             eps = self.slope * frame_number + self.intercept
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope_2 * frame_number + self.intercept_2
+        if building_replay:
+            eps = max(eps, 0.01)
         if np.random.uniform(0, 1) < eps:
             return self.get_random_action()
 
@@ -304,7 +306,7 @@ class Atari:
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
 
-def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args):
+def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args, frame_number=0):
     frame_num = 0
     while frame_num < replay_buf_size:
         _, _ = atari.reset(sess)
@@ -313,7 +315,7 @@ def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, ma
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
             else:
-                action = action_getter.get_action(sess, 0, atari.state, MAIN_DQN)
+                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, building_replay=True)
             # print("Action: ",action)
             # 
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)

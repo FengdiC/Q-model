@@ -569,9 +569,6 @@ def train( priority=True):
         max_reward, num_expert = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
-
-    
-        
     ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power
     #ratio_expert=0.01
     with tf.variable_scope('mainDQN'):
@@ -611,14 +608,19 @@ def train( priority=True):
     if args.load_frame_num > 0:
         #load model ... 
         print("Model Loaded .... ")
+        # action_getter = utils.ActionGetter(atari.env.action_space.n,
+        #                             replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+        #                             max_frames=MAX_FRAMES,
+        #                             eps_initial=0.05)
+                                    
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
         saver.restore(sess, load_path);
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE//2,
+                                      MAIN_DQN, args, frame_number=frame_number)
         eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
                              model_name=name, gif=True, random=False)
         tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
         tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
-        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
-                                      MAIN_DQN, args)
     else:
         utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                       MAIN_DQN, args)
