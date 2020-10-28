@@ -235,7 +235,6 @@ class ActionGetter:
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
             #print("Was here .... 2")
             eps = self.slope_2 * frame_number + self.intercept_2
-        
         #print(eps)
         eps = max(eps, self.min_eps)
         if np.random.uniform(0, 1) < eps:
