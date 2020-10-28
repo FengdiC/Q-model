@@ -584,7 +584,7 @@ def train( priority=True):
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES,
+                                 max_frames=50000000,
                                  eps_initial=args.initial_exploration)
     saver = tf.train.Saver(max_to_keep=10)
     sess = tf.Session(config=config)
@@ -615,7 +615,7 @@ def train( priority=True):
                                     
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
         saver.restore(sess, load_path);
-        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE//2,
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                       MAIN_DQN, args, frame_number=frame_number)
         eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
                              model_name=name, gif=True, random=False)

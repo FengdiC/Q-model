@@ -146,7 +146,7 @@ class Resize:
 class ActionGetter:
     """Determines an action according to an epsilon greedy strategy with annealing epsilon"""
 
-    def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
+    def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01, min_eps=0.001,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
                  replay_memory_start_size=50000, max_frames=25000000):
         """
@@ -164,6 +164,7 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
+        self.min_eps = min_eps
         eps_final = min(eps_initial, eps_final * eps_initial)
         eps_final_frame = min(eps_final, eps_final_frame * eps_initial)
         self.n_actions = n_actions
@@ -230,13 +231,15 @@ class ActionGetter:
             eps = self.eps_initial
         elif frame_number >= self.replay_memory_start_size and frame_number < self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope * frame_number + self.intercept
+            #print("Was here .... 1")
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
+            #print("Was here .... 2")
             eps = self.slope_2 * frame_number + self.intercept_2
-        if building_replay:
-            eps = max(eps, 0.01)
+        
+        #print(eps)
+        eps = max(eps, self.min_eps)
         if np.random.uniform(0, 1) < eps:
             return self.get_random_action()
-
         #print("Was here .... ")
         result, q_vals = session.run([main_dqn.best_action, main_dqn.q_values], feed_dict={main_dqn.input: [state]})
         # result = result[0]
