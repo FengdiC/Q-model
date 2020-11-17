@@ -128,31 +128,31 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
                 #replay_mem.add(obs[:, :, 0], action, rew, terminal)
             pickle.dump(current_data, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
-        elif count> 6000:
-            env_done = False
-            num_traj += 1
-            obs = env.reset(sess)
-            print(num_traj, count)
-            count = 0
+        # elif count> 6000:
+        #     env_done = False
+        #     num_traj += 1
+        #     obs = env.reset(sess)
+        #     print(num_traj, count)
+        #     count = 0
 
-            for i in range(len(data_list)):
-                action = data_list[i][0]
-                obs = data_list[i][1]
-                rew = data_list[i][2]
-                terminal = data_list[i][3]
-                current_data["frames"].append(obs)
-                current_data["reward"].append(rew)
-                current_data["actions"].append(action)
-                current_data["terminal"].append(terminal)
-                # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("human_" + args.env + "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
-            data_list = []
+        #     for i in range(len(data_list)):
+        #         action = data_list[i][0]
+        #         obs = data_list[i][1]
+        #         rew = data_list[i][2]
+        #         terminal = data_list[i][3]
+        #         current_data["frames"].append(obs)
+        #         current_data["reward"].append(rew)
+        #         current_data["actions"].append(action)
+        #         current_data["terminal"].append(terminal)
+        #         # replay_mem.add(obs[:, :, 0], action, rew, terminal)
+        #     pickle.dump(current_data, open("human_" + args.env + "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+        #     data_list = []
         else:
             action = keys_to_action.get(tuple(sorted(pressed_keys)), 0)
             obs, rew, env_done, terminal, frame = env.step(sess, action)
             data_list.append([action, obs, rew, terminal])
-
             count += 1
+
         if obs is not None:
             rendered = env.env.render(mode='rgb_array')
             display_arr(screen, rendered, transpose=transpose, video_size=video_size)

@@ -129,7 +129,10 @@ class DQN:
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = True
-
+        elif agent == "expert_no_policy":
+            print("Expert Loss no Policy")
+            self.loss, self.loss_per_sample = self.expert_no_policy(MAIN_DQN_VARS,decay=args.decay)
+            self.use_n_step_prio = False
         elif agent == "expert_no_n_posterior":
             print("Expert Loss no n posterior")
             self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
@@ -249,6 +252,37 @@ class DQN:
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
         loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
+        return loss, loss_per_sample
+
+    def expert_no_policy(self, t_vars, decay='t', loss_cap=None):
+        # decay 't' means order one decay 1/(beta+t)
+        #       's' means beta^2+t/(beta+t)^2
+        # here set beta = 3
+        if decay == 't':
+            ratio = 1 / (4 + self.diff)
+        elif decay == 's':
+            ratio = (16 + 4 * self.diff) / tf.square(4 + self.diff)
+        self.prob = tf.reduce_sum(
+            tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+            axis=1)
+
+        self.posterior = self.target_q + self.eta * self.var * ratio * (1 - self.prob) * self.expert_state
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
+                                    reduction=tf.losses.Reduction.NONE)
+        self.n_posterior = self.target_n_q
+        l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
+                                      reduction=tf.losses.Reduction.NONE)
+        l2_reg_loss = 0
+        for v in t_vars:
+            if 'bias' not in v.name:
+                l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
+        self.l2_reg_loss = l2_reg_loss
+        self.l_dq = l_dq
+        self.l_n_dq = l_n_dq
+        self.l_jeq = self.eta * self.var * ratio / (self.target_n_q + 0.001)
+
+        loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
+        loss = tf.reduce_mean(loss_per_sample + self.l2_reg_loss)
         return loss, loss_per_sample
 
     def expert_no_n_posterior_loss(self, t_vars, decay='t', loss_cap=None):
@@ -412,12 +446,77 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
 
     double_q = q_vals[range(batch_size), arg_q_max]
+<<<<<<< HEAD
+    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:n_step_states[:, -1]})
+
+=======
     n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
     n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
+>>>>>>> 5fa75fbfba06607f715b5cb311febb873a3dc3d8
     # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
     # if the game is over, targetQ=rewards
     target_n_q = n_step_rewards[:, -1] + (last_step_gamma[:, -1]*n_step_double_q * not_terminal[:, -1])
     # Gradient descend step to update the parameters of the main network
+<<<<<<< HEAD
+    #print(np.max(rewards), np.min(rewards))
+
+    # self.l2_reg_loss = l2_reg_loss
+    # self.l_dq = l_dq
+    # self.l_n_dq = l_n_dq
+    # self.l_jeq = l_jeq
+
+    n_step_prob = np.zeros((batch_size, ))
+    n_policy = np.ones(batch_size)
+    if np.sum(expert_idxes)>0:
+      idx = np.nonzero(expert_idxes)[0]
+      # print("expert input size: ",n_step_states[idx].shape)
+      n_state_list = []
+      n_action_list = []
+      step = 3
+      for i in idx:
+          for j in range(step):
+            n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+            n_action_list.append(n_step_actions[i, j])
+      n_step_states = np.concatenate(n_state_list, axis=0)
+      n_step_actions = np.array(n_action_list)
+
+      all_prob = session.run(target_dqn.prob,
+                         feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
+
+      n_policy_expert = []
+      n_step_prob_expert = []
+      gamma_weight = np.array([gamma**i for i in range(step)])
+      for i in range(all_prob.shape[0]//step):
+          #should be a dataset of expert by n_actions
+          prob = all_prob[i * step:(i+1 ) * step]
+          n_policy_expert.append(prob)
+          n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
+      n_step_prob[idx] = np.array(n_step_prob_expert)
+      n_policy_expert = np.array(n_policy_expert)
+      maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+      n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
+      n_policy[idx] = n_policy_expert
+      # print(maxx,":::",n_policy[0],":::",action_prob[0])
+    loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                          feed_dict={main_dqn.input:states,
+                                     main_dqn.target_q:target_q,
+                                     main_dqn.action:actions,
+                                     main_dqn.target_n_q:target_n_q,
+                                     main_dqn.expert_state:expert_idxes,
+                                     main_dqn.weight:weights,
+                                     main_dqn.diff: diffs,
+                                     main_dqn.policy:action_prob,
+                                     main_dqn.n_policy:n_policy,
+                                     main_dqn.nstep_minus_prob: n_step_prob
+                                     })
+    # print(loss, q_val.shape, q_values.shape)
+    # for i in range(batch_size):
+    #     if loss[i] > 5:
+    #         print(i, loss[i], q_val[i], target_q[i], target_n_q[i], q_values[i], actions[i], expert_idxes[i])
+    # if np.sum(terminal_flags) > 0:
+    #     quit()
+=======
     if main_dqn.use_n_step_prio:
         # prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
         #                                                     target_dqn.action: n_step_actions[:,-1]})
@@ -481,6 +580,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                         main_dqn.diff: diffs,
                                         main_dqn.policy:action_prob,
                                         })
+>>>>>>> 5fa75fbfba06607f715b5cb311febb873a3dc3d8
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
@@ -521,9 +621,11 @@ def train( priority=True):
         my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name, batch_size=args.batch_size)
 
     # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
-    frame_number = REPLAY_MEMORY_START_SIZE
+    if args.load_frame_num == 0:
+        frame_number = REPLAY_MEMORY_START_SIZE
+    else:
+        frame_number = args.load_frame_num
     eps_number = 0
-
     if not os.path.exists("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
         os.makedirs("./" + args.gif_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
     if not os.path.exists("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/"):
@@ -533,7 +635,6 @@ def train( priority=True):
         max_reward, num_expert = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
-        
     ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power
     #ratio_expert=0.01
     with tf.variable_scope('mainDQN'):
@@ -549,16 +650,16 @@ def train( priority=True):
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES,
+                                 max_frames=50000000,
                                  eps_initial=args.initial_exploration)
-    saver = tf.train.Saver(max_to_keep=10)
+    saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
     sess.run(init)
 
     tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
 
     #Pretrain step ..
-    if args.pretrain_bc_iter > 0:
+    if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
         utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
                               args.pretrain_bc_iter, learn, pretrain=True)
         print("done pretraining ,test prioritized buffer")
@@ -570,15 +671,28 @@ def train( priority=True):
         my_replay_memory.delete_expert(MEMORY_SIZE)
     print("Agent: ", name)
 
-    eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
-                         model_name=name, gif=False, random=False)
-    tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
-    tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
-    utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
+    if args.load_frame_num > 0:
+        #load model ... 
+        print("Model Loaded .... ")
+        # action_getter = utils.ActionGetter(atari.env.action_space.n,
+        #                             replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+        #                             max_frames=MAX_FRAMES,
+        #                             eps_initial=0.05)
+                                    
+        load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
+        saver.restore(sess, load_path);
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
+                                      MAIN_DQN, args, frame_number=frame_number)
+        eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
+                             model_name=name, gif=True, random=False)
+        tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+        tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
+    else:
+        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                       MAIN_DQN, args)
     print_iter = 25
-    last_eval = 0
-    last_gif = 0
+    last_eval = EVAL_FREQUENCY * 0.8
+    last_gif = GIF_FREQUENCY * 0.8
     initial_time = time.time()
     max_eval_reward = -1
 
@@ -589,7 +703,7 @@ def train( priority=True):
                                                                           frame_number,MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
         eps_number += 1
-        last_gif += 1
+        last_gif += eps_len
         last_eval += eps_len
 
         if eps_number % print_iter == 0:
@@ -632,6 +746,7 @@ def train( priority=True):
                 eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=True)
             else:
+                print("No Gifs", "Gif Freq: ", GIF_FREQUENCY, last_gif)
                 eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                  frame_number, model_name=name, gif=False)
             if eval_reward > max_eval_reward:
