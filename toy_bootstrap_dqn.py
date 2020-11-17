@@ -562,8 +562,8 @@ def train(priority=True, model_name='model', num_bootstrap=10,seed=0,grid=10):
 
 # train(grid=180)
 import matplotlib.pyplot as plt
-N = 100
-M = 180
+N = 60
+M = 100
 num_seed = 5
 expert_frame = []
 boot_eps=np.zeros((M-N,num_seed))
