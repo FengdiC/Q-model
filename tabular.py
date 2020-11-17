@@ -5,6 +5,7 @@ import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import utils
 from tensorboard_logger import tensorflowboard_logger
+from ez_greedy import ez_action_sampling
 
 def compute_regret(Q_value,grid,final_reward,gamma):
     pi = np.argmax(Q_value,axis=2)
@@ -86,16 +87,17 @@ def train(grid=10,eps=True,seed =0 ):
         count=0
         episode_reward_sum = 0
         episode_length = 0
+        duration_left = 0
+        past_action = -1
         while not terminal:
             traj[count,0] = state[0]; traj[count,1]=state[1];
             Q = Q_value[state[0], state[1], :]
-            if np.random.uniform(1) < 0.2:
-                action = np.random.random_intergers(0,1)
-            else:
-                action = int(np.argmax(Q))
+            action = int(np.argmax(Q))
             #epsilon-greedy action
             if eps:
-                action = eps_action(action,frame_number,grid)
+                # action = eps_action(action,frame_number,grid)
+                past_action, duration_left = ez_action_sampling(mu=2, n_actions=2, past_action=past_action, duration_left=duration_left)
+                action = past_action
             traj[count,2] = action
             if action == 0:
                 state[0] = state[0] + 1
