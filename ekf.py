@@ -125,7 +125,7 @@ def train(grid=10,eps=True,seed =0 ):
             episode_reward_sum += reward
             episode_length += 1
         if reward ==final_reward:
-            print("reach optimal state at frame number: ",frame_number/grid)
+            print("reach optimal state at frame number: ",frame_number)
             for i in range(len(regret) - 1):
                 regret[i + 1] += regret[i]
             return frame_number,regret
@@ -143,6 +143,8 @@ def train(grid=10,eps=True,seed =0 ):
             state = traj[i,0:2].astype(dtype=int)
             next_state = traj[i+1,0:2].astype(dtype=int)
             action= int(traj[i,2])
+            update_count[state[0], state[1], action] += 1
+            t= update_count[state[0],state[1],action]
             Q = np.array([Q_value[state[0] * (grid - 1) + state[1]], Q_value[state[0] * (grid - 1) + state[1] + grid ** 2]])
             next_Q = np.array([Q_value[next_state[0]*(grid-1)+ next_state[1]],Q_value[next_state[0]*(grid-1)+ next_state[1]+grid**2]])
             next_action = np.argmax(next_Q)
@@ -155,13 +157,15 @@ def train(grid=10,eps=True,seed =0 ):
             R = np.zeros(grid*grid*2)
             R[state[0]*(grid-1)+ state[1]+action*grid**2] = reward
             # print("state size: ",state.shape)
-            update_count[state[0],state[1],action] +=1
             noise = np.zeros((grid*grid*2,grid*grid*2))
             noise[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2] = alpha*args.var
 
             #prediction step
             Q_value = np.matmul(T,Q_value) + R*alpha
             variance = np.matmul(np.matmul(np.transpose(T),variance),T) + noise
+            diff = variance[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2]\
+                   -(beta**2 +4*t)/(t+beta)**2
+            # print("variance estimate: ",diff,":::",diff/variance[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2])
 
             #correction step
             if state[0]==state[1] and state[0]<grid and not eps:
@@ -182,17 +186,4 @@ def train(grid=10,eps=True,seed =0 ):
         print(episode_reward_sum,":::",V - compute_regret(Q_value, grid, final_reward, gamma),":::",V)
     return -1,[]
 
-train(grid=12, eps=False,seed=1)
-import matplotlib.pyplot as plt
-from toy import train
-for grid in range(N,M):
-    num = train(grid=grid, eps=False,seed=seed)
-    expert_frame.append(num)
-boot_eps = np.mean(boot_eps,axis=1)
-expert_eps = np.array(expert_frame)
-
-plt.plot(range(N,M),boot_eps,label='bootstrapped DQN')
-plt.plot(range(N,M),expert_eps,label='expert')
-plt.legend()
-plt.savefig('toy_explor')
-plt.close()
+train(grid=20, eps=False,seed=1)

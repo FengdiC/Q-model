@@ -268,11 +268,11 @@ class ReplayBuffer(object):
         idxes = []
         while len(idxes) < batch_size:
             index = np.random.randint(self.agent_history_length + 1, self.expert_idx)
-            if index >= 0 and index - self.agent_history_length < self.expert_idx:
+            if index >= 0 and index - self.agent_history_length - 1 < self.expert_idx:
                 continue
-            if index >= 0 and index - self.agent_history_length < self._next_idx:
+            if index >= 0 and index - self.agent_history_length - 1 < self._next_idx:
                 continue
-            if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+            if np.sum(self.terminal_flags[index - self.agent_history_length - 1:index - 1]) > 0:
                  continue
             idxes.append(index)
         return idxes
@@ -434,9 +434,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             idx = self._it_sum.find_prefixsum_idx(mass)
             if idx < self.agent_history_length + 1:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
-                continue
-            if idx >= self._next_idx and idx - self.agent_history_length < self._next_idx:
+            if idx >= self.expert_idx and idx - self.agent_history_length - 1 < self.expert_idx:
+                continue 
+            if idx >= self._next_idx and idx - self.agent_history_length - 1 < self._next_idx:
                 continue
             if np.sum(self.terminal_flags[idx - self.agent_history_length - 1:idx - 1]) > 0:
                 continue
@@ -454,9 +454,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             idx = self._it_sum.find_prefixsum_idx(mass)
             if idx < self.agent_history_length + 1:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
+            if idx >= self.expert_idx and idx - self.agent_history_length - 1 < self.expert_idx:
                 continue
-            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+            if np.sum(self.terminal_flags[idx - self.agent_history_length - 1:idx - 1]) > 0:
                 continue
             res.append(idx)
             i += 1

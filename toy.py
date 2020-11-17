@@ -326,7 +326,7 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
                 break
 
 def eval_env(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length,
-                    learn, action_getter,grid, pretrain=False):
+                    learn, action_getter, grid, pretrain=False):
     episode_reward_sum = 0
     episode_len = 0
     eval_pos = []

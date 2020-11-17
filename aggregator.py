@@ -114,22 +114,46 @@ def extract(dpath, subpath):
             interpolated_all_steps_per_key.append(all_scalar_events_per_key[i])
 
         else:
-            interpolated_all_steps_per_key.append([])
-            current_scalar_step = []
+            result_dict = {}
             for event_id in range(len(all_scalar_events_per_key[i])):
-                current_scalar_step.append(0)
+                for current_time_index in range(len(all_scalar_events_per_key[i][event_id])):
+                    data_point = all_scalar_events_per_key[i][event_id][current_time_index]
+                    if not data_point.step in result_dict:
+                        result_dict[data_point.step] = []
+                    result_dict[data_point.step].append(data_point)
+            
+            sorted_dict = []
+            combined = zip(list(result_dict.keys()), list(result_dict.values()))
+            combined = sorted(combined, key=lambda item: item[0])
 
-            for event_id in range(len(all_scalar_events_per_key[i])):
-                data = all_scalar_events_per_key[i][event_id]
-                interpolated_all_steps_per_key[-1].append([])
-                for current_time_index in range(step_data[i][2]):
-                    current_timestep = step_data[i][1] + current_time_index * step_data[i][3]
-                    interpolated_event, current_index = interpolate(current_timestep, current_scalar_step[event_id], step_data[i][3], all_scalar_events_per_key[i][event_id])
-                    current_scalar_step[event_id] = current_index
-                    if not interpolated_event is None:
-                        interpolated_all_steps_per_key[-1][-1].append(interpolated_event)
-                    else:
-                        break
+            result_list = []
+            for i in range(len(combined)):
+                mean_value = 0
+                mean_wall = 0
+                for j in range(len(combined[i][1])):
+                    mean_value += combined[i][1][j].value 
+                    mean_wall += combined[i][1][j].wall_time
+                
+                newEvent = BaseEvent(mean_wall/len(combined[i][1]), mean_value/len(combined[i][1]), combined[i][0])
+                result_list.append(newEvent)
+            interpolated_all_steps_per_key.append(result_list)
+
+            # interpolated_all_steps_per_key.append([])
+            # current_scalar_step = []
+            # for event_id in range(len(all_scalar_events_per_key[i])):
+            #     current_scalar_step.append(0)
+
+            # for event_id in range(len(all_scalar_events_per_key[i])):
+            #     data = all_scalar_events_per_key[i][event_id]
+            #     interpolated_all_steps_per_key[-1].append([])
+            #     for current_time_index in range(step_data[i][2]):
+            #         current_timestep = step_data[i][1] + current_time_index * step_data[i][3]
+            #         interpolated_event, current_index = interpolate(current_timestep, current_scalar_step[event_id], step_data[i][3], all_scalar_events_per_key[i][event_id])
+            #         current_scalar_step[event_id] = current_index
+            #         if not interpolated_event is None:
+            #             interpolated_all_steps_per_key[-1][-1].append(interpolated_event)
+            #         else:
+            #             break
             #     for k in range(len(interpolated_all_steps_per_key[-1][-1])):
             #         print(k, interpolated_all_steps_per_key[-1][-1][k])        
             # quit()
@@ -177,33 +201,26 @@ def write_summary(dpath, all_per_key, op):
         #key name .... 
         #key_summary = tf.summary.scalar(name=key, tensor=scalar)
         data = all_per_key[key]
-        max_iter = -1
-        for event_id in range(len(data)):
-            if max_iter < len(data[event_id]):
-                max_iter = len(data[event_id])
+        # max_iter = -1
+        # for event_id in range(len(data)):
+        #     if max_iter < len(data[event_id]):
+        #         max_iter = len(data[event_id])
 
         print("Writing", key, "operation", op.__name__)
-        for step in range(max_iter):
-            value_list = []
-            step_list = []
-            wall_time = []
-            for event_id in range(len(data)):
-                if step < len(data[event_id]):
-                    value_list.append(data[event_id][step].value)
-                    step_list.append(data[event_id][step].step)
-                    wall_time.append(data[event_id][step].wall_time)
-            new_value = op(value_list)
-            new_step = int(np.mean(step_list))
-            new_wall_time = np.mean(wall_time)
-            summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=new_value)])
-            scalar_event = Event(wall_time=new_wall_time, step=new_step, summary=summary)
+        # value_list = []
+        # step_list = []
+        # wall_time = []
+        for event_id in range(len(data)):
+            # value_list.append(data[event_id].value)
+            # step_list.append(data[event_id].step)
+            # wall_time.append(data[event_id].wall_time)
+        
+        # new_value = op(value_list)
+        # new_step = int(np.mean(step_list))
+        # new_wall_time = np.mean(wall_time)
+            summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=data[event_id].value)])
+            scalar_event = Event(wall_time=data[event_id].wall_time, step=data[event_id].step, summary=summary)
             writer.add_event(scalar_event)
-
-    # for key, (steps, wall_times, aggregations) in aggregations_per_key.items():
-    #     for step, wall_time, aggregation in zip(steps, wall_times, aggregations):
-    #         summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=aggregation)])
-    #         scalar_event = Event(wall_time=wall_time, step=step, summary=summary)
-    #         writer.add_event(scalar_event)
 
     writer.flush()
 
@@ -236,7 +253,7 @@ def write_csv(dpath, subpath, key, fname, aggregations, steps, aggregation_ops):
 def aggregate(dpath, output, subpaths):
     name = dpath.name
 
-    aggregation_ops = [np.mean, np.min, np.max, np.median, np.std, np.var]
+    aggregation_ops = [np.mean]
 
     ops = {
         'summary': aggregate_to_summary,
