@@ -5,6 +5,7 @@ import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import utils
 from tensorboard_logger import tensorflowboard_logger
+import matplotlib.pyplot as plt
 
 def compute_regret(Q_value,grid,final_reward,gamma):
     pi = np.zeros((grid,grid))
@@ -56,24 +57,22 @@ def eps_action(action,frame_number,grid):
     return action
 
 
-def train(grid=10,eps=True,seed =0 ):
+def train(grid=10,eps=True ):
     print(grid,":::",eps,":::")
-    args = utils.argsparser()
-    tf.random.set_random_seed(seed)
-    np.random.seed(seed)
-
-    horizon = grid
     MAX_FRAMES = 6**grid
     final_reward = 1
     gamma = 0.99
     beta = 4.0
     eta =3.0
-    V = final_reward * args.gamma ** (grid - 1) - 0.01/grid * (1 - args.gamma ** (grid - 1)) / (1 - args.gamma)
-    print("True value for initial state: ",V)
+    var = 0.01
+    Q_value = np.zeros(grid*grid*2)
+    Q_value[grid**2:] = 1
+    V = compute_regret(Q_value, grid, final_reward, gamma)
+    print("True value for initial state: ", V)
 
     # Q-value storage
     Q_value = np.zeros(grid*grid*2)
-    variance = np.eye(grid*grid*2)*args.var
+    variance = np.eye(grid*grid*2)*var
     update_count = np.zeros((grid,grid,2))
     init = tf.global_variables_initializer()
     config = tf.ConfigProto()
@@ -88,7 +87,7 @@ def train(grid=10,eps=True,seed =0 ):
     while frame_number < MAX_FRAMES:
         terminal = False
         state = np.zeros(2,dtype=int)
-        traj = np.zeros((horizon,5))
+        traj = np.zeros((grid,5))
         count=0
         episode_reward_sum = 0
         episode_length = 0
@@ -126,9 +125,17 @@ def train(grid=10,eps=True,seed =0 ):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
-            for i in range(len(regret) - 1):
-                regret[i + 1] += regret[i]
-            return frame_number,regret
+            # if frame_number>5000:
+            #     for i in range(len(regret) - 1):
+            #         regret[i + 1] += regret[i]
+            #     return frame_number, regret
+        if V - max(Q_value[0],Q_value[grid**2]) <0.09:
+            plt.subplot(211)
+            plt.legend()
+            plt.subplot(212)
+            plt.legend()
+            plt.savefig('kalman_gain')
+            return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1];
         eps_number += 1
 
@@ -139,6 +146,7 @@ def train(grid=10,eps=True,seed =0 ):
             return e_x / e_x.sum()
 
         #update
+        kalman_gain=np.zeros((grid,2))
         for i in reversed(range(grid-1)):
             state = traj[i,0:2].astype(dtype=int)
             next_state = traj[i+1,0:2].astype(dtype=int)
@@ -158,13 +166,13 @@ def train(grid=10,eps=True,seed =0 ):
             R[state[0]*(grid-1)+ state[1]+action*grid**2] = reward
             # print("state size: ",state.shape)
             noise = np.zeros((grid*grid*2,grid*grid*2))
-            noise[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2] = alpha*args.var
+            noise[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2] = alpha*var
 
             #prediction step
             Q_value = np.matmul(T,Q_value) + R*alpha
             variance = np.matmul(np.matmul(np.transpose(T),variance),T) + noise
-            diff = variance[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2]\
-                   -(beta**2 +4*t)/(t+beta)**2
+            # diff = variance[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2]\
+            #        -(beta**2 +4*t)/(t+beta)**2
             # print("variance estimate: ",diff,":::",diff/variance[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2])
 
             #correction step
@@ -180,10 +188,41 @@ def train(grid=10,eps=True,seed =0 ):
                 hessian[state[0] * (grid - 1) + state[1], state[0] * (grid - 1) + state[1] +grid**2] =  -prob[0]*prob[1]
                 hessian[state[0] * (grid - 1) + state[1]+grid**2, state[0] * (grid - 1) + state[1]+grid**2] = prob[1]*(1 - prob[1])
                 hessian[state[0] * (grid - 1) + state[1]+ grid ** 2, state[0] * (grid - 1) + state[1] ] = -prob[0] * prob[1]
+
+                #compute kalman gain
+                z = np.zeros((grid*grid*2,2))
+                z[state[0] * (grid - 1) + state[1],0]=1
+                z[state[0] * (grid - 1) + state[1]+grid**2,1]=1
+                h = np.array([[prob[0]*(1-prob[0]),-prob[0]*prob[1]],[-prob[0] * prob[1],prob[1]*(1 - prob[1])]])
+                z= np.matmul(z,h)
+                kalman = np.matmul(np.matmul(np.transpose(z),variance),z)+ h
+                kalman = np.linalg.inv(kalman+np.eye(2)*0.001)
+                kalman = np.matmul(np.matmul(variance,z),kalman)
+                influence = np.count_nonzero(kalman)
+                amount = np.sum(np.absolute(kalman))
+                kalman_gain[i,0] = influence; kalman_gain[i,1]=amount
+
                 variance = np.linalg.inv(np.linalg.inv(variance)+hessian)
 
-        regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
-        print(episode_reward_sum,":::",V - compute_regret(Q_value, grid, final_reward, gamma),":::",V)
+        regret.append(V - max(Q_value[0],Q_value[grid**2]))
+        plt.subplot(211)
+        plt.plot(range(grid),kalman_gain[:,0],label=str(eps_number))
+        plt.subplot(212)
+        plt.plot(range(grid),kalman_gain[:,1],label=str(eps_number))
+
+        # print(V - compute_regret(Q_value, grid, final_reward, gamma))
+        print(V - max(Q_value[0],Q_value[grid**2]))
+        # print(episode_reward_sum,":::",V - compute_regret(Q_value, grid, final_reward, gamma),":::",V)
     return -1,[]
 
-train(grid=20, eps=False,seed=1)
+train(grid=8, eps=False)
+# import matplotlib.pyplot as plt
+# num,regret_ekf = train(20,False)
+# from tabular import  train
+# num, regret_tabular = train(20,False,0)
+# num, regret_eps = train(20,True,0)
+# plt.plot(range(len(regret_ekf)),regret_ekf,label="GEKF")
+# plt.plot(range(len(regret_tabular)),regret_tabular,label="estimation")
+# plt.plot(range(len(regret_eps)),regret_eps,label="epsilon greedy")
+# plt.legend()
+# plt.savefig('regrets')

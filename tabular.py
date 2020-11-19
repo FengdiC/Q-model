@@ -5,7 +5,6 @@ import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import utils
 from tensorboard_logger import tensorflowboard_logger
-from ez_greedy import ez_action_sampling
 
 def compute_regret(Q_value,grid,final_reward,gamma):
     pi = np.argmax(Q_value,axis=2)
@@ -23,7 +22,7 @@ def compute_regret(Q_value,grid,final_reward,gamma):
                 if r == grid - 1:
                     R[i,j] = final_reward
                 else:
-                    R[i,j] = -0.01
+                    R[i,j] = -0.01/grid
             P[i*grid+j,l*grid+r]=1
     for j in range(grid):
         P[(grid-1)*grid+j,(grid-1)*grid+j]=1
@@ -31,25 +30,25 @@ def compute_regret(Q_value,grid,final_reward,gamma):
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
     return Q[0]
 
-def eps_action(action,frame_number,grid):
+def eps_compute(frame_number,grid):
     c = grid/2
     if frame_number < 2**c:
         eps=1
-    elif frame_number<4**grid:
-        slope = -0.6/(4**grid-2**c)
+    elif frame_number<2**c * 5:
+        slope = -0.7/(2**c * 5-2**c)
         intercept = 1-slope*2**c
         eps = slope*frame_number+intercept
     else:
-        slope = -0.4/(6**grid-4**grid)
-        intercept = 0.4-slope*4**grid
-        eps = slope * frame_number + intercept
-    if np.random.uniform(0, 1) < eps:
-        p = np.random.uniform(0,1)
-        if p<0.5:
-            return 0
-        else:
-            return 1
-    return action
+        eps=0.3
+    return eps
+
+def ez_action_sampling(mu, n_actions, past_action, duration_left):
+    #sample randomly an action ..
+    if duration_left <= 0:
+        past_action = np.random.randint(0, n_actions)
+        duration_left = np.random.zipf(mu)
+    duration_left -= 1
+    return past_action, duration_left
 
 
 def train(grid=10,eps=True,seed =0 ):
@@ -60,11 +59,13 @@ def train(grid=10,eps=True,seed =0 ):
 
     horizon = grid
     MAX_FRAMES = 6**grid
-    final_reward = 50
+    final_reward = -1
     gamma = 0.99
     beta = 4.0
     eta =1.0
-    V = final_reward * gamma ** (grid - 2) - 0.01 * (1 - gamma ** (grid - 3)) / (1 - gamma)
+    Q_value = np.zeros((grid, grid, 2))
+    Q_value[:,:,1]=final_reward
+    V = compute_regret(Q_value,grid,final_reward,gamma)
     print("True value for initial state: ",V)
 
     # Q-value storage
@@ -90,14 +91,19 @@ def train(grid=10,eps=True,seed =0 ):
         duration_left = 0
         past_action = -1
         while not terminal:
+            e = eps_compute(frame_number,grid)
             traj[count,0] = state[0]; traj[count,1]=state[1];
             Q = Q_value[state[0], state[1], :]
             action = int(np.argmax(Q))
             #epsilon-greedy action
             if eps:
-                # action = eps_action(action,frame_number,grid)
-                past_action, duration_left = ez_action_sampling(mu=2, n_actions=2, past_action=past_action, duration_left=duration_left)
-                action = past_action
+                if duration_left >0:
+                    past_action, duration_left = ez_action_sampling(mu=2, n_actions=2, past_action=past_action, duration_left=duration_left)
+                    action = past_action
+                elif np.random.uniform(0,1)< e:
+                    past_action, duration_left = ez_action_sampling(mu=2, n_actions=2, past_action=past_action,duration_left=duration_left)
+                    action = past_action
+
             traj[count,2] = action
             if action == 0:
                 state[0] = state[0] + 1
@@ -112,10 +118,10 @@ def train(grid=10,eps=True,seed =0 ):
                     reward = final_reward
                     terminal = True
                 elif state[0] >= grid - 1:
-                    reward = -0.01
+                    reward = -0.01/grid
                     terminal = True
                 else:
-                    reward = -0.01
+                    reward = -0.01/grid
             traj[count,3]=reward
             traj[count,4] = terminal
             count +=1
@@ -125,11 +131,17 @@ def train(grid=10,eps=True,seed =0 ):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
-            for i in range(len(regret) - 1):
-                regret[i + 1] += regret[i]
-            return frame_number,regret
-        traj[count,0] = state[0]; traj[count,1]=state[1];
-        frame_number += episode_length
+            if len(regret) > 3 and regret[-2] - regret[-1] < 0.003 and eps and frame_number>2500:
+                for i in range(len(regret) - 1):
+                    regret[i + 1] += regret[i]
+                return frame_number, regret
+            if len(regret) > 3 and regret[-2] - regret[-1] < 0.003 and not eps and frame_number>4000:
+                for i in range(len(regret) - 1):
+                    regret[i + 1] += regret[i]
+                return frame_number, regret
+        # if V - compute_regret(Q_value, grid, final_reward,gamma) <0.09:
+        #     return eps_number
+        traj[count,0] = state[0]; traj[count,1]=state[1]
         eps_number += 1
 
         def softmax(x):
@@ -153,6 +165,8 @@ def train(grid=10,eps=True,seed =0 ):
                 Q = Q_value[state[0], state[1], :]
                 prob = softmax(eta*Q)
                 expert_correction = eta*var*(action-prob[action])
+                if eps:
+                    expert_correction = 0
                 target_q = reward + gamma * np.max(Q_value[next_state[0], next_state[1]]) + expert_correction
                 alpha = 1.0 / (beta + update_count[state[0], state[1], action])
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
@@ -161,77 +175,41 @@ def train(grid=10,eps=True,seed =0 ):
                 alpha = beta/(beta+update_count[state[0],state[1],action])
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
 
-        regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
-        print(V - compute_regret(Q_value, grid, final_reward, gamma))
-
-        if eps_number%5==0:
-            state = np.zeros(2, dtype=int)
-            for _ in range(horizon):
-                Q = Q_value[state[0], state[1], :]
-                action = int(np.argmax(Q))
-                if action == 0:
-                    state[0] = state[0] + 1
-                    state[1] = max(0, state[1] - 1)
-                    reward = 0
-                    if state[0] >= grid - 1:
-                        terminal = True
-                else:
-                    state[0] = state[0] + 1
-                    state[1] = min(state[1] + 1, grid - 1)
-                    if state[1] == grid - 1:
-                        reward = final_reward
-                        terminal = True
-                    elif state[0] >= grid - 1:
-                        reward = -0.01
-                        terminal = True
-                    else:
-                        reward = -0.01
-                if terminal:
-                    eval_reward = reward
+        regret.append(V - np.max(Q_value[0,0]))
+        print(V-compute_regret(Q_value,grid,final_reward,gamma))
+        print(V - np.max(Q_value[0,0]))
     return -1,[]
 
-train(grid=20, eps=False,seed=1)
+train(10,False,0)
 # import matplotlib.pyplot as plt
-# N = 18
-# M = 20
-# num_seed = 5
-# eps = np.zeros((N-5,num_seed))
-# expert_frame = []
-# exponential = []
-# for grid in range(5,15):
-#     exponential.append(2 ** grid)
-# for seed in range(num_seed):
-#     eps_frame = []
-#     for grid in range(5,N):
-#         eps_num,eps_reg = train(grid = grid,eps=True,seed=seed)
-#         eps_frame.append(eps_num/grid)
+# M=7
+# N=28
 #
-#     eps[:,seed] = np.array(eps_frame)
+# reach = np.zeros(N-M)
+# for seed in range(5):
+#     for grid in range(M,N,1):
+#         print("epsilon: grid_",grid,"seed_",seed)
+#         num = train(grid,True,seed)
+#         reach[grid-M] += num
+# reach_eps = reach/5.0
 #
-# for grid in range(5,M):
-#     num, reg = train(grid=grid, eps=False,seed=seed)
-#     expert_frame.append(num/grid)
-# exponential = np.array(exponential)
-# eps_frame = np.mean(eps,axis=1)
-# eps_err = np.std(eps,axis=1)
-# expert_frame = np.array(expert_frame)
+# reach = np.zeros(N-M)
+# for grid in range(M,N,1):
+#     print("tabular: grid_", grid)
+#     num = train(grid,False,seed=0)
+#     reach[grid-M] = num
+# reach_tabular = reach
 #
-# plt.plot(range(5,15), exponential,label='dithering')
-# plt.plot(range(5,N),eps_frame,label='epsilon_greedy')
-# plt.plot(range(5,M),expert_frame,label='expert')
+# from ekf import train
+# reach = np.zeros(N-M)
+# for grid in range(M,N,1):
+#     print("ekf: grid_", grid)
+#     num = train(grid,False)
+#     reach[grid-M] = num
+# reach_ekf = reach
+#
+# plt.plot(range(M,N,1),reach_eps,label='epsilon-greedy')
+# plt.plot(range(M,N,1),reach_tabular,label='estimation')
+# plt.plot(range(M,N,1),reach_ekf,label='GEKF')
 # plt.legend()
 # plt.savefig('toy_explor')
-# plt.close()
-
-# num_seed=3
-# for seed in range(num_seed):
-#     grid = 10
-#     _, eps_reg = train(grid = grid,eps=True,seed=seed)
-#     plt.plot(range(len(eps_reg)), eps_reg, label='epsilon_greedy_'+str(seed))
-#
-# _, reg = train(grid=grid, eps=False,seed=seed)
-#
-# plt.plot(range(len(reg)),reg,label='expert')
-# # plt.plot(range(len(reg)),range(40,40+len(reg)),label='linear')
-# plt.legend()
-# plt.savefig("toy_regret")

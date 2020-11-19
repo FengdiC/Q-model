@@ -77,10 +77,8 @@ class DQN:
 
         self.lr = tf.placeholder(shape=[batch_size],dtype=tf.float32)
 
-        self.dq_loss = tf.losses.huber_loss(labels=self.target,predictions=self.Q,reduction=tf.losses.Reduction.NONE,
-                                            weights=self.lr)
-        self.reg_loss = tf.losses.huber_loss(labels=self.prior,predictions=self.Q,reduction=tf.losses.Reduction.NONE,
-                                             weights=self.lr)
+        self.dq_loss = tf.losses.huber_loss(labels=self.target,predictions=self.Q,reduction=tf.losses.Reduction.NONE)
+        self.reg_loss = tf.losses.huber_loss(labels=self.prior,predictions=self.Q,reduction=tf.losses.Reduction.NONE)
 
 
         MAIN_DQN_VARS = find_vars(name)
@@ -130,7 +128,7 @@ def learn(session, states, actions, rewards, new_states, terminal_flags, main_dq
 
     lr = np.zeros(batch_size)
     for i in range(batch_size):
-        lr[i] = 1.0 / (4 + update_count[int(states[i, 0]), int(states[i, 1]), int(actions[i])])
+        lr[i] = min(1.0/ (update_count[int(states[i, 0]), int(states[i, 1]), int(actions[i])]),0.01)
         #print(lr[i], update_count[int(states[i, 0]), int(states[i, 1]), int(actions[i])])\
 
     # for i in range(grid):
@@ -515,7 +513,7 @@ def train(priority=True,k=50,seed = 0):
         regrets[i + 1] += regrets[i]
     return -1, regrets, frames
 
-train(k=50,seed=0)
+train(k=20,seed=0)
 # from scipy.interpolate import make_interp_spline, BSpline
 # import matplotlib.pyplot as plt
 # # 300 represents number of points to make between T.min and T.max

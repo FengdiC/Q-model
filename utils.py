@@ -165,6 +165,9 @@ class ActionGetter:
             max_frames: Integer, Total number of frames shown to the agent
         """
         self.min_eps = min_eps
+        self.duration_left = 0
+        self.past_action = -1
+
         eps_final = min(eps_initial, eps_final * eps_initial)
         eps_final_frame = min(eps_final, eps_final_frame * eps_initial)
         self.n_actions = n_actions
@@ -213,7 +216,15 @@ class ActionGetter:
     def get_random_action(self):
         return np.random.randint(0, self.n_actions)
 
-    def get_action(self, session, frame_number, state, main_dqn, evaluation=False, building_replay=False):
+    def ez_action_sampling(self,mu, n_actions, past_action, duration_left):
+        # sample randomly an action ..
+        if duration_left <= 0:
+            past_action = np.random.randint(0, n_actions)
+            duration_left = np.random.zipf(mu)
+        duration_left -= 1
+        return past_action, duration_left
+
+    def get_action(self, session, frame_number, state, main_dqn, evaluation=False, building_replay=False,temporal=False):
         """
         Args:
             session: A tensorflow session object
@@ -237,8 +248,18 @@ class ActionGetter:
             eps = self.slope_2 * frame_number + self.intercept_2
         #print(eps)
         eps = max(eps, self.min_eps)
-        if np.random.uniform(0, 1) < eps:
-            return self.get_random_action()
+        if temporal:
+            if self.duration_left > 0:
+                self.past_action, self.duration_left = self.ez_action_sampling(mu=2, n_actions=2, past_action=self.past_action,
+                                                                duration_left=self.duration_left)
+                return self.past_action
+            elif np.random.uniform(0, 1) < eps:
+                self.past_action, self.duration_left = self.ez_action_sampling(mu=2, n_actions=2, past_action=self.past_action,
+                                                                duration_left=self.duration_left)
+                return self.past_action
+        else:
+            if np.random.uniform(0, 1) < eps:
+                return self.get_random_action()
         #print("Was here .... ")
         result, q_vals = session.run([main_dqn.best_action, main_dqn.q_values], feed_dict={main_dqn.input: [state]})
         # result = result[0]
