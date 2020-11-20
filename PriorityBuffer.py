@@ -188,7 +188,8 @@ class ReplayBuffer(object):
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
         self.terminal_flags[self.expert_idx] = done
-
+        if done:
+            print("expert", self._next_idx, self.count)
         self.count = min(self._maxsize, self.count + 1)
         self.expert_idx = (self.expert_idx + 1)
         if self.expert_idx > self._maxsize:
@@ -208,7 +209,6 @@ class ReplayBuffer(object):
         self.terminal_flags[self._next_idx] = done
         if self.bootstrap > 0:
             self.sample_boostrap(self._next_idx)
-
         self.count = min(self._maxsize, self.count + 1)
         self._next_idx = (self._next_idx + 1) % (self._maxsize)
         if self._next_idx < self.expert_idx:
@@ -429,9 +429,16 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         p_total = self._it_sum.sum(self.agent_history_length, self.count - 1)
         every_range_len = p_total / batch_size
         i = 0
+        count = 0
         while len(res) < batch_size:
             mass = random.random() * every_range_len + i * every_range_len
             idx = self._it_sum.find_prefixsum_idx(mass)
+            count += 1
+            # if count > 9900:
+            #     print(count, mass, idx)
+            if count > 10000:
+                print("What is going on .... ", mass, idx, "total: ", self.agent_history_length ,self.count, self.expert_idx, self._next_idx, self._maxsize)
+                quit()
             if idx < self.agent_history_length + 1:
                 continue
             if idx >= self.expert_idx and idx - self.agent_history_length - 1 < self.expert_idx:
@@ -439,6 +446,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             if idx >= self._next_idx and idx - self.agent_history_length - 1 < self._next_idx:
                 continue
             if np.sum(self.terminal_flags[idx - self.agent_history_length - 1:idx - 1]) > 0:
+                # if count > 9900:
+                #     print(self.terminal_flags[idx - 25:idx + 25])
                 continue
             res.append(idx)
             i += 1
@@ -648,6 +657,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         #Reward check
         print("Min Reward: ", np.min(self.rewards), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
+        print("Total Reward: ", np.sum(data['reward']))
         return max_reward,num_data
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_modifier=1, min_priority=0.001, min_expert_priority=1,

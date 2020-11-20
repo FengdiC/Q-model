@@ -545,23 +545,23 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
     terminal = False
     frame = env.reset()
     for _ in range(eps_length):
-        if args.stochastic_exploration == "True":
-            action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
-        elif args.agent!='dqn':
-            action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN,evaluation=True)
-        else:
-            action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False,temporal=True)
-        next_frame, reward, terminal = env.step(action)
-        replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
-        episode_length += 1
-        episode_reward_sum += reward
+        if not pretrain:
+            if args.stochastic_exploration == "True":
+                action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
+            elif args.agent!='dqn':
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN,evaluation=True)
+            else:
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False,temporal=True)
+            next_frame, reward, terminal = env.step(action)
+            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            episode_length += 1
+            episode_reward_sum += reward
         frame_num += 1
 
         if frame_num % UPDATE_FREQ == 0 and frame_num > grid - 1:
             generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
             generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                 BS, args.beta, expert=pretrain)  # Generated trajectories
-
             loss, loss_dq, loss_jeq = learn(sess, generated_states, generated_actions, generated_diffs,
                                             generated_rewards,
                                             generated_new_states, generated_terminal_flags, generated_weights,
@@ -659,9 +659,10 @@ def train(priority=True, model_name='model', grid=10, seed=0):
 
         last_eval = 0
         if args.agent !='dqn':
+            print("Beginning to pretrain")
             train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                MAX_EPISODE_LENGTH, learn, action_getter, grid, shaping, pretrain=True)
+                args.pretrain_bc_iter, learn, action_getter, grid, shaping, pretrain=True)
             print("done pretraining ,test prioritized buffer")
             print("buffer expert size: ", my_replay_memory.expert_idx)
         if args.agent=='dqn':

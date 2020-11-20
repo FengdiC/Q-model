@@ -696,17 +696,15 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
             # print("Action: ",action)
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-            frame_num += 1
             episode_reward_sum += reward
             episode_length += 1
 
             replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
         else:
-            frame_num += 1
             if frame_num % 1000 == 0:
                 print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]),
                       np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
-
+        frame_num += 1
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if pretrain:
                 generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
