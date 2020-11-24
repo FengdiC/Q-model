@@ -717,8 +717,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
             frame_number += eps_len
             eps_number += 1
             last_eval += eps_len
-            print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed,'EPS Length: ',eps_len,
-                  "Level: ",env.level)
+            # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed,'EPS Length: ',eps_len,
+            #       "Level: ",env.level)
 
             if args.env_id == 'chain':
                 q_values = MAIN_DQN.get_q_value(sess)
@@ -738,7 +738,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
                     return eps_number
 
 # train_bootdqn(grid=20)
-train(grid=10,agent='dqfd')
+# train(grid=10,agent='dqfd')
 
 # import matplotlib.pyplot as plt
 # M=50

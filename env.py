@@ -82,8 +82,6 @@ class toy_maze:
         dist_to_e = np.abs(x - self.end_state[0]) + np.abs(y - self.end_state[1])
         if dist_to_e == 0:
             terminal = 1
-            if self.level < len(self.data['dangers']):
-                terminal = 0
             reward = self.final_reward
             print("Reach final reward")
         else:
@@ -119,6 +117,8 @@ class toy_maze:
 
         self.timestep += 1
         self.terminal = terminal
+        if self.level < len(self.data['dangers']):
+            terminal = 0
         return np.array(state)+1, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=512):
