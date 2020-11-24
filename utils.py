@@ -74,7 +74,7 @@ def argsparser():
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
     parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
-    parser.add_argument('--grid_size', type=int, help='for toy examples', default=128)
+    parser.add_argument('--state_size', type=int, help='for toy examples', default=2)
 
 
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
