@@ -83,7 +83,7 @@ class toy_maze:
         if dist_to_e == 0:
             terminal = 1
             reward = self.final_reward
-            print("Reach final reward")
+            # print("Reach final reward")
         else:
             terminal = 0
             dist_to_d = min([np.abs(x - z[0]) + np.abs(y - z[1]) for z in self.dangers] or [99])
