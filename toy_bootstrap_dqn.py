@@ -273,7 +273,7 @@ class toy_env:
         self.current_state_x = np.clip(self.current_state_x, 0, self.grid - 1)
         self.current_state_y = np.clip(self.current_state_y, 0, self.grid - 1)
 
-        if (self.current_state_x == self.grid - 1) and (self.current_state_y == self.grid - 1):
+        if (self.current_state_x >= self.grid - 1) and (self.current_state_y >= self.grid - 1):
             reward = self.final_reward
             print("Reach final reward")
             self.final=True
@@ -287,7 +287,7 @@ class toy_env:
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=1):
         print("Creating Expert Data ... ")
         expert = {}
-        half_expert_traj = self.grid//expert_ratio
+        half_expert_traj = (self.grid-1)//expert_ratio
         num_batches = math.ceil(min_expert_frames/half_expert_traj)
         num_expert = num_batches * half_expert_traj
         
@@ -304,8 +304,10 @@ class toy_env:
                 rewards[current_index] = r 
                 terminals[current_index] = t
                 current_index += 1
+                if t:
+                    self.reset()
         expert['actions'] = np.ones((num_expert,), dtype=np.uint8)
-        expert['frames'] = expert_frames+1
+        expert['frames'] = expert_frames
         expert['reward'] = rewards
         expert['terminal'] = terminals
         self.final = False
@@ -458,7 +460,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = -1
+            final_reward = 1
             env = toy_env(grid, final_reward)
 
         bootstrap_dqns = []
@@ -514,8 +516,8 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
             if args.env_id=='chain':
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
-                # correct = grid - 1 - np.sum(np.diag(pi)[:-1])
-                correct = np.sum(pi[:, 0])
+                correct = grid - 1 - np.sum(np.diag(pi)[:-1])
+                # correct = np.sum(pi[:, 0])
                 print(grid , eps_number, correct, eps_rw)
                 regret_list.append(correct)
                 # #compute regret
@@ -641,7 +643,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = -1
+            final_reward = 1
             env = toy_env(grid, final_reward)
 
         with tf.variable_scope('mainDQN'):
@@ -724,8 +726,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                # correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                correct = np.sum(pi[:,0])
+                correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                # correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
 
@@ -739,12 +741,11 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
 # train_bootdqn(grid=20)
 # train(grid=10,agent='dqfd')
+import matplotlib.pyplot as plt
+M=50
+N=90
 
-# import matplotlib.pyplot as plt
-# M=50
-# N=90
-#
-# reach = np.zeros((3,N-M))
+reach = np.zeros((3,N-M))
 # for seed in range(3):
 #     for grid in range(M,N,1):
 #         print("epsilon: grid_",grid,"seed_",seed)
@@ -757,16 +758,18 @@ def train(priority=True, agent='model', grid=10, seed=0):
 # np.save('bootdqn_expor',reach)
 # # reach = np.load('bootdqn_expor.npy')
 #
-# for grid in range(M,N,1):
-#     print("our approach: grid_", grid)
-#     num = train(grid=grid,agent='expert')
-#     # num_dqfd= train(grid=grid,agent='dqfd')
-#     # num_potential = train(grid=grid,agent='shaping')
-#     reach[2,grid-M] = num
-#
-#
-# plt.plot(range(M,N,1),reach[0,:],label='DQN with temporally-extended epsilon greedy')
-# plt.plot(range(M,N,1),reach[1,:],label='bootstrapped DQN')
-# plt.plot(range(M,N,1),reach[2,:],label='BQfD')
-# plt.legend()
-# plt.savefig('chain_bomb_eratio_'+str(1))
+for grid in range(M,N,1):
+    print("our approach: grid_", grid)
+    num = train(grid=grid,agent='expert')
+    num_dqfd= train(grid=grid,agent='dqfd')
+    num_potential = train(grid=grid,agent='shaping')
+    reach[0,grid-M] = num_dqfd
+    reach[1,grid-M] = num_potential
+    reach[2,grid-M] = num
+np.save('RLfD_eratio_1_r1')
+
+plt.plot(range(M,N,1),reach[0,:],label='DQfD')
+plt.plot(range(M,N,1),reach[1,:],label='RLfD through shaping')
+plt.plot(range(M,N,1),reach[2,:],label='BQfD')
+plt.legend()
+plt.savefig('chain_rlfd_eratio_'+str(1))
