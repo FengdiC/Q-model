@@ -584,7 +584,7 @@ def train( priority=True):
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=50000000,
+                                 max_frames=args.eps_max_frames,
                                  eps_initial=args.initial_exploration)
     saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
