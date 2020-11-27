@@ -502,7 +502,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                         main_dqn.n_policy:n_policy,
                                         main_dqn.nstep_minus_prob: n_step_prob
                                         })
-
     else:
         loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                     main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
