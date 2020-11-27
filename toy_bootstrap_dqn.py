@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -511,7 +512,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
             frame_number += eps_len
             eps_number += 1
             last_eval += eps_len
-            print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
+            # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
 
             if args.env_id=='chain':
                 q_values = MAIN_DQN.get_q_value(sess)
@@ -745,19 +746,19 @@ import matplotlib.pyplot as plt
 M=50
 N=90
 
-reach = np.zeros((5,N-M))
-for seed in range(3):
-    for grid in range(M,N,1):
-        print("epsilon: grid_",grid,"seed_",seed)
-        num_dqn = train(grid=grid,agent='dqn',seed=seed)
-        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-        reach[0,grid-M] += num_dqn
-        reach[1,grid-M] += num_boot
+#reach = np.zeros((5,N-M))
+#for seed in range(3):
+#    for grid in range(M,N,1):
+#        print("epsilon: grid_",grid,"seed_",seed)
+#        num_dqn = train(grid=grid,agent='dqn',seed=seed)
+#        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
+#        reach[0,grid-M] += num_dqn
+#        reach[1,grid-M] += num_boot
 
-reach = reach/3.0
-np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
-# # reach = np.load('bootdqn_expor.npy')
-#
+#reach = reach/3.0
+#np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
+reach = np.load('/scratch/fengdic/bootdqn_expor_bomb')
+
 for grid in range(M,N,1):
     print("our approach: grid_", grid)
     num = train(grid=grid,agent='expert')
@@ -766,7 +767,7 @@ for grid in range(M,N,1):
     reach[3,grid-M] = num_dqfd
     reach[4,grid-M] = num_potential
     reach[2,grid-M] = num
-np.save('/scratch/fengdic/RLfD_eratio_1_bomb')
+np.save('/scratch/fengdic/RLfD_eratio_1_bomb',reach)
 
 plt.plot(range(M,N,1),reach[0,:],label='DQN with temporally-extended epsilon greedy')
 plt.plot(range(M,N,1),reach[1,:],label='bootstrapped DQN')
