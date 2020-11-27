@@ -59,10 +59,10 @@ def train(grid=10,eps=True,seed =0 ):
 
     horizon = grid
     MAX_FRAMES = 6**grid
-    final_reward = -1
+    final_reward = 1
     gamma = 0.99
     beta = 4.0
-    eta =1.0
+    eta =1.2
     Q_value = np.zeros((grid, grid, 2))
     Q_value[:,:,1]=final_reward
     V = compute_regret(Q_value,grid,final_reward,gamma)
@@ -80,6 +80,7 @@ def train(grid=10,eps=True,seed =0 ):
     regret = []
     sess = tf.Session(config=config)
     sess.run(init)
+    final= False
 
     while frame_number < MAX_FRAMES:
         terminal = False
@@ -131,6 +132,7 @@ def train(grid=10,eps=True,seed =0 ):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
+            final= True
             if len(regret) > 3 and regret[-2] - regret[-1] < 0.003 and eps and frame_number>2500:
                 for i in range(len(regret) - 1):
                     regret[i + 1] += regret[i]
@@ -139,8 +141,8 @@ def train(grid=10,eps=True,seed =0 ):
                 for i in range(len(regret) - 1):
                     regret[i + 1] += regret[i]
                 return frame_number, regret
-        # if V - compute_regret(Q_value, grid, final_reward,gamma) <0.09:
-        #     return eps_number
+            # if len(regret)>3 and np.mean(regret[-3:])==0 and final:
+            #     return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1]
         eps_number += 1
 
@@ -161,7 +163,7 @@ def train(grid=10,eps=True,seed =0 ):
             if state[0]==state[1] and state[0]<grid and not eps:
                 # plus expert correction loss
                 t = int(update_count[state[0],state[1],action])
-                var = (beta**2 +4*t)/(t+beta)**2
+                var = (0.2)*(beta**2 +4*t)/(t+beta)**2
                 Q = Q_value[state[0], state[1], :]
                 prob = softmax(eta*Q)
                 expert_correction = eta*var*(action-prob[action])
@@ -175,12 +177,20 @@ def train(grid=10,eps=True,seed =0 ):
                 alpha = beta/(beta+update_count[state[0],state[1],action])
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
 
+        # pi = np.argmax(Q_value, axis=2)
+        # correct = np.sum(pi[:,0])
+        # # print(pi[:,0])
+        # regret.append(correct)
+        # print("Episode: ",eps_number,"policy: ",correct)
+
         regret.append(V - np.max(Q_value[0,0]))
-        print(V-compute_regret(Q_value,grid,final_reward,gamma))
-        print(V - np.max(Q_value[0,0]))
+        # regret.append(V-compute_regret(Q_value,grid,final_reward,gamma))
+        print("Episode: ", eps_number, "regret: ", V - np.max(Q_value[0,0]))
+        # print(V - np.max(Q_value[0,0]))
     return -1,[]
 
-train(10,False,0)
+
+# train(80,False,0)
 # import matplotlib.pyplot as plt
 # M=7
 # N=28

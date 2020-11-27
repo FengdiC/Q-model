@@ -117,7 +117,7 @@ class toy_maze:
 
         self.timestep += 1
         self.terminal = terminal
-        if self.level < len(self.data['dangers']):
+        if self.level < len(self.data['dangers']) and terminal:
             terminal = 0
         return np.array(state)+1, reward, terminal
 
@@ -149,7 +149,7 @@ class toy_maze:
         expert['frames'] = expert_frames
         expert['reward'] = rewards
         expert['terminal'] = terminals
-        with open('expert_toy', 'wb') as fout:
+        with open('expert_maze', 'wb') as fout:
             pickle.dump(expert, fout)
 
     def print_state(self):
@@ -192,14 +192,16 @@ def play():
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("human_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("explor_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         else:
             obs, rew, terminal = env.step(action)
             data_list.append([action, obs, rew, terminal])
             count += 1
-            if terminal and env.level>1:
+            if env.terminal and env.level>1:
                 env_done= True
+            if env.terminal:
+                env.reset()
 
         if obs is not None:
             plot_state(obs)
