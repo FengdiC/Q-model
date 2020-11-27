@@ -745,7 +745,7 @@ import matplotlib.pyplot as plt
 M=50
 N=90
 
-reach = np.zeros((5,N-M))
+# reach = np.zeros((5,N-M))
 # for seed in range(3):
 #     for grid in range(M,N,1):
 #         print("epsilon: grid_",grid,"seed_",seed)
@@ -756,8 +756,8 @@ reach = np.zeros((5,N-M))
 #
 # reach = reach/3.0
 # np.save('bootdqn_expor',reach)
-# # reach = np.load('bootdqn_expor.npy')
-#
+reach = np.load('bootdqn_explor.npy')
+
 for grid in range(M,N,1):
     print("our approach: grid_", grid)
     num = train(grid=grid,agent='expert')
@@ -766,7 +766,7 @@ for grid in range(M,N,1):
     reach[3,grid-M] = num_dqfd
     reach[4,grid-M] = num_potential
     reach[2,grid-M] = num
-np.save('RLfD_eratio_1_r1')
+np.save('RLfD_eratio_1_r1',reach)
 
 plt.plot(range(M,N,1),reach[0,:],label='DQN with temporally-extended epsilon greedy')
 plt.plot(range(M,N,1),reach[1,:],label='bootstrapped DQN')
