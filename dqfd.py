@@ -502,7 +502,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                         main_dqn.n_policy:n_policy,
                                         main_dqn.nstep_minus_prob: n_step_prob
                                         })
-
     else:
         loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                     main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
@@ -584,7 +583,7 @@ def train( priority=True):
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
     action_getter = utils.ActionGetter(atari.env.action_space.n,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=50000000,
+                                 max_frames=args.eps_max_frames,
                                  eps_initial=args.initial_exploration)
     saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
