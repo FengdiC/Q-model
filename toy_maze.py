@@ -441,6 +441,8 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
                     network_updater.update_networks(sess)
             if terminal:
                 break
+            if env.terminal:
+                env.reset()
     return episode_reward_sum, episode_length, np.mean(episode_loss), np.mean(episode_dq_loss), \
            np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
 
@@ -613,6 +615,8 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                 network_updater.update_networks(sess)
             if terminal:
                 break
+            if env.terminal:
+                env.reset()
     return episode_reward_sum, episode_length, np.mean(episode_loss), np.mean(episode_dq_loss), \
            np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio), regret_list, frame_list
 
@@ -646,10 +650,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         MAX_EPISODE_LENGTH = 2*grid * grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 200  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 * 400  # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 4000  # grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 8000  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -657,7 +661,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes')
+            env = toy_maze('/home/fengdic/Q-model/mazes')
         else:
             final_reward = 1
             env = toy_env(grid, final_reward)
@@ -684,7 +688,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-        action_getter = utils.ActionGetter(env.n_actions,
+        action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
                                                replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                                max_frames=MAX_FRAMES,
                                                eps_initial=args.initial_exploration/2.0)
@@ -697,7 +701,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
             "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(
                 args.seed) + "_" + args.custom_id, sess, args)
 
-        my_replay_memory.load_expert_data('expert_toy')
+        my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
 
         print("Agent: ", agent)
         regret_list = []

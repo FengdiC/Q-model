@@ -311,7 +311,7 @@ class toy_env:
         expert['reward'] = rewards
         expert['terminal'] = terminals
         self.final = False
-        with open('expert_toy', 'wb') as fout:
+        with open('/home/fengdic/Q-model/expert_toy', 'wb') as fout:
             pickle.dump(expert, fout)
 
     def print_state(self):
@@ -447,10 +447,10 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 200 # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 * 90 # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 4000#grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 1800#grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -460,7 +460,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = 1
+            final_reward = -1
             env = toy_env(grid, final_reward)
 
         bootstrap_dqns = []
@@ -484,7 +484,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         else:
             print("Not Priority")
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],agent_history_length=1, agent=name, batch_size=BS, bootstrap=num_bootstrap)
-        action_getter = utils.ActionGetter(env.n_actions,
+        action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE,
                                         replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                         max_frames=MAX_FRAMES,
                                         eps_initial=args.initial_exploration)
@@ -516,8 +516,8 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
             if args.env_id=='chain':
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
-                correct = grid - 1 - np.sum(np.diag(pi)[:-1])
-                # correct = np.sum(pi[:, 0])
+                # correct = grid - 1 - np.sum(np.diag(pi)[:-1])
+                correct = np.sum(pi[:, 0])
                 print(grid , eps_number, correct, eps_rw)
                 regret_list.append(correct)
                 # #compute regret
@@ -630,10 +630,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 200  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 * 90  # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 4000  # grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 1800  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -643,7 +643,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = 1
+            final_reward = -1
             env = toy_env(grid, final_reward)
 
         with tf.variable_scope('mainDQN'):
@@ -667,7 +667,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
                                                            agent_history_length=1, agent=name, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-        action_getter = utils.ActionGetter(env.n_actions,
+        action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE,
                                            replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                            max_frames=MAX_FRAMES,
                                            eps_initial=args.initial_exploration)
@@ -677,7 +677,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         eps_number = 0
         frame_number = 0
 
-        my_replay_memory.load_expert_data('expert_toy')
+        my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
 
         print("Agent: ", name)
         regret_list = []
@@ -726,8 +726,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                # correct = np.sum(pi[:,0])
+                # correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
 
@@ -755,7 +755,7 @@ for seed in range(3):
         reach[1,grid-M] += num_boot
 
 reach = reach/3.0
-np.save('bootdqn_expor',reach)
+np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
 # # reach = np.load('bootdqn_expor.npy')
 #
 for grid in range(M,N,1):
@@ -766,7 +766,7 @@ for grid in range(M,N,1):
     reach[3,grid-M] = num_dqfd
     reach[4,grid-M] = num_potential
     reach[2,grid-M] = num
-np.save('RLfD_eratio_1_r1')
+np.save('/scratch/fengdic/RLfD_eratio_1_bomb')
 
 plt.plot(range(M,N,1),reach[0,:],label='DQN with temporally-extended epsilon greedy')
 plt.plot(range(M,N,1),reach[1,:],label='bootstrapped DQN')
@@ -774,4 +774,4 @@ plt.plot(range(M,N,1),reach[3,:],label='DQfD')
 plt.plot(range(M,N,1),reach[4,:],label='RLfD through shaping')
 plt.plot(range(M,N,1),reach[2,:],label='BQfD')
 plt.legend()
-plt.savefig('chain_rlfd_r1_eratio_'+str(1))
+plt.savefig('/scratch/fengdic/chain_rlfd_bomb_eratio_'+str(1))
