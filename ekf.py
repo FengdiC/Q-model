@@ -83,6 +83,7 @@ def train(grid=10,eps=True ):
     regret = []
     sess = tf.Session(config=config)
     sess.run(init)
+    final=False
 
     while frame_number < MAX_FRAMES:
         terminal = False
@@ -125,17 +126,15 @@ def train(grid=10,eps=True ):
             episode_length += 1
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
+            final=True
             # if frame_number>5000:
             #     for i in range(len(regret) - 1):
             #         regret[i + 1] += regret[i]
             #     return frame_number, regret
-        if V - max(Q_value[0],Q_value[grid**2]) <0.09:
-            plt.subplot(211)
-            plt.legend()
-            plt.subplot(212)
-            plt.legend()
-            plt.savefig('kalman_gain')
-            return eps_number
+            if len(regret)>30 and np.mean(regret[-30:])<0.001 and final:
+                plt.legend()
+                plt.savefig('kalman_gain')
+                return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1];
         eps_number += 1
 
@@ -146,7 +145,6 @@ def train(grid=10,eps=True ):
             return e_x / e_x.sum()
 
         #update
-        kalman_gain=np.zeros((grid,2))
         for i in reversed(range(grid-1)):
             state = traj[i,0:2].astype(dtype=int)
             next_state = traj[i+1,0:2].astype(dtype=int)
@@ -157,14 +155,14 @@ def train(grid=10,eps=True ):
             next_Q = np.array([Q_value[next_state[0]*(grid-1)+ next_state[1]],Q_value[next_state[0]*(grid-1)+ next_state[1]+grid**2]])
             next_action = np.argmax(next_Q)
             T = np.eye(grid*grid*2)
-            alpha = 1.0 / (beta + update_count[state[0], state[1], action])
+            alpha = 1.0 / (beta + t)
             T[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2]= 1-alpha
             T[state[0] * (grid - 1) + state[1] + action * grid ** 2,
               next_state[0] * (grid - 1) + next_state[1] + next_action * grid ** 2] = gamma*alpha
             reward = traj[i,3]
             R = np.zeros(grid*grid*2)
             R[state[0]*(grid-1)+ state[1]+action*grid**2] = reward
-            # print("state size: ",state.shape)
+
             noise = np.zeros((grid*grid*2,grid*grid*2))
             noise[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2] = alpha*var
 
@@ -179,36 +177,68 @@ def train(grid=10,eps=True ):
             if state[0]==state[1] and state[0]<grid and not eps:
                 expert = np.zeros(grid*grid*2)
                 prob = softmax(eta * Q)
-                expert[state[0]*(grid-1)+ state[1]] =  -eta * prob[0]
+                # expert[state[0]*(grid-1)+ state[1]] =  -eta * prob[0]
                 expert[state[0] * (grid - 1) + state[1]+grid**2] = eta * (1-prob[1])
                 # plus expert correction loss
-                Q_value = Q_value+ np.matmul(variance,expert)
+                correction = np.matmul(variance,expert)
+                # print("state number: ",state[0],"amount: ",correction[state[0] * (grid - 1) + state[1]+grid**2]/(eta * (1-prob[1])))
+                Q_value[state[0] * (grid - 1) + state[1]+grid**2] += correction[state[0] * (grid - 1) + state[1]+grid**2]
+
                 hessian = np.zeros((grid*grid*2,grid*grid*2))
                 hessian[state[0] * (grid - 1) + state[1],state[0] * (grid - 1) + state[1]] = prob[0]*(1-prob[0])
                 hessian[state[0] * (grid - 1) + state[1], state[0] * (grid - 1) + state[1] +grid**2] =  -prob[0]*prob[1]
                 hessian[state[0] * (grid - 1) + state[1]+grid**2, state[0] * (grid - 1) + state[1]+grid**2] = prob[1]*(1 - prob[1])
                 hessian[state[0] * (grid - 1) + state[1]+ grid ** 2, state[0] * (grid - 1) + state[1] ] = -prob[0] * prob[1]
 
-                #compute kalman gain
-                z = np.zeros((grid*grid*2,2))
-                z[state[0] * (grid - 1) + state[1],0]=1
-                z[state[0] * (grid - 1) + state[1]+grid**2,1]=1
-                h = np.array([[prob[0]*(1-prob[0]),-prob[0]*prob[1]],[-prob[0] * prob[1],prob[1]*(1 - prob[1])]])
-                z= np.matmul(z,h)
-                kalman = np.matmul(np.matmul(np.transpose(z),variance),z)+ h
-                kalman = np.linalg.inv(kalman+np.eye(2)*0.001)
-                kalman = np.matmul(np.matmul(variance,z),kalman)
-                influence = np.count_nonzero(kalman)
-                amount = np.sum(np.absolute(kalman))
-                kalman_gain[i,0] = influence; kalman_gain[i,1]=amount
+                variance = np.linalg.inv(np.linalg.inv(variance)+hessian*eta**2)
 
-                variance = np.linalg.inv(np.linalg.inv(variance)+hessian)
+        #compute kalman gain
+        if eps_number==2 or eps_number==5 or eps_number==30:
+            c=np.zeros(grid)
+            decay = np.zeros(grid)
+            z = np.zeros((grid * grid * 2, 2*grid))
+            h = np.zeros((2*grid,2*grid))
+            for i in range(grid):
+                Q = np.array([Q_value[i * (grid - 1) + i], Q_value[i * (grid - 1) + i + grid ** 2]])
+                prob = softmax(eta * Q)
+                z[i * (grid - 1) + i, 2*i] = prob[0] * (1 - prob[0]); h[2*i,2*i]= prob[0] * (1 - prob[0])
+                z[i * (grid - 1) + i, 2*i+1] = -prob[0] * prob[1]; h[2*i,2*i+1] = -prob[0] * prob[1]
+                z[i * (grid - 1) + i + grid ** 2, 2*i+1] = prob[1] * (1 -prob[1]); h[2*i+1,2*i+1]= prob[1] * (1 -prob[1])
+                z[i* (grid - 1) +i + grid ** 2, 2*i] = -prob[0] * prob[1];h[2*i+1,2*i]= -prob[0] * prob[1]
 
-        regret.append(V - max(Q_value[0],Q_value[grid**2]))
-        plt.subplot(211)
-        plt.plot(range(grid),kalman_gain[:,0],label=str(eps_number))
-        plt.subplot(212)
-        plt.plot(range(grid),kalman_gain[:,1],label=str(eps_number))
+            kalman = np.matmul(np.matmul(np.transpose(z),variance),z)+ h
+            kalman = np.linalg.inv(kalman+np.eye(grid*2)*0.001)
+            kalman = np.matmul(np.matmul(variance,z),kalman)
+            amount = np.sum(np.absolute(kalman),axis=0)
+
+            gain = np.zeros(grid)
+            for i in range(grid):
+                gain[i] = amount[2*i]+amount[2*i+1]
+                c[i] = variance[i * (grid - 1) + i + grid ** 2, i * (grid - 1) + i + grid ** 2]
+                t = update_count[i, i, 1]
+                decay[i] = var * (beta ** 2 + 4 * t) / (t + beta) ** 2
+
+            # kalman gain
+            plt.subplot(211)
+            plt.plot(range(grid-1),gain[:-1],label='kalman_info_gain_'+str(eps_number))
+            plt.legend()
+            plt.subplot(212)
+            plt.plot(range(grid-1),c[:-1],label = 'ekf_variance_'+str(eps_number))
+            plt.subplot(212)
+            plt.plot(range(grid-1), decay[:-1], label='est_decay_'+str(eps_number))
+            plt.legend()
+
+        # pi = np.zeros((grid, grid))
+        # for i in range(grid):
+        #     for j in range(grid):
+        #         Q = np.array([Q_value[i * (grid - 1) + j], Q_value[i * (grid - 1) + j + grid ** 2]])
+        #         pi[i, j] = int(np.argmax(Q))
+        # correct = np.sum(pi[:, 0])
+        # print("Episode: ", eps_number, "policy: ", correct,"Q-value: ",Q_value[0],":::",Q_value[grid**2])
+        # print(pi[:, 0])
+        # regret.append(correct)
+        # regret.append(V - max(Q_value[0],Q_value[grid**2]))
+        regret.append(V - compute_regret(Q_value, grid, final_reward, gamma))
 
         # print(V - compute_regret(Q_value, grid, final_reward, gamma))
         print(V - max(Q_value[0],Q_value[grid**2]))
