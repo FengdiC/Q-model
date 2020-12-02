@@ -226,7 +226,7 @@ class ReplayBuffer(object):
     def _get_indices(self, batch_size):
         idxes = []
         while len(idxes) < batch_size:
-            index = np.random.randint(self.agent_history_length + 1, self.count - 1)
+            index = np.random.randint(self.agent_history_length, self.count - 1)
             if index >= self.expert_idx and index - self.agent_history_length < self.expert_idx:
                 continue
             if index >= self._next_idx and index - self.agent_history_length < self._next_idx:
@@ -258,10 +258,10 @@ class ReplayBuffer(object):
 
         idxes = []
         while len(idxes) < batch_size:
-            index = np.random.randint(self.agent_history_length + 1, self.expert_idx)
-            if index >= 0 and index - self.agent_history_length - 1 < self.expert_idx:
+            index = np.random.randint(self.agent_history_length, self.expert_idx)
+            if index >= 0 and index - self.agent_history_length < self.expert_idx:
                 continue
-            if index >= 0 and index - self.agent_history_length - 1 < self._next_idx:
+            if index >= 0 and index - self.agent_history_length < self._next_idx:
                 continue
             if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
                  continue
@@ -379,11 +379,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         idx = self._next_idx
         ret = super().add(*args, **kwargs)
         if idx - self.expert_idx < self.agent_history_length:
-            self._it_sum[idx] = 0.001
-            self._it_min[idx] = 0.001
+            self._it_sum[idx] = 0.0001
+            self._it_min[idx] = 0.0001
         elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-            self._it_sum[idx] = 0.001
-            self._it_min[idx] = 0.001
+            self._it_sum[idx] = 0.0001
+            self._it_min[idx] = 0.0001
         else:
             self._it_sum[idx] = self._max_priority ** self._alpha
             self._it_min[idx] = self._max_priority ** self._alpha
@@ -393,11 +393,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         idx = self.expert_idx
         super().add_expert(*args, **kwargs)
         if idx < self.agent_history_length:
-            self._it_sum[idx] = 0.001
-            self._it_min[idx] = 0.001
+            self._it_sum[idx] = 0.0001
+            self._it_min[idx] = 0.0001
         elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-            self._it_sum[idx] = 0.001
-            self._it_min[idx] = 0.001
+            self._it_sum[idx] = 0.0001
+            self._it_min[idx] = 0.0001
         else:
             self._it_sum[idx] = self._max_priority ** self._alpha
             self._it_min[idx] = self._max_priority ** self._alpha
@@ -437,19 +437,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         i = 0
         count = 0
         while len(res) < batch_size:
-            mass = random.random() * every_range_len + i * every_range_len
-            idx = self._it_sum.find_prefixsum_idx(mass)
             count += 1
-            # if count > 9900:
-            #     print(count, mass, idx)
             if count > 10000:
-                print("What is going on .... ", mass, idx, "total: ", self.agent_history_length ,self.count, self.expert_idx, self._next_idx, self._maxsize)
-                quit()
+                idx = np.random.randint(0, self.count)
+            else:
+                mass = random.random() * every_range_len + i * every_range_len
+                idx = self._it_sum.find_prefixsum_idx(mass)
+                
             if idx < self.agent_history_length + 1:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length - 1 < self.expert_idx:
+            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
                 continue 
-            if idx >= self._next_idx and idx - self.agent_history_length - 1 < self._next_idx:
+            if idx >= self._next_idx and idx - self.agent_history_length < self._next_idx:
                 continue
             if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
                 # if count > 9900:
@@ -464,12 +463,17 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         p_total = self._it_sum.sum(self.agent_history_length, self.expert_idx - 1)
         every_range_len = p_total / batch_size
         i = 0
+        count = 0
         while len(res) < batch_size:
-            mass = random.random() * every_range_len + i * every_range_len
-            idx = self._it_sum.find_prefixsum_idx(mass)
+            count += 1
+            if count > 10000:
+                idx = np.random.randint(0, self.count)
+            else:
+                mass = random.random() * every_range_len + i * every_range_len
+                idx = self._it_sum.find_prefixsum_idx(mass)
             if idx < self.agent_history_length:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length - 1 < self.expert_idx:
+            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
                 continue
             if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
                 continue

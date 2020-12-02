@@ -240,14 +240,14 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     return loss_sample, np.mean(l_dq), np.mean(l_jeq)
 
 class toy_env:
-    def __init__(self, grid, final_reward=1, min_expert_frames=512, expert=True):
+    def __init__(self, grid, final_reward=1, args=None, min_expert_frames=512, expert=True):
         self.grid = grid
         self.final_reward = final_reward
         self.final = False
         self.n_actions=2
         self.reset()
         if expert:
-            self.generate_expert_data(min_expert_frames=min_expert_frames)
+            self.generate_expert_data(min_expert_frames=min_expert_frames, args=args)
 
     def reset(self):
         self.current_state_x = 0
@@ -285,7 +285,7 @@ class toy_env:
             terminal = 0
         return np.array([self.current_state_x+1,self.current_state_y+1]), reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=512, expert_ratio=1):
+    def generate_expert_data(self, min_expert_frames=512, expert_ratio=1, args=None):
         print("Creating Expert Data ... ")
         expert = {}
         half_expert_traj = (self.grid-1)//expert_ratio
@@ -312,7 +312,7 @@ class toy_env:
         expert['reward'] = rewards
         expert['terminal'] = terminals
         self.final = False
-        with open('/home/fengdic/Q-model/expert_toy', 'wb') as fout:
+        with open(args.expert_dir+args.expert_file, 'wb') as fout:
             pickle.dump(expert, fout)
 
     def print_state(self):
@@ -462,7 +462,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
             env = toy_maze('mazes')
         else:
             final_reward = -1
-            env = toy_env(grid, final_reward)
+            env = toy_env(grid, final_reward, args=args)
 
         bootstrap_dqns = []
         for i in range(num_bootstrap):
@@ -606,8 +606,6 @@ def potential_pretrain(session, states, actions, diffs, rewards, new_states, ter
     states = np.squeeze(states)
     current_potential = shaping[states[:, 0].astype(np.uint8)-1, states[:, 1].astype(np.uint8)-1]
     target_q = current_potential[range(batch_size), actions]
-
-
     loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
                                                 main_dqn.l_jeq, main_dqn.update],
                           feed_dict={main_dqn.input:states,
@@ -645,7 +643,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
             env = toy_maze('mazes')
         else:
             final_reward = -1
-            env = toy_env(grid, final_reward)
+            env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
             MAIN_DQN = DQN(args, env.n_actions, HIDDEN, grid=grid, name="mainDQN",agent=agent)
@@ -693,11 +691,11 @@ def train(priority=True, agent='model', grid=10, seed=0):
         last_eval = 0
         if agent !='dqn':
             if agent == 'shaping':
-                print("Beginning to pretrain")
+                print("Beginning to pretrain shaping")
                 train_step_dqfd(
                     sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
                     args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
-                print("done pretraining ,test prioritized buffer")
+                print("done pretraining ,test prioritized buffer, shaping")
                 print("buffer expert size: ", my_replay_memory.expert_idx)
             else:
                 print("Beginning to pretrain")
@@ -746,7 +744,7 @@ import matplotlib.pyplot as plt
 M=50
 N=90
 
-#reach = np.zeros((5,N-M))
+reach = np.zeros((5,N-M))
 #for seed in range(3):
 #    for grid in range(M,N,1):
 #        print("epsilon: grid_",grid,"seed_",seed)
@@ -757,13 +755,12 @@ N=90
 
 #reach = reach/3.0
 #np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
-reach = np.load('/scratch/fengdic/bootdqn_expor_bomb')
-
+#reach = np.load('/scratch/fengdic/bootdqn_expor_bomb')
 for grid in range(M,N,1):
     print("our approach: grid_", grid)
+    num_potential = train(grid=grid,agent='shaping')
     num = train(grid=grid,agent='expert')
     num_dqfd= train(grid=grid,agent='dqfd')
-    num_potential = train(grid=grid,agent='shaping')
     reach[3,grid-M] = num_dqfd
     reach[4,grid-M] = num_potential
     reach[2,grid-M] = num
