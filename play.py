@@ -6,7 +6,7 @@ from gym import logger
 import pickle
 import utils
 import PriorityBuffer
-
+import numpy as np
 try:
     matplotlib.use('TkAgg')
     import matplotlib.pyplot as plt
@@ -76,7 +76,8 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    obs = env.reset(sess)
+    _, current_obs = env.reset(sess)
+    print(current_obs.shape)
     rendered = env.env.render(mode='rgb_array')
 
     if keys_to_action is None:
@@ -113,7 +114,7 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
         if env_done and count > 0:
             env_done = False
             num_traj += 1
-            obs = env.reset(sess)
+            _, current_obs = env.reset(sess)
             print(num_traj, count)
 
             for i in range(len(data_list)):
@@ -126,7 +127,7 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 #replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("played_human_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         # elif count> 6000:
         #     env_done = False
@@ -149,11 +150,16 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
         #     data_list = []
         else:
             action = keys_to_action.get(tuple(sorted(pressed_keys)), 0)
+            
+            
             obs, rew, env_done, terminal, frame = env.step(sess, action)
-            data_list.append([action, obs, rew, terminal])
+            data_list.append([action, current_obs, rew, terminal])
             count += 1
-
-        if obs is not None:
+            if terminal:
+                data_list.append([action, obs, 0, terminal])
+                count += 1
+            current_obs = obs
+        if current_obs is not None:
             rendered = env.env.render(mode='rgb_array')
             display_arr(screen, rendered, transpose=transpose, video_size=video_size)
 
@@ -220,7 +226,7 @@ def main():
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=9)
+    play(env, args, zoom=3, fps=13)
 
 
 if __name__ == '__main__':

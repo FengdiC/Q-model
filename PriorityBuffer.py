@@ -139,7 +139,7 @@ class MinSegmentTree(SegmentTree):
 
 class ReplayBuffer(object):
     def __init__(self, size, agent="dqn", var=1.0, bootstrap=-1, state_shape=[84, 84],
-                 agent_history_length=4, batch_size=32):
+                 action_shape=None, agent_history_length=4, batch_size=32, rescale_reward=True):
         """Create Replay buffer.
         Parameters
         ----------
@@ -149,6 +149,7 @@ class ReplayBuffer(object):
         """
         print("Called Not Priority Queue!")
         self._maxsize = size
+        self.rescale_reward = rescale_reward
         self._next_idx = 0
         self.expert_idx = 0
         self.var = var
@@ -166,11 +167,20 @@ class ReplayBuffer(object):
         self.state_shape = state_shape
 
         # Pre-allocate memory
-        self.actions = np.empty(self._maxsize, dtype=np.int32)
+        if action_shape is None:
+            self.actions = np.empty(self._maxsize, dtype=np.int32)
+        else:
+            self.actions = np.empty([self._maxsize] + action_shape, dtype=np.float32)
         self.diffs = np.empty(self._maxsize, dtype=np.float32)
         self.rewards = np.empty(self._maxsize, dtype=np.float32)
         self.frames = np.empty([self._maxsize] + self.state_shape, dtype=np.uint8)
+        #self.next_frames = np.empty([self._maxsize] + self.state_shape, dtype=np.uint8)
         self.terminal_flags = np.empty(self._maxsize, dtype=np.uint8)
+
+        self.frame_indices = np.empty([self._maxsize, self.agent_history_length], dtype=np.int32)
+        self.next_frame_indices = np.empty([self._maxsize, self.agent_history_length], dtype=np.int32)
+        self.sequence_start = np.empty([self._maxsize,], dtype=np.int32)
+        self.current_sequence_start = 0
 
         # Pre-allocate memory for the states and new_states in a minibatch
         self.states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
@@ -181,27 +191,53 @@ class ReplayBuffer(object):
         for j in range(self.bootstrap):
             self.bootstrap_data[idx, j] = np.random.uniform(0, 1) > 0.5
 
+    def get_idx(self):
+        return self._next_idx
+
     def add_expert(self, obs_t, reward, action,diff, done):
-        reward = np.sign(reward) * np.log(1+np.abs(reward))
+        if self.rescale_reward:
+            reward = np.sign(reward) * np.log(1+np.abs(reward))
         self.actions[self.expert_idx] = action
         self.diffs[self.expert_idx] = diff
+
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
         self.terminal_flags[self.expert_idx] = done
-        if done:
-            print("expert", self._next_idx, self.count)
+        self.sequence_start[self.expert_idx] = self.current_sequence_start
+        
+        #10, 9, 8, 7
+        count = 0
+        for i in range(self._next_idx - self.agent_history_length + 1, self._next_idx + 1):
+            i = min(max(i, self.current_sequence_start), self._maxsize)
+            self.frame_indices[self._next_idx, count] = i
+            count += 1
+        
+        old_index = self._next_idx
         self.count = min(self._maxsize, self.count + 1)
         self.expert_idx = (self.expert_idx + 1)
         if self.expert_idx > self._maxsize:
             print("Dataset too small, cannot add more expert actions .... ")
             quit()
         self._next_idx = max(self._next_idx, self.expert_idx)
+        if self._next_idx != 0 and done and self.terminal_flags[old_index - 1]:
+            print("expert", self._next_idx, self.count)
+            self.current_sequence_start = self._next_idx
+            #if sequence is completed ... 
+            self.next_frame_indices[old_index] = self.frame_indices[old_index]
+        else:
+            count = 0
+            for i in range(self._next_idx - self.agent_history_length + 1, self._next_idx + 1):
+                i = min(max(i, self.current_sequence_start), self._maxsize)
+                self.next_frame_indices[old_index, count] = i
+                count += 1
 
     def __len__(self):
         return self.count
 
     def add(self, obs_t, reward, action, done):
-        reward = np.sign(reward) * np.log(1+np.abs(reward))
+        if self.rescale_reward:
+            reward = np.sign(reward) * np.log(1+np.abs(reward))
+        
         self.actions[self._next_idx] = action
         self.diffs[self._next_idx] = 0
         self.frames[self._next_idx] = obs_t
@@ -210,15 +246,88 @@ class ReplayBuffer(object):
         if self.bootstrap > 0:
             self.sample_boostrap(self._next_idx)
         self.count = min(self._maxsize, self.count + 1)
-        ret = self._next_idx
+
+        count = 0
+        for i in range(self._next_idx - self.agent_history_length + 1, self._next_idx + 1):
+            i = min(max(i, self.current_sequence_start), self._maxsize)
+            self.frame_indices[self._next_idx, count] = i
+            count += 1
+        old_index = self._next_idx
         self._next_idx = (self._next_idx + 1) % (self._maxsize)
         if self._next_idx < self.expert_idx:
             self._next_idx = self.expert_idx
-        return ret
+
+        if self._next_idx != 0 and done and self.terminal_flags[old_index - 1]:
+             #print("expert", self._next_idx, self.count)
+            self.current_sequence_start = self._next_idx
+            #if sequence is completed ... 
+            self.next_frame_indices[old_index] = self.frame_indices[old_index]
+        else:
+            count = 0
+            for i in range(self._next_idx - self.agent_history_length + 1, self._next_idx + 1):
+                i = min(max(i, self.current_sequence_start), self._maxsize)
+                self.next_frame_indices[old_index, count] = i
+                count += 1
+        return old_index
+
+    def _get_current_next_state(self, requested_index):
+        # #assuming the index is for the next state
+        # low_index = requested_index - self.agent_history_length
+        # high_index = requested_index + 1
+        # # history =4, index=10 -> 6, 7, 8, 9 ,10
+        # indices_list = []
+        # terminal = False
+        # terminal_index = -1
+        # print_flag = 0
+        # count = 0
+        # for index in range(low_index, high_index):
+        #     #lower bounding
+        #     if index < 0:
+        #         index = 0
+        #     #upper bounding the values .... 
+        #     if high_index >= self.expert_idx and low_index < self.expert_idx:
+        #         #print_flag = 1
+        #         index = np.max(index, self.expert_idx)
+        #     if high_index >= self._next_idx and low_index < self._next_idx:
+        #         #print_flag = 2
+        #         index = np.min(index, self._next_idx - 1)
+            
+        #     indices_list.append(index)
+        #     if self.terminal_flags[index]:
+        #         terminal_index = index
+        #         if count < self.agent_history_length:
+        #             for i in range(0, count + 1):
+        #                 indices_list[i] = index + 1
+        #         #print_flag = 3
+        #     count += 1
+        # current_states = np.zeros(self.states.shape[1:], dtype=np.float32)
+        # next_states = np.zeros(self.states.shape[1:], dtype=np.float32)
+        # for i in range(self.agent_history_length):
+        #     current_states[i] = self.frames[indices_list[i]]
+        #     next_states[i] = self.frames[indices_list[i + 1]]
+        # # if print_flag:
+        # #     print("flag: ", print_flag, indices_list, requested_index, terminal_index)
+        # return current_states, next_states
+        states = self.frames[self.frame_indices[requested_index]]
+        next_states = self.frames[self.next_frame_indices[requested_index]]
+        # if self.terminal_flags[requested_index]:
+        #     print(self.frame_indices[requested_index], self.next_frame_indices[requested_index])
+        return states, next_states
 
     def _get_state(self, index):
         if self.count is 0:
             raise ValueError("The replay memory is empty!")
+
+        # low_index = index - self.agent_history_length + 1
+        # high_index = index + 1
+        # if index >= self.expert_idx and index - self.agent_history_length < self.expert_idx:
+        #     continue
+        # if index >= self._next_idx and index - self.agent_history_length < self._next_idx:
+        #     continue
+        # if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+        #     continue
+
+
         if index < self.agent_history_length - 1:
             raise ValueError("Index must be min 3")
         return self.frames[index - self.agent_history_length + 1:index + 1]
@@ -227,11 +336,13 @@ class ReplayBuffer(object):
         idxes = []
         while len(idxes) < batch_size:
             index = np.random.randint(self.agent_history_length, self.count - 1)
-            if index >= self.expert_idx and index - self.agent_history_length < self.expert_idx:
-                continue
-            if index >= self._next_idx and index - self.agent_history_length < self._next_idx:
-                continue
-            if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+            # if index >= self.expert_idx and index - self.agent_history_length < self.expert_idx:
+            #     continue
+            # if index >= self._next_idx and index - self.agent_history_length < self._next_idx:
+            #     continue
+            # if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+            #     continue
+            if index == self._next_idx - 1:
                 continue
             idxes.append(index)
 
@@ -259,12 +370,14 @@ class ReplayBuffer(object):
         idxes = []
         while len(idxes) < batch_size:
             index = np.random.randint(self.agent_history_length, self.expert_idx)
-            if index >= 0 and index - self.agent_history_length < self.expert_idx:
+            # if index >= 0 and index - self.agent_history_length < self.expert_idx:
+            #     continue
+            # if index >= 0 and index - self.agent_history_length < self._next_idx:
+            #     continue
+            # if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
+            #      continue
+            if index == self._next_idx - 1:
                 continue
-            if index >= 0 and index - self.agent_history_length < self._next_idx:
-                continue
-            if np.sum(self.terminal_flags[index - self.agent_history_length:index]) > 0:
-                 continue
             idxes.append(index)
         return idxes
 
@@ -273,16 +386,16 @@ class ReplayBuffer(object):
         num_data = len(data['frames'])
         print("load expert: ",num_data)
         print("Loading Expert Data ... ")
+
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                      diff = self.var, done=data['terminal'][i])
-            #print(data['reward'][i], np.sum(data['terminal']))
 
         max_reward = np.max(self.rewards[self.rewards > 0])
         #Reward check
         print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
-        return max_reward
+        return max_reward, self.count
 
     def get_bootstrap(self, idxes):
         mask = np.copy(self.bootstrap_data[idxes])
@@ -309,6 +422,7 @@ class ReplayBuffer(object):
             the end of an episode and 0 otherwise.
         """
         if expert:
+            print("What is going on?", expert)
             idxes = self._get_expert_indices(batch_size)
         else:
             idxes = self._get_indices(batch_size)
@@ -329,8 +443,11 @@ class ReplayBuffer(object):
             #    self.states[i] = self._get_state(terminal_idx)
             #    self.new_states[i] = self._get_state(terminal_idx)
             #else:
-            self.states[i] = self._get_state(idx - 1)
-            self.new_states[i] = self._get_state(idx)
+            states, new_states = self._get_current_next_state(idx)
+            self.states[i] = states
+            self.new_states[i] = new_states
+            # self.states[i] = self._get_state(idx - 1)
+            # self.new_states[i] = self._get_state(idx)
 
         if len(self.state_shape) == 2:
             states = np.transpose(self.states, axes=(0, 2, 3, 1))
@@ -344,7 +461,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha, bootstrap=-1, state_shape=[84, 84], agent_history_length=4, agent="dqn", batch_size=32):
+    def __init__(self, size, alpha, bootstrap=-1, state_shape=[84, 84], agent_history_length=4, agent="dqn", action_shape=None, batch_size=32, rescale_reward=True):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -359,7 +476,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, bootstrap=bootstrap, state_shape=state_shape, batch_size=batch_size)
+        super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, action_shape=action_shape, 
+                                                        bootstrap=bootstrap, state_shape=state_shape, batch_size=batch_size, rescale_reward=rescale_reward)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent
@@ -378,29 +496,29 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """See ReplayBuffer.store_effect"""
         idx = self._next_idx
         ret = super().add(*args, **kwargs)
-        if idx - self.expert_idx < self.agent_history_length:
-            self._it_sum[idx] = 0.0001
-            self._it_min[idx] = 0.0001
-        elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-            self._it_sum[idx] = 0.0001
-            self._it_min[idx] = 0.0001
-        else:
-            self._it_sum[idx] = self._max_priority ** self._alpha
-            self._it_min[idx] = self._max_priority ** self._alpha
+        # if idx - self.expert_idx < self.agent_history_length:
+        #     self._it_sum[idx] = 0.0001
+        #     self._it_min[idx] = 0.0001
+        # elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+        #     self._it_sum[idx] = 0.0001
+        #     self._it_min[idx] = 0.0001
+        # else:
+        self._it_sum[idx] = self._max_priority ** self._alpha
+        self._it_min[idx] = self._max_priority ** self._alpha
         return ret
 
     def add_expert(self, *args, **kwargs):
         idx = self.expert_idx
         super().add_expert(*args, **kwargs)
-        if idx < self.agent_history_length:
-            self._it_sum[idx] = 0.0001
-            self._it_min[idx] = 0.0001
-        elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-            self._it_sum[idx] = 0.0001
-            self._it_min[idx] = 0.0001
-        else:
-            self._it_sum[idx] = self._max_priority ** self._alpha
-            self._it_min[idx] = self._max_priority ** self._alpha
+        # if idx < self.agent_history_length:
+        #     self._it_sum[idx] = 0.0001
+        #     self._it_min[idx] = 0.0001
+        # elif np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+        #     self._it_sum[idx] = 0.0001
+        #     self._it_min[idx] = 0.0001
+        # else:
+        self._it_sum[idx] = self._max_priority ** self._alpha
+        self._it_min[idx] = self._max_priority ** self._alpha
 
     def delete_expert(self,size):
         self._max_priority = 5
@@ -443,17 +561,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             else:
                 mass = random.random() * every_range_len + i * every_range_len
                 idx = self._it_sum.find_prefixsum_idx(mass)
-                
-            if idx < self.agent_history_length + 1:
+            if idx == self._next_idx - 1:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
-                continue 
-            if idx >= self._next_idx and idx - self.agent_history_length < self._next_idx:
-                continue
-            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-                # if count > 9900:
-                #     print(self.terminal_flags[idx - 25:idx + 25])
-                continue
+            # if idx < self.agent_history_length + 1:
+            #     continue
+            # if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
+            #     continue
+            # if idx >= self._next_idx and idx - self.agent_history_length < self._next_idx:
+            #     continue
+            # if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+            #     # if count > 9900:
+            #     #     print(self.terminal_flags[idx - 25:idx + 25])
+            #     continue
             res.append(idx)
             i += 1
         return res
@@ -471,12 +590,14 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             else:
                 mass = random.random() * every_range_len + i * every_range_len
                 idx = self._it_sum.find_prefixsum_idx(mass)
-            if idx < self.agent_history_length:
+            if idx == self._next_idx - 1:
                 continue
-            if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
-                continue
-            if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
-                continue
+            # if idx < self.agent_history_length:
+            #     continue
+            # if idx >= self.expert_idx and idx - self.agent_history_length < self.expert_idx:
+            #     continue
+            # if np.sum(self.terminal_flags[idx - self.agent_history_length:idx]) > 0:
+            #     continue
             res.append(idx)
             i += 1
         return res
@@ -563,9 +684,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             #    self.states[i] = self._get_state(terminal_idx)
             #    self.new_states[i] = self._get_state(terminal_idx)
             #else:
-            self.states[i] = self._get_state(idx - 1)
-            self.new_states[i] = self._get_state(idx)
-
+            #self.states[i] = self._get_state(idx - 1)
+            #self.new_states[i] = self._get_state(idx)
+            states, new_states = self._get_current_next_state(idx)
+            self.states[i] = states
+            self.new_states[i] = new_states
         # self.states = (self.states - 127.5)/127.5
         # self.new_states = (self.new_states - 127.5)/127.5
         #print(idxes - 1)
@@ -613,8 +736,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
                 n_step_rewards[i, j] = np.copy(n_step_rewards[i, n_range - 1])
                 not_terminal[i, j] = 1 - self.terminal_flags[idx + j]
-                n_step_state[i, j] = np.copy(self._get_state(idx + j))
-                n_step_actions[i, j] = np.copy(self.actions[idx + j + 1])
+                n_step_state[i, j], _ = self._get_current_next_state(idx + j)
+                n_step_actions[i, j] = np.copy(self.actions[idx + j])
 
             for j in range(n_range, num_steps):
                 not_terminal[i, j] = not_terminal[i, n_range - 1]
@@ -649,26 +772,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 n_step_rewards[i] += accum_gamma * self.rewards[j]
                 accum_gamma *= gamma
             last_step_gamma[i] = accum_gamma
-            n_step_state[i] = self._get_state(n_step_idx)
+            n_step_state[i], _ = self._get_current_next_state(n_step_idx)
 
         return n_step_rewards, np.transpose(n_step_state, axes=(0, 2, 3, 1)), last_step_gamma, not_terminal
         #return None, None, None, None
-
-
-    def load_expert_data(self, path):
-        data = pickle.load(open(path, 'rb'))
-        num_data = len(data['frames'])
-        print("Loading Expert Data ... ")
-        for i in range(num_data):
-            self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                            diff = 1.0, done=data['terminal'][i])  #here 9.5618 depends on gamma (1-g^10)/(1-g)
-            #print(data['reward'][i], np.sum(data['terminal']))
-        max_reward = np.max(self.rewards)
-        #Reward check
-        print("Min Reward: ", np.min(self.rewards), "Max Reward: ", max_reward)
-        print(self.count, "Expert Data loaded ... ")
-        print("Total Reward: ", np.sum(data['reward']))
-        return max_reward,num_data
 
     def update_priorities(self, idxes, priorities, expert_idxes, frame_num, expert_priority_modifier=1, min_priority=0.001, min_expert_priority=1,
                           expert_initial_priority=2,pretrain= False):
