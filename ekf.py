@@ -64,7 +64,7 @@ def train(grid=10,eps=True ):
     gamma = 0.99
     beta = 4.0
     eta =3.0
-    var = 0.01
+    var = 0.015
     Q_value = np.zeros(grid*grid*2)
     Q_value[grid**2:] = 1
     V = compute_regret(Q_value, grid, final_reward, gamma)
@@ -132,7 +132,8 @@ def train(grid=10,eps=True ):
             #         regret[i + 1] += regret[i]
             #     return frame_number, regret
             if len(regret)>30 and np.mean(regret[-30:])<0.001 and final:
-                plt.legend()
+                plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1))
+                plt.tight_layout()
                 plt.savefig('kalman_gain')
                 return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1];
@@ -223,9 +224,9 @@ def train(grid=10,eps=True ):
             plt.plot(range(grid-1),gain[:-1],label='kalman_info_gain_'+str(eps_number))
             plt.legend()
             plt.subplot(212)
-            plt.plot(range(grid-1),c[:-1],label = 'ekf_variance_'+str(eps_number))
+            plt.plot(range(grid-1),c[:-1],label = 'GEKF_weight_'+str(eps_number))
             plt.subplot(212)
-            plt.plot(range(grid-1), decay[:-1], label='est_decay_'+str(eps_number))
+            plt.plot(range(grid-1), decay[:-1], label='BQfD_weight_'+str(eps_number))
             plt.legend()
 
         # pi = np.zeros((grid, grid))

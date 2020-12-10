@@ -444,7 +444,7 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
            np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio)
 
 
-def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10):
+def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10):
     tf.reset_default_graph()
     with tf.variable_scope(agent):
         args = utils.argsparser()
@@ -456,10 +456,10 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 90 # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 * 110 # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 1800#grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 2200#grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -469,7 +469,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = -1
+            final_reward = 1
             env = toy_env(grid, final_reward, args=args)
 
         bootstrap_dqns = []
@@ -506,7 +506,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         print("Agent: ", name)
         last_eval = 0
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-        max_eps = 100
+        max_eps = 101
         regret_list = []
 
         #compute regret
@@ -525,14 +525,14 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
             if args.env_id=='chain':
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
-                # correct = grid - 1 - np.sum(np.diag(pi)[:-1])
-                correct = np.sum(pi[:, 0])
+                correct = grid - 1 - np.sum(np.diag(pi)[:-1])
+                # correct = np.sum(pi[:, 0])
                 print(grid , eps_number, correct, eps_rw)
                 regret_list.append(correct)
                 # #compute regret
                 # regret_list.append(V - compute_regret(q_values, grid, args.gamma, final_reward))
                 # print(V, eps_number, regret_list[-1], eps_rw)
-                if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02) or eps_number > max_eps:
+                if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
 
@@ -641,10 +641,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 90  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 * 110  # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 1800  # grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 2200  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -654,7 +654,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if args.env_id == 'maze':
             env = toy_maze('mazes')
         else:
-            final_reward = -1
+            final_reward = 1
             env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
@@ -737,8 +737,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                # correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                correct = np.sum(pi[:,0])
+                correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                # correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
 
@@ -751,37 +751,47 @@ def train(priority=True, agent='model', grid=10, seed=0):
                     return eps_number
 
 # train_bootdqn(grid=20)
-# train(grid=10,agent='dqfd')
+# train(grid=55,agent='expert')
 import matplotlib.pyplot as plt
 M=50
 N=90
 
 reach = np.zeros((5,N-M))
-#for seed in range(3):
-#    for grid in range(M,N,1):
-#        print("epsilon: grid_",grid,"seed_",seed)
-#        num_dqn = train(grid=grid,agent='dqn',seed=seed)
-#        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-#        reach[0,grid-M] += num_dqn
-#        reach[1,grid-M] += num_boot
+for seed in range(3):
+   for grid in range(M,N,1):
+       print("epsilon: grid_",grid,"seed_",seed)
+       num_dqn = train(grid=grid,agent='dqn',seed=seed)
+       num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
+       reach[0,grid-M] += num_dqn
+       reach[1,grid-M] += num_boot
 
-#reach = reach/3.0
-#np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
-#reach = np.load('/scratch/fengdic/bootdqn_expor_bomb')
-for grid in range(M,N,1):
-    print("our approach: grid_", grid)
-    num_potential = train(grid=grid,agent='shaping')
-    num = train(grid=grid,agent='expert')
-    num_dqfd= train(grid=grid,agent='dqfd')
-    reach[3,grid-M] = num_dqfd
-    reach[4,grid-M] = num_potential
-    reach[2,grid-M] = num
-np.save('/scratch/fengdic/RLfD_eratio_1_bomb',reach)
+# reach = reach/3.0
+np.save('bootdqn_explor',reach)
 
-plt.plot(range(M,N,1),reach[0,:],label='DQN with temporally-extended epsilon greedy')
-plt.plot(range(M,N,1),reach[1,:],label='bootstrapped DQN')
-plt.plot(range(M,N,1),reach[3,:],label='DQfD')
-plt.plot(range(M,N,1),reach[4,:],label='RLfD through shaping')
-plt.plot(range(M,N,1),reach[2,:],label='BQfD')
-plt.legend()
-plt.savefig('/scratch/fengdic/chain_rlfd_bomb_eratio_'+str(1))
+# reach_exp = np.load('bootdqn_expor_bomb.npy')
+# reach_exp = np.load('bootdqn_explor.npy')
+
+# reach = np.load('RLfD_eratio_'+str(0)+'_bomb.npy')
+for seed in [0,1,2]:
+    for grid in range(M,N,1):
+        print("our approach: grid_", grid)
+        num = train(grid=grid,agent='expert',seed=seed)
+        num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
+        num_potential = train(grid=grid,agent='shaping',seed=seed)
+        reach[3,grid-M] += num_dqfd
+        reach[4,grid-M] += num_potential
+        reach[2,grid-M] += num
+        if grid %5==0 or grid==69:
+            np.save('RLfD_eratio_'+str(seed), reach)
+reach = reach/3.0
+np.save('RLfD',reach)
+# reach = np.load('RLfD_eratio_2.npy')
+
+plt.plot(range(M,N,1),reach[0,:40],label='DQN with EZ greedy')
+plt.plot(range(M,N,1),reach[1,:40],label='bootstrapped DQN')
+plt.plot(range(M,N,1),reach[3,:40],label='DQfD')
+plt.plot(range(M,N,1),reach[4,:40],label='RLfD through shaping')
+plt.plot(range(M,N,1),reach[2,:40],label='BQfD')
+plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+plt.tight_layout()
+plt.savefig('chain_rlfd')
