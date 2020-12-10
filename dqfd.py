@@ -603,7 +603,6 @@ def train( priority=True):
         print("Expert data deleted .... ")
         my_replay_memory.delete_expert(MEMORY_SIZE)
     print("Agent: ", name)
-
     if args.load_frame_num > 0:
         #load model ... 
         print("Model Loaded .... ")
@@ -674,14 +673,14 @@ def train( priority=True):
 
         if EVAL_FREQUENCY <= last_eval:
             last_eval = last_eval - EVAL_FREQUENCY
-            if GIF_FREQUENCY <= last_gif:
-                last_gif = last_gif - GIF_FREQUENCY
-                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                 frame_number, model_name=name, gif=True)
-            else:
-                print("No Gifs", "Gif Freq: ", GIF_FREQUENCY, last_gif)
-                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                 frame_number, model_name=name, gif=False)
+            # if GIF_FREQUENCY <= last_gif:
+            last_gif = last_gif - GIF_FREQUENCY
+            eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+                                frame_number, model_name=name, gif=True)
+            # else:
+            #     print("No Gifs", "Gif Freq: ", GIF_FREQUENCY, last_gif)
+            #     eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+            #                      frame_number, model_name=name, gif=False)
             if eval_reward > max_eval_reward:
                 max_eval_reward = eval_reward
 

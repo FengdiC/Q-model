@@ -344,7 +344,7 @@ def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter,gri
 def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps_length, replay_buf_size, args):
     frame_num = 0
     while frame_num < replay_buf_size:
-        _ = env.reset()
+        frame = env.reset()
         for _ in range(max_eps_length):
             # 
             action = action_getter.get_random_action()
@@ -352,7 +352,10 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             # 
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame, reward=0, action=action, done=terminal)
+            frame = next_frame
             frame_num += 1
             if terminal:
                 break
@@ -386,11 +389,13 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
             else:
                 action = action_getter.get_action(sess, frame_num, frame, selected_dqn["main"],evaluation=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame, reward=0, action=action, done=terminal)
+            frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
         frame_num += 1
-
 
         if frame_num % UPDATE_FREQ == 0 and frame_num > grid-1:
             generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
@@ -566,7 +571,11 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False,temporal=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame, reward=0, action=action, done=terminal)
+            frame = next_frame
+
             episode_length += 1
             episode_reward_sum += reward
         frame_num += 1
