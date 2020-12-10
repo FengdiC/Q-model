@@ -302,6 +302,7 @@ class toy_env:
             for j in range(half_expert_traj):
                 expert_frames[current_index] = current_state
                 s, r, t = self.step(1)
+                current_state = s
                 rewards[current_index] = r 
                 terminals[current_index] = t
                 current_index += 1
@@ -523,6 +524,9 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
         # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
 
         if args.env_id=='chain':
+            selected_dqn = bootstrap_dqns[np.random.randint(0, len(bootstrap_dqns))]
+            MAIN_DQN = selected_dqn["main"]
+            TARGET_DQN = selected_dqn["target"]
             q_values = MAIN_DQN.get_q_value(sess)
             pi = np.argmax(q_values, axis=2)
             correct = grid - 1 - np.sum(np.diag(pi)[:-1])
@@ -750,47 +754,48 @@ def train(priority=True, agent='model', grid=10, seed=0):
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
 
-# train_bootdqn(grid=20)
+train_bootdqn(grid=20,agent='bootdqn')
 # train(grid=55,agent='expert')
-import matplotlib.pyplot as plt
-M=50
-N=90
-reach = np.zeros((5,N-M))
-for seed in range(3):
-   for grid in range(M,N,1):
-       print("epsilon: grid_",grid,"seed_",seed)
-       current_time = time.time()
-       num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-       print("Elapsed: ", time.time() - current_time)
-       num_dqn = train(grid=grid,agent='dqn',seed=seed)
-       reach[0,grid-M] += num_dqn
-       reach[1,grid-M] += num_boot
 
+# import matplotlib.pyplot as plt
+# M=50
+# N=90
+# reach = np.zeros((5,N-M))
+# for seed in range(3):
+#    for grid in range(M,N,1):
+#        print("epsilon: grid_",grid,"seed_",seed)
+#        current_time = time.time()
+#        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
+#        print("Elapsed: ", time.time() - current_time)
+#        num_dqn = train(grid=grid,agent='dqn',seed=seed)
+#        reach[0,grid-M] += num_dqn
+#        reach[1,grid-M] += num_boot
+#
+# # reach = reach/3.0
+# np.save('bootdqn_explor',reach)
+# # reach_exp = np.load('bootdqn_expor_bomb.npy')
+# # reach_exp = np.load('bootdqn_explor.npy')
+# # reach = np.load('RLfD_eratio_'+str(0)+'_bomb.npy')
+# for seed in [0,1,2]:
+#     for grid in range(M,N,1):
+#         print("our approach: grid_", grid)
+#         num = train(grid=grid,agent='expert',seed=seed)
+#         num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
+#         num_potential = train(grid=grid,agent='shaping',seed=seed)
+#         reach[3,grid-M] += num_dqfd
+#         reach[4,grid-M] += num_potential
+#         reach[2,grid-M] += num
+#         if grid %5==0 or grid==69:
+#             np.save('RLfD_eratio_'+str(seed), reach)
 # reach = reach/3.0
-np.save('bootdqn_explor',reach)
-# reach_exp = np.load('bootdqn_expor_bomb.npy')
-# reach_exp = np.load('bootdqn_explor.npy')
-# reach = np.load('RLfD_eratio_'+str(0)+'_bomb.npy')
-for seed in [0,1,2]:
-    for grid in range(M,N,1):
-        print("our approach: grid_", grid)
-        num = train(grid=grid,agent='expert',seed=seed)
-        num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
-        num_potential = train(grid=grid,agent='shaping',seed=seed)
-        reach[3,grid-M] += num_dqfd
-        reach[4,grid-M] += num_potential
-        reach[2,grid-M] += num
-        if grid %5==0 or grid==69:
-            np.save('RLfD_eratio_'+str(seed), reach)
-reach = reach/3.0
-np.save('RLfD',reach)
-# reach = np.load('RLfD_eratio_2.npy')
-
-plt.plot(range(M,N,1),reach[0,:40],label='DQN with EZ greedy')
-plt.plot(range(M,N,1),reach[1,:40],label='bootstrapped DQN')
-plt.plot(range(M,N,1),reach[3,:40],label='DQfD')
-plt.plot(range(M,N,1),reach[4,:40],label='RLfD through shaping')
-plt.plot(range(M,N,1),reach[2,:40],label='BQfD')
-plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
-plt.tight_layout()
-plt.savefig('chain_rlfd')
+# np.save('RLfD',reach)
+# # reach = np.load('RLfD_eratio_2.npy')
+#
+# plt.plot(range(M,N,1),reach[0,:40],label='DQN with EZ greedy')
+# plt.plot(range(M,N,1),reach[1,:40],label='bootstrapped DQN')
+# plt.plot(range(M,N,1),reach[3,:40],label='DQfD')
+# plt.plot(range(M,N,1),reach[4,:40],label='RLfD through shaping')
+# plt.plot(range(M,N,1),reach[2,:40],label='BQfD')
+# plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+# plt.tight_layout()
+# plt.savefig('chain_rlfd')
