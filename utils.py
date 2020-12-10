@@ -354,8 +354,6 @@ def build_initial_replay_buffer(sess, atari, replay_buffer, action_getter, max_e
                 replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
                 if not terminal:
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-                    episode_reward_sum += reward
-                    episode_length += 1
 
             frame_num += 1
             if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:

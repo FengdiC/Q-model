@@ -287,7 +287,6 @@ class toy_env:
         return np.array([self.current_state_x+1,self.current_state_y+1]), reward, terminal
 
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=1, args=None):
-        print("Creating Expert Data ... ")
         expert = {}
         half_expert_traj = (self.grid)//expert_ratio
         num_batches = math.ceil(min_expert_frames/half_expert_traj)
@@ -316,6 +315,7 @@ class toy_env:
         expert['reward'] = rewards
         expert['terminal'] = terminals
         self.final = False
+        print("Creating Expert Data ... ", current_index)
         with open(args.expert_dir+args.expert_file, 'wb') as fout:
             pickle.dump(expert, fout)
 
@@ -755,7 +755,6 @@ def train(priority=True, agent='model', grid=10, seed=0):
 import matplotlib.pyplot as plt
 M=50
 N=90
-
 reach = np.zeros((5,N-M))
 for seed in range(3):
    for grid in range(M,N,1):
@@ -769,10 +768,8 @@ for seed in range(3):
 
 # reach = reach/3.0
 np.save('bootdqn_explor',reach)
-
 # reach_exp = np.load('bootdqn_expor_bomb.npy')
 # reach_exp = np.load('bootdqn_explor.npy')
-
 # reach = np.load('RLfD_eratio_'+str(0)+'_bomb.npy')
 for seed in [0,1,2]:
     for grid in range(M,N,1):
