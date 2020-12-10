@@ -300,13 +300,16 @@ class toy_env:
         for i in range(num_batches):
             current_state = self.reset()
             for j in range(half_expert_traj):
+                expert_frames[current_index] = current_state
                 s, r, t = self.step(1)
-                expert_frames[current_index] = s
                 rewards[current_index] = r 
                 terminals[current_index] = t
                 current_index += 1
                 if t:
-                    self.reset()
+                    expert_frames[current_index] = s
+                    rewards[current_index] = 0
+                    terminals[current_index] = t                    
+                    current_state = self.reset()
         expert['actions'] = np.ones((num_expert,), dtype=np.uint8)
         expert['frames'] = expert_frames
         expert['reward'] = rewards
