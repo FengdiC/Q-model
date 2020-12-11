@@ -764,9 +764,9 @@ reach = np.zeros((5,N-M))
 for seed in range(3):
    for grid in range(M,N,1):
        print("epsilon: grid_",grid,"seed_",seed)
-       current_time = time.time()
+       #current_time = time.time()
        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-       print("Elapsed: ", time.time() - current_time)
+       #print("Elapsed: ", time.time() - current_time)
        num_dqn = train(grid=grid,agent='dqn',seed=seed)
        reach[0,grid-M] += num_dqn
        reach[1,grid-M] += num_boot
