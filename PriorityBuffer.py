@@ -391,9 +391,9 @@ class ReplayBuffer(object):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
                      diff = self.var, done=data['terminal'][i])
 
-        max_reward = np.max(self.rewards[self.rewards > 0])
+        max_reward = np.max(self.rewards)
         #Reward check
-        print("Min Reward: ", np.min(self.rewards[self.rewards > 0]), "Max Reward: ", max_reward)
+        print("Min Reward: ", np.min(self.rewards), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
         return max_reward, self.count
 
