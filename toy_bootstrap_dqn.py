@@ -191,7 +191,7 @@ class DQN:
         q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
         for i in range(self.grid):
             for j in range(self.grid):
-                state = np.array([i+1,j+1])
+                state = np.array([i,j])/self.grid * 2 - 1
                 state = np.reshape(state,(1,2))
                 value = sess.run(self.q_values, feed_dict={self.input:state})
                 q_values[i, j] = value[0]
@@ -223,8 +223,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
     if agent == 'shaping':
-        current_potential = shaping[states[:,0].astype(np.uint8)-1,states[:,1].astype(np.uint8)-1]
-        next_potential = shaping[new_states[:,0].astype(np.uint8)-1,new_states[:,1].astype(np.uint8)-1]
+        state_indices = np.round((states + 1)/2 * main_dqn.grid).astype(np.uint8)
+        new_state_indices = np.round((new_states + 1)/2 * main_dqn.grid).astype(np.uint8)
+        current_potential = shaping[state_indices[:,0].astype(np.uint8),state_indices[:,1].astype(np.uint8)]
+        next_potential = shaping[new_state_indices[:,0].astype(np.uint8),new_state_indices[:,1].astype(np.uint8)]
         curr= current_potential[range(batch_size),actions]
         next = next_potential[range(batch_size),arg_q_max]
         target_q += gamma* next*(1-terminal_flags) - curr
@@ -254,7 +256,7 @@ class toy_env:
         self.current_state_x = 0
         self.current_state_y = 0
         self.timestep = 0
-        return np.array([1,1])
+        return np.array([0,0])/self.grid * 2 - 1
 
     def get_current_state(self):
         result = np.zeros((self.grid, self.grid), dtype=np.uint8)
@@ -284,7 +286,7 @@ class toy_env:
             terminal = 1
         else:
             terminal = 0
-        return np.array([self.current_state_x+1,self.current_state_y+1]), reward, terminal
+        return np.array([self.current_state_x,self.current_state_y])/self.grid * 2 - 1, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=1, args=None):
         expert = {}
@@ -522,7 +524,6 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
         eps_number += 1
         last_eval += eps_len
         # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
-
         if args.env_id=='chain':
             selected_dqn = bootstrap_dqns[np.random.randint(0, len(bootstrap_dqns))]
             MAIN_DQN = selected_dqn["main"]
@@ -620,7 +621,8 @@ def potential_pretrain(session, states, actions, diffs, rewards, new_states, ter
             weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, agent,shaping=None):
 
     states = np.squeeze(states)
-    current_potential = shaping[states[:, 0].astype(np.uint8)-1, states[:, 1].astype(np.uint8)-1]
+    state_indices = np.round((states + 1)/2 * main_dqn.grid).astype(np.uint8)
+    current_potential = shaping[state_indices[:, 0].astype(np.uint8), state_indices[:, 1].astype(np.uint8)]
     target_q = current_potential[range(batch_size), actions]
     loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
                                                 main_dqn.l_jeq, main_dqn.update],
@@ -705,24 +707,24 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
 
         last_eval = 0
-        if agent !='dqn':
-            if agent == 'shaping':
-                print("Beginning to pretrain shaping")
-                train_step_dqfd(
-                    sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                    args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
-                print("done pretraining ,test prioritized buffer, shaping")
-                print("buffer expert size: ", my_replay_memory.expert_idx)
-            else:
-                print("Beginning to pretrain")
-                train_step_dqfd(
-                    sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                    args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,pretrain=True)
-                print("done pretraining ,test prioritized buffer")
-                print("buffer expert size: ", my_replay_memory.expert_idx)
+        # if agent !='dqn':
+        if agent == 'shaping':
+            print("Beginning to pretrain shaping")
+            train_step_dqfd(
+                sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
+                args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
+            print("done pretraining ,test prioritized buffer, shaping")
+            print("buffer expert size: ", my_replay_memory.expert_idx)
         else:
-            print("Expert data deleted .... ")
-            my_replay_memory.delete_expert(MEMORY_SIZE)
+            print("Beginning to pretrain")
+            train_step_dqfd(
+                sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
+                args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,pretrain=True)
+            print("done pretraining ,test prioritized buffer")
+            print("buffer expert size: ", my_replay_memory.expert_idx)
+        # else:
+        #     print("Expert data deleted .... ")
+        #     my_replay_memory.delete_expert(MEMORY_SIZE)
 
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH,
                                         REPLAY_MEMORY_START_SIZE,args)
@@ -758,44 +760,51 @@ def train(priority=True, agent='model', grid=10, seed=0):
 # train(grid=55,agent='dqfd')
 
 import matplotlib.pyplot as plt
-M=50
-N=70
-reach = np.zeros((5,N-M))
+
+num_runs = 10
+reach = np.zeros((5, num_runs))
 for seed in range(3):
-   for grid in range(M,N,1):
-       print("epsilon: grid_",grid,"seed_",seed)
-       #current_time = time.time()
-       num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-       #print("Elapsed: ", time.time() - current_time)
-       num_dqn = train(grid=grid,agent='dqn',seed=seed)
-       reach[0,grid-M] += num_dqn
-       reach[1,grid-M] += num_boot
+    for grid_index in range(num_runs):
+        grid = 3 * grid_index + 50 
+        print("epsilon: grid_",grid,"seed_",seed)
+        #current_time = time.time()
+        num_potential = train(grid=grid,agent='shaping',seed=seed)
+        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
+        #print("Elapsed: ", time.time() - current_time)
+        num_dqn = train(grid=grid,agent='dqn',seed=seed)
+        reach[0,grid_index] += num_dqn
+        reach[1,grid_index] += num_boot
+
+        num = train(grid=grid,agent='expert',seed=seed)
+        num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
+        reach[3,grid_index] += num_dqfd
+        reach[4,grid_index] += num_potential
+        reach[2,grid_index] += num
+    np.save('bootdqn_explor_bomb',reach)
+    plt.plot(range(M,N,1),reach[0,:N-M],label='DQN with EZ greedy')
+    plt.plot(range(M,N,1),reach[1,:N-M],label='bootstrapped DQN')
+    plt.plot(range(M,N,1),reach[3,:N-M],label='DQfD')
+    plt.plot(range(M,N,1),reach[4,:N-M],label='RLfD through shaping')
+    plt.plot(range(M,N,1),reach[2,:N-M],label='BQfD')
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+    plt.tight_layout()
+    plt.savefig('chain_rlfd_bomb')
 
 # reach = reach/3.0
-np.save('bootdqn_explor_bomb',reach)
 # reach_exp = np.load('bootdqn_expor_bomb.npy')
 # reach_exp = np.load('bootdqn_explor.npy')
 # reach = np.load('RLfD_eratio_'+str(0)+'_bomb.npy')
-for seed in [0,1,2]:
-    for grid in range(M,N,1):
-        print("our approach: grid_", grid)
-        num = train(grid=grid,agent='expert',seed=seed)
-        num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
-        num_potential = train(grid=grid,agent='shaping',seed=seed)
-        reach[3,grid-M] += num_dqfd
-        reach[4,grid-M] += num_potential
-        reach[2,grid-M] += num
-        if grid %5==0 or grid==69:
-            np.save('RLfD_bomb_eratio_'+str(seed), reach)
-reach = reach/3.0
-np.save('RLfD_bomb',reach)
+# for seed in [0,1,2]:
+#     for grid in range(M,N,1):
+#         print("our approach: grid_", grid)
+#         num = train(grid=grid,agent='expert',seed=seed)
+#         num_dqfd= train(grid=grid,agent='dqfd',seed=seed)
+#         num_potential = train(grid=grid,agent='shaping',seed=seed)
+#         reach[3,grid-M] += num_dqfd
+#         reach[4,grid-M] += num_potential
+#         reach[2,grid-M] += num
+#         if grid %5==0 or grid==69:
+#             np.save('RLfD_bomb_eratio_'+str(seed), reach)
+# reach = reach/3.0
 # reach = np.load('RLfD_eratio_2.npy')
 
-plt.plot(range(M,N,1),reach[0,:N-M],label='DQN with EZ greedy')
-plt.plot(range(M,N,1),reach[1,:N-M],label='bootstrapped DQN')
-plt.plot(range(M,N,1),reach[3,:N-M],label='DQfD')
-plt.plot(range(M,N,1),reach[4,:N-M],label='RLfD through shaping')
-plt.plot(range(M,N,1),reach[2,:N-M],label='BQfD')
-plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
-plt.tight_layout()
-plt.savefig('chain_rlfd_bomb')
