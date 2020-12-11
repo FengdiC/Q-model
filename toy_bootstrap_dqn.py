@@ -507,7 +507,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     print("Agent: ", name)
     last_eval = 0
     build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-    max_eps = 101
+    max_eps = 600
     regret_list = []
 
     #compute regret
@@ -696,7 +696,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 100
+        max_eps = 600
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
