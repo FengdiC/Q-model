@@ -191,7 +191,7 @@ class DQN:
         q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
         for i in range(self.grid):
             for j in range(self.grid):
-                state = np.array([i,j])/self.grid * 2 - 1
+                state = np.array([i,j])/self.grid
                 state = np.reshape(state,(1,2))
                 value = sess.run(self.q_values, feed_dict={self.input:state})
                 q_values[i, j] = value[0]
@@ -223,8 +223,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma*double_q *  (1-terminal_flags))
     if agent == 'shaping':
-        state_indices = np.round((states + 1)/2 * main_dqn.grid).astype(np.uint8)
-        new_state_indices = np.round((new_states + 1)/2 * main_dqn.grid).astype(np.uint8)
+        state_indices = np.round((states * main_dqn.grid)).astype(np.uint8)
+        new_state_indices = np.round((new_states * main_dqn.grid)).astype(np.uint8)
         current_potential = shaping[state_indices[:,0].astype(np.uint8),state_indices[:,1].astype(np.uint8)]
         next_potential = shaping[new_state_indices[:,0].astype(np.uint8),new_state_indices[:,1].astype(np.uint8)]
         curr= current_potential[range(batch_size),actions]
@@ -256,13 +256,7 @@ class toy_env:
         self.current_state_x = 0
         self.current_state_y = 0
         self.timestep = 0
-        return np.array([0,0])/self.grid * 2 - 1
-
-    def get_current_state(self):
-        result = np.zeros((self.grid, self.grid), dtype=np.uint8)
-        result[self.current_state_x, self.current_state_y] = 1
-        result = np.reshape(result, [self.grid * self.grid])
-        return result
+        return np.array([0,0])/self.grid
 
     def step(self, action):
         assert not (action != 0 and action != 1), "invalid action"
@@ -286,7 +280,7 @@ class toy_env:
             terminal = 1
         else:
             terminal = 0
-        return np.array([self.current_state_x,self.current_state_y])/self.grid * 2 - 1, reward, terminal
+        return np.array([self.current_state_x,self.current_state_y])/self.grid, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=1, args=None):
         expert = {}
@@ -294,7 +288,7 @@ class toy_env:
         num_batches = math.ceil(min_expert_frames/half_expert_traj)
         num_expert = num_batches * half_expert_traj
         
-        expert_frames = np.zeros((num_expert, 2), np.uint8)
+        expert_frames = np.zeros((num_expert, 2), np.float32)
         rewards = np.zeros((num_expert, ), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
 
@@ -492,10 +486,13 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     config.gpu_options.allow_growth = True
     if priority:
         print("Priority", grid, grid * grid)
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, state_shape=[args.state_size], agent_history_length=1, agent=name, batch_size=BS, bootstrap=num_bootstrap)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, state_shape=[args.state_size], 
+                                                                agent_history_length=1, agent=name, batch_size=BS, 
+                                                                frame_dtype=np.float32, bootstrap=num_bootstrap)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],agent_history_length=1, agent=name, batch_size=BS, bootstrap=num_bootstrap)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],agent_history_length=1, 
+                                                        frame_dtype=np.float32, agent=name, batch_size=BS, bootstrap=num_bootstrap)
     action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE,
                                     replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                     max_frames=MAX_FRAMES,
@@ -509,7 +506,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     print("Agent: ", name)
     last_eval = 0
     build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-    max_eps = 600
+    max_eps = 300
     regret_list = []
 
     #compute regret
@@ -621,7 +618,7 @@ def potential_pretrain(session, states, actions, diffs, rewards, new_states, ter
             weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, agent,shaping=None):
 
     states = np.squeeze(states)
-    state_indices = np.round((states + 1)/2 * main_dqn.grid).astype(np.uint8)
+    state_indices = np.round((states * main_dqn.grid)).astype(np.uint8)
     current_potential = shaping[state_indices[:, 0].astype(np.uint8), state_indices[:, 1].astype(np.uint8)]
     target_q = current_potential[range(batch_size), actions]
     loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
@@ -678,11 +675,12 @@ def train(priority=True, agent='model', grid=10, seed=0):
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,
                                                                       state_shape=[args.state_size], agent_history_length=1,
-                                                                      agent=name, batch_size=BS)
+                                                                      agent=name, frame_dtype=np.float32, batch_size=BS)
         else:
             print("Not Priority")
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
-                                                           agent_history_length=1, agent=name, batch_size=BS)
+                                                           agent_history_length=1, agent=name, frame_dtype=np.float32, 
+                                                           batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE,
                                            replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -698,18 +696,16 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 600
+        max_eps = 300
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
         # V = compute_regret(Q_value, grid, args.gamma, final_reward)
         # print("True value for initial state: ", V)
-
-
         last_eval = 0
         # if agent !='dqn':
         if agent == 'shaping':
-            print("Beginning to pretrain shaping")
+            print("Beginning to pretrain shaping", my_replay_memory.count)
             train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
                 args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
@@ -722,6 +718,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,pretrain=True)
             print("done pretraining ,test prioritized buffer")
             print("buffer expert size: ", my_replay_memory.expert_idx)
+
         # else:
         #     print("Expert data deleted .... ")
         #     my_replay_memory.delete_expert(MEMORY_SIZE)
@@ -761,9 +758,23 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
 import matplotlib.pyplot as plt
 
+# num1 = train(grid=77,agent='expert',seed=0)
+# num2 = train(grid=77,agent='expert',seed=1)
+# num3 = train(grid=77,agent='expert',seed=2)
+# num4 = train(grid=77,agent='expert',seed=3)
+# print(np.mean([num1 + num2 + num3 + num4]))
+# print(np.mean(np.mean(np.abs(q_1 - q_2))))
+# print(np.mean(np.mean(np.abs(q_1 - q_3))))
+# print(np.mean(np.mean(np.abs(q_1 - q_4))))
+# quit()
+
+# num = train(grid=77,agent='expert',seed=0)
+# num = train(grid=77,agent='expert',seed=1)
+# num = train(grid=77,agent='expert',seed=2)
+
 num_runs = 10
 reach = np.zeros((5, num_runs))
-for seed in range(3):
+for seed in range(3, 6):
     for grid_index in range(num_runs):
         grid = 3 * grid_index + 50 
         print("epsilon: grid_",grid,"seed_",seed)
@@ -780,15 +791,16 @@ for seed in range(3):
         reach[3,grid_index] += num_dqfd
         reach[4,grid_index] += num_potential
         reach[2,grid_index] += num
-    np.save('bootdqn_explor_bomb',reach)
-    plt.plot(range(M,N,1),reach[0,:N-M],label='DQN with EZ greedy')
-    plt.plot(range(M,N,1),reach[1,:N-M],label='bootstrapped DQN')
-    plt.plot(range(M,N,1),reach[3,:N-M],label='DQfD')
-    plt.plot(range(M,N,1),reach[4,:N-M],label='RLfD through shaping')
-    plt.plot(range(M,N,1),reach[2,:N-M],label='BQfD')
+    np.save('bootdqn_explor_bomb3',reach)
+    plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy')
+    plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN')
+    plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD')
+    plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping')
+    plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD')
     plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
     plt.tight_layout()
-    plt.savefig('chain_rlfd_bomb')
+    plt.savefig('chain_rlfd_bomb3')
+
 
 # reach = reach/3.0
 # reach_exp = np.load('bootdqn_expor_bomb.npy')
