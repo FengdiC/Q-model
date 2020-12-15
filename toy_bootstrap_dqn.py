@@ -448,10 +448,10 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 90 # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 *110 # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 1800#grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 2200#grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -498,7 +498,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
         print("Agent: ", name)
         last_eval = 0
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-        max_eps = 100
+        max_eps = 600
         regret_list = []
 
         #compute regret
@@ -524,7 +524,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10,seed=0,grid=10)
                 # #compute regret
                 # regret_list.append(V - compute_regret(q_values, grid, args.gamma, final_reward))
                 # print(V, eps_number, regret_list[-1], eps_rw)
-                if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02) or eps_number > max_eps:
+                if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
 
@@ -631,10 +631,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 90  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 32 *110  # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 1800  # grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = 32 * 2200  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -682,7 +682,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 100
+        max_eps = 600
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
@@ -744,20 +744,20 @@ def train(priority=True, agent='model', grid=10, seed=0):
 # train(grid=10,agent='dqfd')
 import matplotlib.pyplot as plt
 M=50
-N=90
+N=70
 
-#reach = np.zeros((5,N-M))
-#for seed in range(3):
-#    for grid in range(M,N,1):
-#        print("epsilon: grid_",grid,"seed_",seed)
-#        num_dqn = train(grid=grid,agent='dqn',seed=seed)
-#        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
-#        reach[0,grid-M] += num_dqn
-#        reach[1,grid-M] += num_boot
+reach = np.zeros((5,N-M))
+for seed in range(3):
+    for grid in range(M,N,1):
+        print("epsilon: grid_",grid,"seed_",seed)
+        num_dqn = train(grid=grid,agent='dqn',seed=seed)
+        num_boot = train_bootdqn(grid=grid,agent='bootdqn',seed=seed)
+        reach[0,grid-M] += num_dqn
+        reach[1,grid-M] += num_boot
 
-#reach = reach/3.0
-#np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
-reach = np.load('/scratch/fengdic/bootdqn_expor_bomb')
+reach = reach/3.0
+np.save('/scratch/fengdic/bootdqn_expor_bomb',reach)
+#reach = np.load('/scratch/fengdic/bootdqn_expor_bomb.npy')
 
 for grid in range(M,N,1):
     print("our approach: grid_", grid)

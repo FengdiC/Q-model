@@ -195,7 +195,7 @@ class DQN:
             for j in range(self.grid):
                 state = np.array([i + 1, j + 1])
                 state = np.reshape(state, (1, 2))
-                value = sess.run(self.q_values, feed_dict={self.input: state})
+                value = sess.run(self.q_values, feed_dict={self.input: state/(0.5*grid)-1})
                 q_values[i, j] = value[0]
         return q_values
 

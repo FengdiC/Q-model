@@ -54,7 +54,7 @@ class toy_maze:
             state += x
         for x in self.dangers:
             state+=x
-        return np.array(state)+1
+        return np.array(state)/(0.5*self.grid)-1
 
     def get_current_state(self):
         result = np.zeros((self.grid, self.grid), dtype=np.uint8)
@@ -119,10 +119,12 @@ class toy_maze:
         self.terminal = terminal
         if self.level < len(self.data['dangers']) and terminal:
             terminal = 0
-        return np.array(state)+1, reward, terminal
+        return np.array(state)/(0.5*self.grid)-1, reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=512):
+    def generate_expert_data(self, min_expert_frames=1024):
         print("Creating Expert Data ... ")
+        data = pickle.load(open('/home/fengdic/Q-model/short_maze_2.pkl', 'rb'))
+        expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
@@ -137,8 +139,9 @@ class toy_maze:
             current_state = self.reset()
             for j in range(len(expert_action)):
                 action = expert_action[j]
+                expert_frames[current_index] = current_state
                 s, r, t = self.step(action)
-                expert_frames[current_index] = s
+                current_state=s
                 rewards[current_index] = r
                 actions[current_index] = action
                 terminals[current_index] = t
