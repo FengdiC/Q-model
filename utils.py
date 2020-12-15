@@ -333,21 +333,28 @@ class Atari:
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
 
-def build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, max_eps, replay_buf_size, MAIN_DQN, args, frame_number=0):
+def build_initial_replay_buffer(sess, atari, replay_buffer, action_getter, max_eps, replay_buf_size, MAIN_DQN, args, frame_number=0):
     frame_num = 0
     while frame_num < replay_buf_size:
-        _, _ = atari.reset(sess)
+        _, current_state = atari.reset(sess)
         for _ in range(max_eps):
             # 
-            if args.stochastic_exploration == "True":
-                action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
-            else:
-                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, building_replay=True)
+            # if args.stochastic_exploration == "True":
+            #     action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+            # else:
+            #     action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, building_replay=True)
+            action = action_getter.get_random_action()
             # print("Action: ",action)
-            # 
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             #  Store transition in the replay memory
-            my_replay_memory.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            # replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            if terminal_life_lost:
+                rand_action = action_getter.get_random_action()
+                replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=rand_action, done=terminal_life_lost)
+                if not terminal:
+                    next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, rand_action)
+            current_state = next_frame
             frame_num += 1
             if frame_num % (replay_buf_size//10) == 0 and frame_num > 0:
                 print(frame_num)
@@ -425,7 +432,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,
                     learn, pretrain=False):
     start_time = time.time()
-    terminal_life_lost, _ = atari.reset(sess, evaluation=True)
+    terminal_life_lost, current_state = atari.reset(sess, evaluation=False)
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
@@ -457,10 +464,17 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             episode_reward_sum += reward
             episode_length += 1
-
-            replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            # replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            if terminal_life_lost:
+                replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
+                if not terminal:
+                    next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+                    episode_reward_sum += reward
+                    episode_length += 1
+            current_state = next_frame
         else:
-            if frame_num % 1000 == 0:
+            if frame_num % 1000 == 0 and frame_num > 0:
                 print("Current Loss: ", frame_num, np.mean(episode_loss[-1000:]), np.mean(episode_dq_loss[-1000:]),
                       np.mean(episode_dq_n_loss[-1000:]), np.mean(episode_jeq_loss[-1000:]))
         frame_num += 1
@@ -509,10 +523,12 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_dq_loss), np.mean(episode_dq_n_loss), np.mean(episode_jeq_loss), np.mean(episode_l2_loss), \
            time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights), np.mean(episode_diff_non_expert), np.mean(episode_diff_expert), np.mean(episode_mask_mean)
 
+
+
 def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length, learn,
                pretrain=False, priority=False):
     start_time = time.time()
-    terminal_life_lost, _ = atari.reset(sess, evaluation=True)
+    terminal_life_lost, current_state = atari.reset(sess, evaluation=True)
     episode_reward_sum = 0
     episode_length = 0
     episode_loss = []
@@ -538,8 +554,14 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             episode_length += 1
 
             # Store transition in the replay memory
-            replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-
+            replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            if terminal_life_lost:
+                replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
+                if not terminal:
+                    next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+                    episode_reward_sum += reward
+                    episode_length += 1
+            current_state = next_frame 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:
                 generated_states, generated_actions,generated_diffs, generated_rewards, generated_new_states, generated_terminal_flags = replay_buffer.sample(BS, expert=pretrain)  # Generated trajectories
