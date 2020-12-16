@@ -10,7 +10,7 @@ import PriorityBuffer
 import pickle
 from tensorboard_logger import tensorflowboard_logger
 import math
-from env import toy_maze
+from env import toy_maze,toy_maze_grid
 
 
 def find_vars(name):
@@ -96,9 +96,9 @@ class DQN:
         MAIN_DQN_VARS = find_vars(name)
         if self.agent == 'bootdqn':
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
-        if self.agent == 'expert':
+        elif self.agent == 'expert':
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS)
-        if self.agent == 'dqfd':
+        elif self.agent == 'dqfd':
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
         else:
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
@@ -226,8 +226,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     # if the game is over, targetQ=rewards
     target_q = rewards + (gamma * double_q * (1 - terminal_flags))
     if agent == 'shaping':
-        current_potential = shaping[states[:, 0].astype(np.uint8) - 1, states[:, 1].astype(np.uint8) - 1]
-        next_potential = shaping[new_states[:, 0].astype(np.uint8) - 1, new_states[:, 1].astype(np.uint8) - 1]
+        state_indices = np.round(((states+1)*0.5 * main_dqn.grid)).astype(np.uint8)
+        new_state_indices = np.round(((new_states+1)*0.5 * main_dqn.grid)).astype(np.uint8)
+        current_potential = shaping[state_indices[:,0].astype(np.uint8),state_indices[:,1].astype(np.uint8)]
+        next_potential = shaping[new_state_indices[:,0].astype(np.uint8),new_state_indices[:,1].astype(np.uint8)]
         curr = current_potential[range(batch_size), actions]
         next = next_potential[range(batch_size), arg_q_max]
         target_q += gamma * next * (1 - terminal_flags) - curr
@@ -351,7 +353,7 @@ def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter, gr
 def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps_length, replay_buf_size, args):
     frame_num = 0
     while frame_num < replay_buf_size:
-        _ = env.reset()
+        frame = env.reset()
         for _ in range(max_eps_length):
             #
             action = action_getter.get_random_action()
@@ -359,7 +361,8 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             #
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            frame = next_frame
             frame_num += 1
             if terminal:
                 break
@@ -382,11 +385,11 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
     UPDATE_FREQ = args.update_freq  # Every four actions a gradient descend step is performed
     BS = 32
     terminal = False
-    frame = env.reset()
     # select a dqn ...
     selected_dqn = bootstrap_dqns[np.random.randint(0, len(bootstrap_dqns))]
     priority = np.zeros((BS,), dtype=np.float32)
     priority_weight = np.zeros((BS,), dtype=np.float32)
+    frame = env.reset()
     for _ in range(eps_length):
         if not pretrain:
             if args.stochastic_exploration == "True":
@@ -394,7 +397,8 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
             else:
                 action = action_getter.get_action(sess, frame_num, frame, selected_dqn["main"], evaluation=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
         frame_num += 1
@@ -491,13 +495,13 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=10, seed=0, grid=1
         config.gpu_options.allow_growth = True
         if priority:
             print("Priority", grid, grid * grid)
-            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,
+            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
                                                                       state_shape=[args.state_size],
                                                                       agent_history_length=1, agent=agent, batch_size=BS,
                                                                       bootstrap=num_bootstrap)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS,
                                                            bootstrap=num_bootstrap)
         action_getter = utils.ActionGetter(env.n_actions,
@@ -584,7 +588,8 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=next_frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
         frame_num += 1
@@ -624,7 +629,8 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
 def potential_pretrain(session, states, actions, diffs, rewards, new_states, terminal_flags,
                        weights, expert_idxes, main_dqn, target_dqn, batch_size, gamma, agent, shaping=None):
     states = np.squeeze(states)
-    current_potential = shaping[states[:, 0].astype(np.uint8) - 1, states[:, 1].astype(np.uint8) - 1]
+    state_indices = np.round(((states+1) * main_dqn.grid*0.5)).astype(np.uint8)
+    current_potential = shaping[state_indices[:, 0].astype(np.uint8), state_indices[:, 1].astype(np.uint8)]
     target_q = current_potential[range(batch_size), actions]
 
     loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
@@ -662,6 +668,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         if args.env_id == 'maze':
             env = toy_maze('/home/fengdic/Q-model/mazes')
+        elif args.env_id == 'maze_board':
+            env = toy_maze_grid('/home/fengdic/Q-model/mazes')
         else:
             final_reward = 1
             env = toy_env(grid, final_reward)
@@ -679,13 +687,13 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         if priority:
             print("Priority", grid, grid * grid)
-            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,
+            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
                                                                       state_shape=[args.state_size],
                                                                       agent_history_length=1,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
@@ -698,7 +706,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         eps_number = 0
         frame_number = 0
         tflogger = tensorflowboard_logger(
-            "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(
+            "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_lr_" + str(args.lr)+"_var_"+str(args.var) + "_seed_" + str(
                 args.seed) + "_" + args.custom_id, sess, args)
 
         my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
