@@ -30,16 +30,15 @@ def compute_regret(Q_value,grid,final_reward,gamma):
     Q = np.matmul(np.linalg.inv(np.eye(grid*grid)-gamma*P),R)
     return Q[0]
 
-def eps_compute(frame_number,grid):
-    c = grid/2
-    if frame_number < 2**c:
+def eps_compute(frame_number,grid,coef):
+    if frame_number < coef*grid:
         eps=1
-    elif frame_number<2**c * 5:
-        slope = -0.7/(2**c * 5-2**c)
-        intercept = 1-slope*2**c
+    elif frame_number<(coef+50)*grid:
+        slope = -0.99/(50*grid)
+        intercept = 1-slope*coef*grid
         eps = slope*frame_number+intercept
     else:
-        eps=0.3
+        eps=0.01
     return eps
 
 def ez_action_sampling(mu, n_actions, past_action, duration_left):
@@ -51,18 +50,18 @@ def ez_action_sampling(mu, n_actions, past_action, duration_left):
     return past_action, duration_left
 
 
-def train(grid=10,eps=True,seed =0 ):
+def train(grid=10,eps=True,seed =0,coef=10,lr =None ):
     print(grid,":::",eps,":::")
     args = utils.argsparser()
     tf.random.set_random_seed(seed)
     np.random.seed(seed)
 
     horizon = grid
-    MAX_FRAMES = 6**grid
+    MAX_FRAMES = 4000
     final_reward = 1
     gamma = 0.99
     beta = 4.0
-    eta =1.2
+    eta =3.0
     Q_value = np.zeros((grid, grid, 2))
     Q_value[:,:,1]=final_reward
     V = compute_regret(Q_value,grid,final_reward,gamma)
@@ -92,7 +91,7 @@ def train(grid=10,eps=True,seed =0 ):
         duration_left = 0
         past_action = -1
         while not terminal:
-            e = eps_compute(frame_number,grid)
+            e = eps_compute(frame_number,grid,coef=coef)
             traj[count,0] = state[0]; traj[count,1]=state[1];
             Q = Q_value[state[0], state[1], :]
             action = int(np.argmax(Q))
@@ -133,16 +132,17 @@ def train(grid=10,eps=True,seed =0 ):
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
             final= True
-            if len(regret) > 3 and regret[-2] - regret[-1] < 0.003 and eps and frame_number>2500:
-                for i in range(len(regret) - 1):
-                    regret[i + 1] += regret[i]
-                return frame_number, regret
-            if len(regret) > 3 and regret[-2] - regret[-1] < 0.003 and not eps and frame_number>4000:
-                for i in range(len(regret) - 1):
-                    regret[i + 1] += regret[i]
-                return frame_number, regret
-            # if len(regret)>3 and np.mean(regret[-3:])==0 and final:
-            #     return eps_number
+            # return eps_number
+        # if eps and frame_number>30000:
+        #     for i in range(len(regret) - 1):
+        #         regret[i + 1] += regret[i]
+        #     return frame_number, regret
+        # if not eps and frame_number>10000:
+        #     for i in range(len(regret) - 1):
+        #         regret[i + 1] += regret[i]
+        #     return frame_number, regret
+        if len(regret)>3 and np.mean(regret[-3:])<0.001 and final:
+                return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1]
         eps_number += 1
 
@@ -152,7 +152,6 @@ def train(grid=10,eps=True,seed =0 ):
             return e_x / e_x.sum()
 
         #update
-        var = 0
         for i in reversed(range(grid-1)):
             state = traj[i,0:2].astype(dtype=int)
             next_state = traj[i+1,0:2].astype(dtype=int)
@@ -170,11 +169,14 @@ def train(grid=10,eps=True,seed =0 ):
                 if eps:
                     expert_correction = 0
                 target_q = reward + gamma * np.max(Q_value[next_state[0], next_state[1]]) + expert_correction
-                alpha = 1.0 / (beta + update_count[state[0], state[1], action])
+                # alpha = 1.0 / (beta + update_count[state[0], state[1], action])
+                alpha=0.1
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
             else:
                 target_q = reward+gamma*np.max(Q_value[next_state[0],next_state[1]])
                 alpha = beta/(beta+update_count[state[0],state[1],action])
+                if lr is not None:
+                    alpha = lr
                 Q_value[state[0], state[1], action] = (1 - alpha) * Q_value[state[0], state[1], action] + alpha * target_q
 
         # pi = np.argmax(Q_value, axis=2)
@@ -183,43 +185,43 @@ def train(grid=10,eps=True,seed =0 ):
         # regret.append(correct)
         # print("Episode: ",eps_number,"policy: ",correct)
 
-        regret.append(V - np.max(Q_value[0,0]))
-        # regret.append(V-compute_regret(Q_value,grid,final_reward,gamma))
-        print("Episode: ", eps_number, "regret: ", V - np.max(Q_value[0,0]))
+        # regret.append(V - np.max(Q_value[0,0]))
+        regret.append(V-compute_regret(Q_value,grid,final_reward,gamma))
+        # print("Episode: ", eps_number, "regret: ", V - np.max(Q_value[0,0]),":::",Q_value[0,0],":::",V)
         # print(V - np.max(Q_value[0,0]))
-    return -1,[]
+    return 4000/grid
 
 
 # train(80,False,0)
-# import matplotlib.pyplot as plt
-# M=7
-# N=28
-#
-# reach = np.zeros(N-M)
-# for seed in range(5):
-#     for grid in range(M,N,1):
-#         print("epsilon: grid_",grid,"seed_",seed)
-#         num = train(grid,True,seed)
-#         reach[grid-M] += num
-# reach_eps = reach/5.0
-#
-# reach = np.zeros(N-M)
-# for grid in range(M,N,1):
-#     print("tabular: grid_", grid)
-#     num = train(grid,False,seed=0)
-#     reach[grid-M] = num
-# reach_tabular = reach
-#
-# from ekf import train
-# reach = np.zeros(N-M)
-# for grid in range(M,N,1):
-#     print("ekf: grid_", grid)
-#     num = train(grid,False)
-#     reach[grid-M] = num
-# reach_ekf = reach
-#
-# plt.plot(range(M,N,1),reach_eps,label='epsilon-greedy')
-# plt.plot(range(M,N,1),reach_tabular,label='estimation')
-# plt.plot(range(M,N,1),reach_ekf,label='GEKF')
-# plt.legend()
-# plt.savefig('toy_explor')
+import matplotlib.pyplot as plt
+M=7
+N=28
+
+reach = np.zeros(N-M)
+for seed in range(5):
+    for grid in range(M,N,1):
+        print("epsilon: grid_",grid,"seed_",seed)
+        num = train(grid,True,seed,70,None)
+        reach[grid-M] += num
+reach_eps = reach/5.0
+
+reach = np.zeros(N-M)
+for grid in range(M,N,1):
+    print("tabular: grid_", grid)
+    num = train(grid,False,seed=0)
+    reach[grid-M] = num
+reach_tabular = reach
+
+from ekf import train
+reach = np.zeros(N-M)
+for grid in range(M,N,1):
+    print("ekf: grid_", grid)
+    num = train(grid,False)
+    reach[grid-M] = num
+reach_ekf = reach
+
+plt.plot(range(M,N,1),reach_eps,label='EZ greedy',color='b')
+plt.plot(range(M,N,1),reach_tabular,label='BQfD',color='r')
+plt.plot(range(M,N,1),reach_ekf,label='full GEKF',color='g')
+plt.legend()
+plt.savefig('toy_explor')
