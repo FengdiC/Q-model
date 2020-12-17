@@ -7,7 +7,7 @@ import sys
 sys.path.append('/usr/local/lib/python3.6/dist-packages')
 import gym
 import imageio
-from skimage.transform import resize
+#from skimage.transform import resize
 import time
 import pickle
 import utils
@@ -54,46 +54,12 @@ class DQN:
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = (self.input - 127.5) / 127.5
-        # self.inputscaled = self.input
-        # Convolutional layers
-        self.conv1 = tf.layers.conv2d(
-          inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2),
-          padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-        self.conv2 = tf.layers.conv2d(
-          inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2),
-          padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-        self.conv3 = tf.layers.conv2d(
-          inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2),
-          padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-        # self.conv4 = tf.layers.conv2d(
-        #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-        #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
-        #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-        self.d = tf.layers.flatten(self.conv3)
-        self.dense = tf.layers.dense(inputs=self.d, units=hidden,
-                                   kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
-
-        # Splitting into value and advantage stream
-        self.valuestream, self.advantagestream = tf.split(self.dense, 2, -1)
-        self.valuestream = tf.layers.flatten(self.valuestream)
-        self.advantagestream = tf.layers.flatten(self.advantagestream)
-        self.advantage = tf.layers.dense(
-          inputs=self.advantagestream, units=self.n_actions,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
-        self.value = tf.layers.dense(
-          inputs=self.valuestream, units=1,
-          kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
-
+        self.value, self.advantage = self.build_network(self.inputscaled, hidden, reuse=False)
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage,
                                                tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.action_prob = tf.nn.softmax(args.eta * self.q_values)
-
         self.nstep_minus_prob = tf.placeholder(shape=[None], dtype=tf.float32)
-
         self.best_action = tf.argmax(self.q_values, 1)
 
         # The next lines perform the parameter update. This will be explained in detail later.
@@ -109,13 +75,10 @@ class DQN:
         # Q value of the action that was performed
         self.Q = tf.reduce_sum(tf.multiply(self.q_values, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
                              axis=1)
-        # Parameter updates
-        #self.loss_per_sample = tf.losses.huber_loss(labels=self.target_q, predictions=self.Q,
-                                                  # reduction=tf.losses.Reduction.NONE)
-        #self.loss = tf.reduce_mean(self.loss_per_sample)
 
         MAIN_DQN_VARS = tf.trainable_variables(scope=name)
         self.use_n_step_prio = False
+        self.use_n_policy = False
         if agent == "dqn":
             print("DQN Loss")
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
@@ -129,23 +92,28 @@ class DQN:
             print("Expert Loss")
             self.loss, self.loss_per_sample = self.expert_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = True
+            self.use_n_policy = True
         elif agent == "expert_no_policy":
             print("Expert Loss no Policy")
             self.loss, self.loss_per_sample = self.expert_no_policy(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = False
+            self.use_n_policy = True
         elif agent == "expert_no_n_posterior":
             print("Expert Loss no n posterior")
             self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = False
+            self.use_n_policy = True
         elif agent == "expert_diff_policy":
             print("Expert Loss off policy")
             self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = True
+            self.use_n_policy = True
         elif agent == "dqfd_with_priority_weight":
             print("DQFD with priority")
             self.loss, self.loss_per_sample = self.dqfd_loss_with_priority_weights(MAIN_DQN_VARS)
         elif agent == "dqfd_all_weights":
             print("DQFD all weights")
+            self.use_n_policy = True
             self.loss, self.loss_per_sample = self.loss_dqfd_all_weights(MAIN_DQN_VARS)
         else:
             # print("DQFD")
@@ -153,6 +121,44 @@ class DQN:
             raise NotImplementedError
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss)
+
+    def build_network(self, data_input, hidden, reuse=False):
+        with tf.variable_scope("network", reuse=reuse):
+            # self.inputscaled = self.input
+            # Convolutional layers
+            conv1 = tf.layers.conv2d(
+            inputs=data_input, filters=32, kernel_size=[8, 8], strides=4,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            conv2 = tf.layers.conv2d(
+            inputs=conv1, filters=64, kernel_size=[4, 4], strides=2,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            conv3 = tf.layers.conv2d(
+            inputs=conv2, filters=64, kernel_size=[3, 3], strides=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            # self.conv4 = tf.layers.conv2d(
+            #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            d = tf.layers.flatten(conv3)
+            dense = tf.layers.dense(inputs=d, units=hidden,
+                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+
+            # Splitting into value and advantage stream
+            valuestream, advantagestream = tf.split(dense, 2, -1)
+            valuestream = tf.layers.flatten(valuestream)
+            advantagestream = tf.layers.flatten(advantagestream)
+            advantage = tf.layers.dense(
+            inputs=advantagestream, units=self.n_actions,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+            value = tf.layers.dense(
+            inputs=valuestream, units=1,
+            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+
+            return value, advantage
+
 
     def loss_jeq(self):
         expert_act_one_hot = tf.one_hot(self.action, self.n_actions, dtype=tf.float32)
@@ -399,96 +405,66 @@ class DQN:
 
 def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,weights, expert_idxes, n_step_rewards, n_step_states, n_step_actions,
           last_step_gamma, not_terminal, main_dqn, target_dqn, batch_size, gamma, args):
-    """
-    Args:
-        session: A tensorflow sesson object
-        replay_memory: A ReplayMemory object
-        main_dqn: A DQN object
-        target_dqn: A DQN object
-        batch_size: Integer, Batch size
-        gamma: Float, discount factor for the Bellman equation
-    Returns:
-        loss: The loss of the minibatch, for tensorboard
-    Draws a minibatch from the replay memory, calculates the
-    target Q-value that the prediction Q-value is regressed to.
-    Then a parameter update is performed on the main DQN.
-    """
-    #print(np.max(states), actions, rewards)
-    # Draw a minibatch from the replay memory
-    # states, actions, rewards, new_states, terminal_flags = replay_memory.get_minibatch()
-    # The main network estimates which action is best (in the next
-    # state s', new_states is passed!)
-    # for every transition in the minibatch
-    arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
-    # The target network estimates the Q-values (in the next state s', new_states is passed!)
-    # for every transition in the minibatch
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
-    double_q = q_vals[range(batch_size), arg_q_max]
-
-    prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
-    basic_action_prob = prob[range(batch_size), actions]
-
-    mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
-    action_prob = mask * basic_action_prob + (1-mask) * np.ones((batch_size,))
-    action_prob = action_prob ** args.power
-
-
-    # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
-    # if the game is over, targetQ=rewards
-    target_q = rewards + (gamma*double_q *  (1-terminal_flags))
-    #target_pos = np.where(target_q>=0,np.zeros(batch_size),np.ones(batch_size))
-    #if np.sum(target_pos)>0:
-    #  print("Check if target values are positive: ", np.sum(target_pos))
-
-    n_step_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
-    # The target network estimates the Q-values (in the next state s', new_states is passed!)
-    # for every transition in the minibatch
-    q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
-
-    double_q = q_vals[range(batch_size), arg_q_max]
-    n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
-    n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
-    # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
-    # if the game is over, targetQ=rewards
-    target_n_q = n_step_rewards[:, -1] + (last_step_gamma[:, -1]*n_step_double_q * not_terminal[:, -1])
-    # Gradient descend step to update the parameters of the main network
     if main_dqn.use_n_step_prio:
-        # prob = session.run(target_dqn.prob, feed_dict={target_dqn.input: n_step_states[:, -1],
-        #                                                     target_dqn.action: n_step_actions[:,-1]})
-        # n_policy = mask * prob + (1-mask) * np.ones((batch_size,))
-        # n_policy = n_policy**args.power
-        # n_step_prob = mask*prob
+        arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
+        # The target network estimates the Q-values (in the next state s', new_states is passed!)
+        # for every transition in the minibatch
+        q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
+        double_q = q_vals[range(batch_size), arg_q_max]
+
+        prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
+        basic_action_prob = prob[range(batch_size), actions]
+        mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
+        action_prob = mask * basic_action_prob + (1-mask) * np.ones((batch_size,))
+        action_prob = action_prob ** args.power
+
+        # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
+        # if the game is over, targetQ=rewards
+        target_q = rewards + (gamma*double_q *  (1-terminal_flags))
+        #target_pos = np.where(target_q>=0,np.zeros(batch_size),np.ones(batch_size))
+        #if np.sum(target_pos)>0:
+        #  print("Check if target values are positive: ", np.sum(target_pos))
+
+        n_step_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states[:, -1]})
+        # The target network estimates the Q-values (in the next state s', new_states is passed!)
+        # for every transition in the minibatch
+        n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states[:, -1]})
+        n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
+        # Bellman equation. Multiplication with (1-terminal_flags) makes sure that
+        # if the game is over, targetQ=rewards
+        target_n_q = n_step_rewards[:, -1] + (last_step_gamma[:, -1]*n_step_double_q * not_terminal[:, -1])
+
         n_step_prob = np.zeros((batch_size, ))
         n_policy = np.ones(batch_size)
         step = 3
         if np.sum(expert_idxes)>0:
-          idx = np.nonzero(expert_idxes)[0]
-          # print("expert input size: ",n_step_states[idx].shape)
-          n_state_list = []
-          n_action_list = []
-          for i in idx:
-              for j in range(step):
-                n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
-                n_action_list.append(n_step_actions[i, j])
-          n_step_states = np.concatenate(n_state_list, axis=0)
-          n_step_actions = np.array(n_action_list)
+            idx = np.nonzero(expert_idxes)[0]
+            # print("expert input size: ",n_step_states[idx].shape)
+            n_state_list = []
+            n_action_list = []
+            for i in idx:
+                for j in range(step):
+                    n_state_list.append(np.expand_dims(n_step_states[i, j], axis=0))
+                    n_action_list.append(n_step_actions[i, j])
+            n_step_states = np.concatenate(n_state_list, axis=0)
+            n_step_actions = np.array(n_action_list)
 
-          all_prob = session.run(target_dqn.prob,
-                             feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
+            all_prob = session.run(target_dqn.prob,
+                                feed_dict={target_dqn.input: n_step_states, target_dqn.action: n_step_actions})
 
-          n_policy_expert = []
-          n_step_prob_expert = []
-          gamma_weight = np.array([gamma**i for i in range(step)])
-          for i in range(all_prob.shape[0]//step):
-              #should be a dataset of expert by n_actions
-              prob = all_prob[i * step:(i +1) * step]
-              n_policy_expert.append(prob)
-              n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
-          n_step_prob[idx] = np.array(n_step_prob_expert)
-          n_policy_expert = np.array(n_policy_expert)[:,0:step]
-          maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
-          n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
-          n_policy[idx] = n_policy_expert
+            n_policy_expert = []
+            n_step_prob_expert = []
+            gamma_weight = np.array([gamma**i for i in range(step)])
+            for i in range(all_prob.shape[0]//step):
+                #should be a dataset of expert by n_actions
+                prob = all_prob[i * step:(i +1) * step]
+                n_policy_expert.append(prob)
+                n_step_prob_expert.append(np.sum((1 - prob[1:step])*gamma_weight[1:step]))
+            n_step_prob[idx] = np.array(n_step_prob_expert)
+            n_policy_expert = np.array(n_policy_expert)[:,0:step]
+            maxx = np.ndarray.max(np.prod(n_policy_expert, axis=1))
+            n_policy_expert = (np.prod(n_policy_expert, axis=1)) ** 0.1
+            n_policy[idx] = n_policy_expert
         loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
                                                     main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
                             feed_dict={main_dqn.input:states,
@@ -503,17 +479,43 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                         main_dqn.nstep_minus_prob: n_step_prob
                                         })
     else:
-        loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
-                                                    main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
-                            feed_dict={main_dqn.input:states,
-                                        main_dqn.target_q:target_q,
-                                        main_dqn.action:actions,
-                                        main_dqn.target_n_q:target_n_q,
-                                        main_dqn.expert_state:expert_idxes,
-                                        main_dqn.weight:weights,
-                                        main_dqn.diff: diffs,
-                                        main_dqn.policy:action_prob,
-                                        })
+        arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
+        q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
+        n_step_arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:n_step_states})
+        n_step_q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:n_step_states})
+        double_q = q_vals[range(batch_size), arg_q_max]
+        target_q = rewards + (gamma*double_q *  (1-terminal_flags))
+        n_step_double_q = n_step_q_vals[range(batch_size), n_step_arg_q_max]
+        target_n_q = n_step_rewards + (last_step_gamma*n_step_double_q * not_terminal)
+        if main_dqn.use_n_policy:
+            prob = session.run(target_dqn.action_prob, feed_dict={target_dqn.input:states})
+            basic_action_prob = prob[range(batch_size), actions]
+            mask = np.where(diffs>0,np.ones((batch_size,)),np.zeros((batch_size,)))
+            action_prob = mask * basic_action_prob + (1-mask) * np.ones((batch_size,))
+            action_prob = action_prob ** args.power
+            loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                        main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                                feed_dict={main_dqn.input:states,
+                                            main_dqn.target_q:target_q,
+                                            main_dqn.action:actions,
+                                            main_dqn.target_n_q:target_n_q,
+                                            main_dqn.expert_state:expert_idxes,
+                                            main_dqn.weight:weights,
+                                            main_dqn.diff: diffs,
+                                            main_dqn.policy: action_prob
+                                            })
+        else:
+            mask = np.ones((diffs.shape))
+            loss_sample, l_dq, l_n_dq, l_jeq, l_l2,_ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.l_n_dq,
+                                                        main_dqn.l_jeq, main_dqn.l2_reg_loss, main_dqn.update],
+                                feed_dict={main_dqn.input:states,
+                                            main_dqn.target_q:target_q,
+                                            main_dqn.action:actions,
+                                            main_dqn.target_n_q:target_n_q,
+                                            main_dqn.expert_state:expert_idxes,
+                                            main_dqn.weight:weights,
+                                            main_dqn.diff: diffs
+                                            })
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
 def train( priority=True):
@@ -630,7 +632,7 @@ def train( priority=True):
 
     while frame_number < MAX_FRAMES:
         eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, \
-        gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask = utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN,
+        gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask= utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN,
                                                                           network_updater,action_getter, my_replay_memory, atari,
                                                                           frame_number,MAX_EPISODE_LENGTH, learn, pretrain=False)
         frame_number += eps_len
@@ -669,7 +671,7 @@ def train( priority=True):
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
         tflogger.log_scalar("Replay Buffer Size", my_replay_memory.count, frame_number)
         tflogger.log_scalar("Elapsed Time", time.time() - initial_time, frame_number)
-        tflogger.log_scalar("Frames Per Hour", frame_number/((time.time() - initial_time)/3600), frame_number)
+        tflogger.log_scalar("Frames Per Hour", max(0, (frame_number - args.replay_start_size))/((time.time() - initial_time)/3600), frame_number)
 
         if EVAL_FREQUENCY <= last_eval:
             last_eval = last_eval - EVAL_FREQUENCY

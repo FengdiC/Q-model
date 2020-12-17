@@ -179,13 +179,11 @@ class ReplayBuffer(object):
 
         self.frame_indices = np.empty([self._maxsize, self.agent_history_length], dtype=np.int32)
         self.next_frame_indices = np.empty([self._maxsize, self.agent_history_length], dtype=np.int32)
-        self.sequence_start = np.empty([self._maxsize,], dtype=np.int32)
         self.current_sequence_start = 0
 
         # Pre-allocate memory for the states and new_states in a minibatch
         self.states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
         self.new_states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
-        self.indices = np.zeros(self.batch_size, dtype=np.int32)
 
     def sample_boostrap(self, idx):
         for j in range(self.bootstrap):
@@ -203,7 +201,6 @@ class ReplayBuffer(object):
         self.frames[self.expert_idx] = np.squeeze(obs_t)
         self.rewards[self.expert_idx] = reward
         self.terminal_flags[self.expert_idx] = done
-        self.sequence_start[self.expert_idx] = self.current_sequence_start
         #10, 9, 8, 7
         count = 0
         for i in range(self._next_idx - self.agent_history_length + 1, self._next_idx + 1):
@@ -394,6 +391,7 @@ class ReplayBuffer(object):
         #Reward check
         print("Min Reward: ", np.min(self.rewards), "Max Reward: ", max_reward)
         print(self.count, "Expert Data loaded ... ")
+        print("Total Rewards:", np.sum(data['reward']))
         return max_reward, self.count
 
     def get_bootstrap(self, idxes):
@@ -538,7 +536,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         # Pre-allocate memory for the states and new_states in a minibatch
         self.states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
         self.new_states = np.zeros([self.batch_size, self.agent_history_length] + self.state_shape, dtype=np.float32)
-        self.indices = np.zeros(self.batch_size, dtype=np.int32)
         
                 
         it_capacity = 1
@@ -705,6 +702,42 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                selected_rewards, new_states, selected_terminal, \
                weights, idxes, expert_idxes
 
+    def optimized_compute_all_n_step_target_q(self, idxes, num_steps, gamma):
+        not_terminal = np.ones((idxes.shape[0], num_steps), dtype=np.int32)
+        last_step_gamma = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
+        n_step_rewards = np.zeros((idxes.shape[0], num_steps), dtype=np.float32)
+        n_step_state = np.zeros([self.states.shape[0], num_steps] + list(self.states.shape[1:]))
+        n_step_actions = np.zeros([self.states.shape[0], num_steps] + list(self.actions.shape[1:]))
+        last_step_gamma[:, 0] = 1
+
+        idxes = np.array(idxes)
+        last_idxes = np.array(idxes) + num_steps
+        last_idxes[last_idxes > self.count - 1] = self.count - 1
+        for i in range(idxes.shape[0]):
+            idx = idxes[i]
+            if idx >= self.expert_idx and idx < self.expert_idx:
+                idx = self.expert_idx - 1
+            if idx >= self._next_idx and idx  < self._next_idx:
+                idx = self._next_idx - 1
+            terminal_list = self.terminal_flags[idx: last_idxes[i]]           
+            term_indx = np.nonzero(terminal_list)[0]
+            for j in range(num_steps):
+                if term_indx.shape[0] == 0:
+                    idx_offset = j
+                else:
+                    idx_offset = min(j, term_indx[0])
+                not_terminal[i, j] = 1 - self.terminal_flags[idx + idx_offset]
+                n_step_actions[i, j] = self.actions[idx + idx_offset]
+                n_step_state[i, j], _ = self._get_current_next_state(idx + idx_offset)
+
+                if idx_offset != j:
+                    n_step_rewards[i, j] = n_step_rewards[i, max(0, j - 1)]
+                    last_step_gamma[i, j] = last_step_gamma[i, max(0, j - 1)]
+
+                else:
+                    n_step_rewards[i, j] = gamma * n_step_rewards[i, max(0, j - 1)] + self.rewards[idx + idx_offset]
+                    last_step_gamma[i, j] = last_step_gamma[i, max(0, j - 1)] * gamma
+        return n_step_rewards, np.transpose(n_step_state, axes=(0, 1, 3, 4, 2)), n_step_actions,last_step_gamma, not_terminal
 
     def compute_all_n_step_target_q(self, idxes, num_steps, gamma):
         idxes = idxes - 1
@@ -773,7 +806,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                 accum_gamma *= gamma
             last_step_gamma[i] = accum_gamma
             n_step_state[i], _ = self._get_current_next_state(n_step_idx)
-
         return n_step_rewards, np.transpose(n_step_state, axes=(0, 2, 3, 1)), last_step_gamma, not_terminal
         #return None, None, None, None
 
