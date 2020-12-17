@@ -646,9 +646,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('/home/fengdic/Q-model/mazes')
+            env = toy_maze('/home/yutonyan/Q-model/mazes')
         elif args.env_id == 'maze_board':
-            env = toy_maze_grid('/home/fengdic/Q-model/mazes')
+            env = toy_maze_grid('/home/yutonyan/Q-model/mazes')
+            env_test = toy_maze_grid('/home/yutonyan/Q-model/test_mazes')
         else:
             final_reward = 1
             env = toy_env(grid, final_reward)
@@ -754,9 +755,36 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 if (len(regret_list) > 5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
-#             if last_eval > 100:
-#
-# def eval():
+            if last_eval > 100:
+                last_eval=0
+                test_eps_reward = eval(args,env_test,env,action_getter,sess,MAIN_DQN)
+                tflogger.log_scalar("Episode/Evaluation",test_eps_reward, frame_number)
+
+def eval(args,env_test,env,action_getter,sess,MAIN_DQN):
+    frame = env.reset(eval=True)
+    terminal=False
+    episode_length=0
+    eps_reward=0
+    for level in range(6):
+        frame = env.reset(eval=True)
+        episode_length = 0
+        while not terminal or episode_length < 200:
+            action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
+            next_frame, reward, terminal = env.step(action)
+            frame = next_frame
+            episode_length += 1
+            eps_reward += reward
+    frame = env_test.reset(eval=True)
+    for level in range(3):
+        frame = env_test.reset(eval=True)
+        episode_length = 0
+        while not terminal or episode_length < 200:
+            action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
+            next_frame, reward, terminal = env_test.step(action)
+            frame = next_frame
+            episode_length += 1
+            eps_reward += reward
+    return eps_reward
 
 
 train()

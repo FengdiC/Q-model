@@ -167,7 +167,7 @@ class toy_maze_grid:
         self.cost = cost/grid
         self.danger = -final_reward
         self.data = pickle.load(open(file, 'rb'))
-        self.level=1
+        self.level=0
         self.n_actions=4
 
         self.terminal=False
@@ -175,14 +175,19 @@ class toy_maze_grid:
         if expert:
             self.generate_expert_data()
 
-    def reset(self):
+    def reset(self,eval=False):
         self.current_state_x = 0
         self.current_state_y = 0
         self.board = np.zeros((self.grid,self.grid))
         self.board[self.current_state_x,self.current_state_y]=0.5
         self.timestep = 0
 
-        self.level=np.random.randint(1,8)
+        self.level=np.random.randint(1,7)
+        if eval:
+            if self.level<6:
+                self.level+=1
+            else:
+                self.level=1
 
         self.end_state = copy.deepcopy(self.data['end_state'][-self.level])
         self.obstacles = copy.deepcopy(self.data['obstacles'][-self.level][:self.grid-1])
@@ -479,7 +484,7 @@ def mazes_generation():
     maze['rewards'].append(r)
     maze['obstacles'].append(o)
     maze['dangers'].append(d)
-    for i in range(6):
+    for i in range(3):
         e, d, r, o = generate_maze(10)
         print("rewards: ", r)
         print("end_state: ", e)
@@ -489,7 +494,8 @@ def mazes_generation():
         maze['rewards'].append(r)
         maze['obstacles'].append(o)
         maze['dangers'].append(d)
-    with open('mazes', 'wb') as fout:
+    with open('test_mazes', 'wb') as fout:
         pickle.dump(maze, fout)
 
 # play()
+# mazes_generation()
