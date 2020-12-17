@@ -448,6 +448,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     args = utils.argsparser()
     name = agent
     args.seed=seed
+    args.lr = 0.05
     tf.random.set_random_seed(args.seed)
     np.random.seed(args.seed)
     NETW_UPDATE_FREQ = 25 * grid        # Number of chosen actions between updating the target network.
@@ -639,6 +640,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
         args = utils.argsparser()
         args.seed = seed
         name = agent
+        if agent=='expert':
+            args.lr=0.0005
+        else:
+            args.lr=0.05
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
         shaping = potential(grid)
@@ -655,11 +660,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
         # main DQN and target DQN networks:
         print("Agent: ", name)
 
-        if args.env_id == 'maze':
-            env = toy_maze('mazes')
-        else:
-            final_reward = 1
-            env = toy_env(grid, final_reward, args=args)
+        final_reward = 1
+        env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
             MAIN_DQN = DQN(args, env.n_actions, HIDDEN, grid=grid, name="mainDQN",agent=agent)
@@ -697,7 +699,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 200
+        max_eps = 160
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
@@ -793,11 +795,11 @@ sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+s
 #         reach[4,grid_index] += num_potential
 #         reach[2,grid_index] += num
 #     np.save('bootdqn_explor_bomb3',reach)
-#     plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy')
-#     plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN')
-#     plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD')
-#     plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping')
-#     plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD')
+#     plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
+#     plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
+#     plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
+#     plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
+#     plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
 #     plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
 #     plt.tight_layout()
 #     plt.savefig('chain_rlfd_bomb3')
