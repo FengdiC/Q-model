@@ -150,7 +150,7 @@ class toy_maze:
         expert['frames'] = expert_frames
         expert['reward'] = rewards
         expert['terminal'] = terminals
-        with open('/home/fengdic/Q-model/expert_maze', 'wb') as fout:
+        with open('/home/yutonyan/Q-model/expert_maze', 'wb') as fout:
             pickle.dump(expert, fout)
 
     def print_state(self):
@@ -294,7 +294,7 @@ class toy_maze_grid:
         expert['frames'] = expert_frames
         expert['reward'] = rewards
         expert['terminal'] = terminals
-        with open('/home/fengdic/Q-model/expert_maze', 'wb') as fout:
+        with open('/home/yutonyan/Q-model/expert_maze', 'wb') as fout:
             pickle.dump(expert, fout)
 
     def print_state(self):

@@ -329,27 +329,6 @@ class toy_env:
         return [self.grid, self.grid]
 
 
-def eval_env(sess, args, env, ensemble, frame_num, eps_length, action_getter, grid, pretrain=False, index=-1):
-    if index == -1:
-        MAIN_DQN = ensemble[np.random.randint(0, len(bootstrap_dqns))]["main"]
-    else:
-        MAIN_DQN = ensemble[index]["main"]
-    episode_reward_sum = 0
-    episode_len = 0
-    eval_pos = []
-    next_frame = env.reset()
-    eval_pos.append(np.argmax(next_frame))
-    for _ in range(eps_length):
-        action = action_getter.get_action(sess, frame_num, next_frame, MAIN_DQN, evaluation=True)
-        next_frame, reward, terminal = env.step(action)
-        episode_reward_sum += reward
-        episode_len += 1
-        eval_pos.append(np.argmax(next_frame))
-        if terminal:
-            break
-    return episode_reward_sum, episode_len, eval_pos
-
-
 def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps_length, replay_buf_size, args):
     frame_num = 0
     while frame_num < replay_buf_size:
@@ -721,24 +700,21 @@ def train(priority=True, agent='model', grid=10, seed=0):
         # print("True value for initial state: ", V)
 
         last_eval = 0
-        if agent != 'dqn':
-            if agent == 'shaping':
-                print("Beginning to pretrain")
-                train_step_dqfd(
-                    sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                    args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
-                print("done pretraining ,test prioritized buffer")
-                print("buffer expert size: ", my_replay_memory.expert_idx)
-            else:
-                print("Beginning to pretrain")
-                train_step_dqfd(
-                    sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                    args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent, pretrain=True)
-                print("done pretraining ,test prioritized buffer")
-                print("buffer expert size: ", my_replay_memory.expert_idx)
+        if agent == 'shaping':
+            print("Beginning to pretrain")
+            train_step_dqfd(
+                sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
+                args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
+            print("done pretraining ,test prioritized buffer")
+            print("buffer expert size: ", my_replay_memory.expert_idx)
         else:
-            print("Expert data deleted .... ")
-            my_replay_memory.delete_expert(MEMORY_SIZE)
+            print("Beginning to pretrain")
+            train_step_dqfd(
+                sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
+                args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent, pretrain=True)
+            print("done pretraining ,test prioritized buffer")
+            print("buffer expert size: ", my_replay_memory.expert_idx)
+
 
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH,
                                     REPLAY_MEMORY_START_SIZE, args)
@@ -749,7 +725,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 MAX_EPISODE_LENGTH, learn, action_getter, grid, shaping, agent, pretrain=False)
             frame_number += eps_len
             eps_number += 1
-            last_eval += eps_len
+            last_eval += 1
             # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed,'EPS Length: ',eps_len,
             #       "Level: ",env.level)
             tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
@@ -778,6 +754,9 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 if (len(regret_list) > 5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
+#             if last_eval > 100:
+#
+# def eval():
 
 
 train()
