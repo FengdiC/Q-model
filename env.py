@@ -119,8 +119,8 @@ class toy_maze:
 
     def generate_expert_data(self, min_expert_frames=1024):
         print("Creating Expert Data ... ")
-        #data = pickle.load(open('/home/fengdic/Q-model/short_maze_2.pkl', 'rb'))
-        #expert_action=data['actions']
+        data = pickle.load(open('/home/yutonyan/Q-model/full_maze_2.pkl', 'rb'))
+        expert_action = data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
@@ -261,7 +261,7 @@ class toy_maze_grid:
 
     def generate_expert_data(self, min_expert_frames=1024):
         print("Creating Expert Data ... ")
-        data = pickle.load(open('/home/fengdic/Q-model/short_maze_2.pkl', 'rb'))
+        data = pickle.load(open('/home/yutonyan/Q-model/full_maze_2.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
@@ -275,7 +275,8 @@ class toy_maze_grid:
         current_index = 0
         for i in range(num_batches):
             current_state = self.reset()
-            self.level=1
+            level= 1
+            self.level=level
             for j in range(len(expert_action)):
                 action = expert_action[j]
                 expert_frames[current_index] = current_state
@@ -286,8 +287,9 @@ class toy_maze_grid:
                 terminals[current_index] = t
                 current_index += 1
                 if t:
+                    level+=1
                     current_state = self.reset()
-                    self.level=2
+                    self.level=level
         expert['actions'] = actions
         expert['frames'] = expert_frames
         expert['reward'] = rewards
