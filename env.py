@@ -15,7 +15,7 @@ expert_action = [1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,0,0,0,0,3,0,0,2,2,2,1,1,1,1,2,2
                  3,1,1,1,1,1,1,1,1,3,3,3,3,3,3,0,0,2,2,2,2,2,0,0,0,0]
 
 class toy_maze:
-    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,expert=True):
+    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,expert=False):
         self.grid = grid
         self.final_reward = final_reward
         self.reward = reward
@@ -192,13 +192,13 @@ def play():
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("explor_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("full_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         else:
             obs, rew, terminal = env.step(action)
             data_list.append([action, obs, rew, terminal])
             count += 1
-            if env.terminal and env.level>1:
+            if env.terminal and env.level>3:
                 env_done= True
             if env.terminal:
                 env.reset()

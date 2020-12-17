@@ -59,7 +59,7 @@ def eps_action(action,frame_number,grid):
 
 def train(grid=10,eps=True ):
     print(grid,":::",eps,":::")
-    MAX_FRAMES = 6**grid
+    MAX_FRAMES = 6000
     final_reward = 1
     gamma = 0.99
     beta = 4.0
@@ -127,14 +127,14 @@ def train(grid=10,eps=True ):
         if reward ==final_reward:
             print("reach optimal state at frame number: ",frame_number)
             final=True
-            # if frame_number>5000:
+            # if frame_number>4200:
             #     for i in range(len(regret) - 1):
             #         regret[i + 1] += regret[i]
             #     return frame_number, regret
-            if len(regret)>30 and np.mean(regret[-30:])<0.001 and final:
-                plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1))
-                plt.tight_layout()
-                plt.savefig('kalman_gain')
+            if len(regret)>3 and np.mean(regret[-3:])<0.001 and final:
+                # plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1))
+                # plt.tight_layout()
+                # plt.savefig('kalman_gain')
                 return eps_number
         traj[count,0] = state[0]; traj[count,1]=state[1];
         eps_number += 1
@@ -157,6 +157,7 @@ def train(grid=10,eps=True ):
             next_action = np.argmax(next_Q)
             T = np.eye(grid*grid*2)
             alpha = 1.0 / (beta + t)
+            # alpha = 0.001
             T[state[0]*(grid-1)+ state[1]+action*grid**2,state[0]*(grid-1)+ state[1]+action*grid**2]= 1-alpha
             T[state[0] * (grid - 1) + state[1] + action * grid ** 2,
               next_state[0] * (grid - 1) + next_state[1] + next_action * grid ** 2] = gamma*alpha
@@ -219,15 +220,15 @@ def train(grid=10,eps=True ):
                 t = update_count[i, i, 1]
                 decay[i] = var * (beta ** 2 + 4 * t) / (t + beta) ** 2
 
-            # kalman gain
-            plt.subplot(211)
-            plt.plot(range(grid-1),gain[:-1],label='kalman_info_gain_'+str(eps_number))
-            plt.legend()
-            plt.subplot(212)
-            plt.plot(range(grid-1),c[:-1],label = 'GEKF_weight_'+str(eps_number))
-            plt.subplot(212)
-            plt.plot(range(grid-1), decay[:-1], label='BQfD_weight_'+str(eps_number))
-            plt.legend()
+            # # kalman gain
+            # plt.subplot(211)
+            # plt.plot(range(grid-1),gain[:-1],label='kalman_info_gain_'+str(eps_number))
+            # plt.legend()
+            # plt.subplot(212)
+            # plt.plot(range(grid-1),c[:-1],label = 'GEKF_weight_'+str(eps_number))
+            # plt.subplot(212)
+            # plt.plot(range(grid-1), decay[:-1], label='BQfD_weight_'+str(eps_number))
+            # plt.legend()
 
         # pi = np.zeros((grid, grid))
         # for i in range(grid):
@@ -244,16 +245,38 @@ def train(grid=10,eps=True ):
         # print(V - compute_regret(Q_value, grid, final_reward, gamma))
         print(V - max(Q_value[0],Q_value[grid**2]))
         # print(episode_reward_sum,":::",V - compute_regret(Q_value, grid, final_reward, gamma),":::",V)
-    return -1,[]
+    return 6000/grid
 
-train(grid=8, eps=False)
+# train(grid=20, eps=False)
+
 # import matplotlib.pyplot as plt
-# num,regret_ekf = train(20,False)
-# from tabular import  train
-# num, regret_tabular = train(20,False,0)
-# num, regret_eps = train(20,True,0)
-# plt.plot(range(len(regret_ekf)),regret_ekf,label="GEKF")
-# plt.plot(range(len(regret_tabular)),regret_tabular,label="estimation")
-# plt.plot(range(len(regret_eps)),regret_eps,label="epsilon greedy")
+# # num,regret_ekf = train(10,False)
+# from tabular import train
+# # num, regret_tabular = train(10,False,0)
+# for lr in [None]:
+#     regret = np.zeros((700))
+#     for seed in [0,1,2,3,4]:
+#         num,regret_eps = train(20,True,seed,130,lr)
+#         print(len(regret_eps))
+#         regret += regret_eps[:700]
+#     regret /= 5.0
+#     plt.plot(range(len(regret)),regret,label=str(lr))
 # plt.legend()
-# plt.savefig('regrets')
+# plt.savefig('epsilon greedy')
+# plt.close()
+
+
+# import matplotlib.pyplot as plt
+# regret = np.zeros((650))
+# num,regret_ekf = train(20,False)
+# plt.plot(range(len(regret_ekf)),regret_ekf,label="full GEKF",color='g')
+# from tabular import train
+# num, regret_tabular = train(20,False,0)
+# plt.plot(range(len(regret_tabular)),regret_tabular,label="BQfD",color='r')
+# for seed in [0, 1, 2, 3, 4]:
+#     num, regret_eps = train(20, True, seed, 130,None)
+#     regret +=regret_eps[:650]
+# regret /=5.0
+# plt.plot(range(len(regret)),regret,label="EZ greedy",color='b')
+# plt.legend()
+# plt.savefig('regrets_')
