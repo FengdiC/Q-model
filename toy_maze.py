@@ -649,7 +649,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
             env = toy_maze('/home/yutonyan/Q-model/mazes')
         elif args.env_id == 'maze_board':
             env = toy_maze_grid('/home/yutonyan/Q-model/mazes')
-            env_test = toy_maze_grid('/home/yutonyan/Q-model/test_mazes',level=3,expert=False)
+            env_test = toy_maze_grid('/home/yutonyan/Q-model/test_mazes',level=4,expert=False)
         else:
             final_reward = 1
             env = toy_env(grid, final_reward)

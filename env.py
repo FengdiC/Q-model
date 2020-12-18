@@ -160,7 +160,7 @@ class toy_maze:
         return [self.grid, self.grid]
         
 class toy_maze_grid:
-    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,level=6,expert=True):
+    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,level=7,expert=True):
         self.grid = grid
         self.final_reward = final_reward
         self.reward = reward
