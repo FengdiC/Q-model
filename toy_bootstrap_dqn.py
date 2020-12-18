@@ -762,20 +762,20 @@ def train(priority=True, agent='model', grid=10, seed=0):
 import matplotlib.pyplot as plt
 idx = range(50,80,3)
 
-num1 = train_bootdqn(grid=50,agent='bootdqn',seed=0)
-num2 = train_bootdqn(grid=50,agent='bootdqn',seed=1)
-num3 = train_bootdqn(grid=50,agent='bootdqn',seed=2)
-
-num4 = train(grid=50,agent='dqn',seed=0)
-num5 = train(grid=50,agent='dqn',seed=1)
-num6 = train(grid=50,agent='dqn',seed=2)
-import sys
-sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+str(num6))
+# num1 = train_bootdqn(grid=50,agent='bootdqn',seed=0)
+# num2 = train_bootdqn(grid=50,agent='bootdqn',seed=1)
+# num3 = train_bootdqn(grid=50,agent='bootdqn',seed=2)
+#
+# num4 = train(grid=50,agent='dqn',seed=0)
+# num5 = train(grid=50,agent='dqn',seed=1)
+# num6 = train(grid=50,agent='dqn',seed=2)
+# import sys
+# sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+str(num6))
 
 
 # Compare bewteen all algorithms
 
-# num_runs = 10
+num_runs = 10
 # reach = np.zeros((5, num_runs))
 # for seed in range(3):
 #     for grid_index in range(num_runs):
@@ -794,7 +794,7 @@ sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+s
 #         reach[3,grid_index] += num_dqfd
 #         reach[4,grid_index] += num_potential
 #         reach[2,grid_index] += num
-#     np.save('bootdqn_explor_bomb3',reach)
+#     np.save('bootdqn_explor',reach)
 #     plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
 #     plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
 #     plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
@@ -802,9 +802,17 @@ sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+s
 #     plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
 #     plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
 #     plt.tight_layout()
-#     plt.savefig('chain_rlfd_bomb3')
+#     plt.savefig('chain_rlfd')
 #
 # reach = reach/3.0
-# np.save('bootdqn_explor_bomb3',reach)
+# np.save('bootdqn_explor',reach)
 
-
+reach =np.load('bootdqn_explor.npy')
+plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
+plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
+plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
+plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
+plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
+plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+plt.tight_layout()
+plt.savefig('chain_rlfd')

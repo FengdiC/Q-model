@@ -484,7 +484,7 @@ def mazes_generation():
     maze['rewards'].append(r)
     maze['obstacles'].append(o)
     maze['dangers'].append(d)
-    for i in range(3):
+    for i in range(6):
         e, d, r, o = generate_maze(10)
         print("rewards: ", r)
         print("end_state: ", e)
@@ -494,8 +494,8 @@ def mazes_generation():
         maze['rewards'].append(r)
         maze['obstacles'].append(o)
         maze['dangers'].append(d)
-    with open('test_mazes', 'wb') as fout:
+    with open('test_mazes_2', 'wb') as fout:
         pickle.dump(maze, fout)
 
 # play()
-# mazes_generation()
+mazes_generation()
