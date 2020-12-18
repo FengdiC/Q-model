@@ -233,8 +233,7 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
         curr = current_potential[range(batch_size), actions]
         next = next_potential[range(batch_size), arg_q_max]
         target_q += gamma * next * (1 - terminal_flags) - curr
-
-    loss_sample, l_dq, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq,
+    loss_sample, l_dq, t_qval, l_jeq, _ = session.run([main_dqn.loss_per_sample, main_dqn.l_dq, main_dqn.q_values,
                                                main_dqn.l_jeq, main_dqn.update],
                                               feed_dict={main_dqn.input: states,
                                                          main_dqn.target_q: target_q,
@@ -583,7 +582,6 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                                             expert_idxes, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, agent, shaping)
             episode_dq_loss.append(loss_dq)
             episode_jeq_loss.append(loss_jeq)
-
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num,
                                             expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority, pretrain=pretrain)
@@ -690,7 +688,6 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 args.seed) + "_" + args.custom_id, sess, args)
 
         my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
-
         print("Agent: ", agent)
         regret_list = []
         max_eps = 500

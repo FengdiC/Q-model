@@ -125,7 +125,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 2*(self.grid+7)), np.uint8)
+        expert_frames = np.zeros((num_expert, 100), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
@@ -160,7 +160,7 @@ class toy_maze:
         return [self.grid, self.grid]
         
 class toy_maze_grid:
-    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,expert=True):
+    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,level=6,expert=True):
         self.grid = grid
         self.final_reward = final_reward
         self.reward = reward
@@ -168,12 +168,16 @@ class toy_maze_grid:
         self.danger = -final_reward
         self.data = pickle.load(open(file, 'rb'))
         self.level=0
+        self.total_level=level
         self.n_actions=4
 
         self.terminal=False
         self.reset()
         if expert:
             self.generate_expert_data()
+            
+    def restart(self):
+        self.level=0
 
     def reset(self,eval=False):
         self.current_state_x = 0
@@ -182,12 +186,13 @@ class toy_maze_grid:
         self.board[self.current_state_x,self.current_state_y]=0.5
         self.timestep = 0
 
-        self.level=np.random.randint(1,7)
         if eval:
-            if self.level<6:
+            if self.level<self.total_level:
                 self.level+=1
             else:
                 self.level=1
+        else:
+            self.level=np.random.randint(1,self.total_level+1)
 
         self.end_state = copy.deepcopy(self.data['end_state'][-self.level])
         self.obstacles = copy.deepcopy(self.data['obstacles'][-self.level][:self.grid-1])
@@ -230,12 +235,12 @@ class toy_maze_grid:
         if self.board[x,y]==2:
             terminal = 1
             reward = self.final_reward
-            print("Reach Final Reward")
+            # print("Reach Final Reward")
         else:
             terminal =0
             if self.board[x,y]==-2:
                 reward=self.danger
-                print("Reach Danger")
+                # print("Reach Danger")
             elif self.board[x,y]==1:
                 reward = self.reward
                 self.board[x,y]=0
@@ -264,7 +269,7 @@ class toy_maze_grid:
         self.board[self.current_state_x,self.current_state_y]=0.5
         return self.board.flatten()/2.0, reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=1024):
+    def generate_expert_data(self, min_expert_frames=1500):
         print("Creating Expert Data ... ")
         data = pickle.load(open('/home/yutonyan/Q-model/full_maze_2.pkl', 'rb'))
         expert_action=data['actions']
@@ -272,16 +277,15 @@ class toy_maze_grid:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 100), np.uint8)
+        expert_frames = np.zeros((num_expert, 100), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
 
         current_index = 0
         for i in range(num_batches):
-            current_state = self.reset()
-            level= 1
-            self.level=level
+            self.level =0 
+            current_state = self.reset(eval=True)
             for j in range(len(expert_action)):
                 action = expert_action[j]
                 expert_frames[current_index] = current_state
@@ -292,9 +296,7 @@ class toy_maze_grid:
                 terminals[current_index] = t
                 current_index += 1
                 if t:
-                    level+=1
-                    current_state = self.reset()
-                    self.level=level
+                    current_state = self.reset(eval=True)
         expert['actions'] = actions
         expert['frames'] = expert_frames
         expert['reward'] = rewards
