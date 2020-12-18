@@ -35,8 +35,8 @@ def argsparser():
     parser.add_argument('--task', type=str, choices=['train', 'evaluate', 'sample'], default='train')
     parser.add_argument('--num_sampled', type=int, help='Num Generated Sequence', default=1)
     parser.add_argument('--max_eps_len', type=int, help='Max Episode Length', default=18000)
-    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=500000)
-    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=50000)
+    parser.add_argument('--gif_freq', type=int, help='Gif Frequency', default=2000000)
+    parser.add_argument('--eval_freq', type=int, help='Evaluation Frequency', default=100000)
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
@@ -453,7 +453,6 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
     UPDATE_FREQ = args.update_freq                  # Every four actions a gradient descend step is performed
     BS = args.batch_size
     terminal = False
-
     for _ in range(eps_length):
         if not pretrain:
             if args.stochastic_exploration == "True":
@@ -488,12 +487,15 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                     BS, args.beta, expert=pretrain)  # Generated trajectories
             episode_weights.append(generated_weights)
-            # n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+            if MAIN_DQN.use_n_step_prio:
+                n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.optimized_compute_all_n_step_target_q(idxes,args.dqfd_n_step,args.gamma)
+            else:
+                n_step_rewards, n_step_states, last_step_gamma, not_terminal = replay_buffer.compute_n_step_target_q(idxes, args.dqfd_n_step,
+                                                                                                                    args.gamma)
+                n_step_actions = None
+            # n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_all_n_step_target_q(idxes,
+            #                                                                                                      args.dqfd_n_step,
             #                                                                                                      args.gamma)
-            n_step_rewards, n_step_states, n_step_actions, last_step_gamma, not_terminal = replay_buffer.compute_all_n_step_target_q(idxes,
-                                                                                                                 args.dqfd_n_step,
-                                                                                                                 args.gamma)
-
             loss, loss_dq, loss_dq_n, loss_jeq, loss_l2, mask = learn(sess, generated_states, generated_actions, generated_diffs,generated_rewards,
                                                        generated_new_states, generated_terminal_flags, generated_weights,
                                                        expert_idxes, n_step_rewards,n_step_states, n_step_actions, last_step_gamma, not_terminal,
@@ -507,6 +509,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_diff_expert.append(np.sum(generated_diffs * expert_idxes) /max(1, np.sum(expert_idxes)))
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority,pretrain = pretrain)
+            
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
         if pretrain:
