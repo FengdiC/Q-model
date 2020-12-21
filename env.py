@@ -160,7 +160,7 @@ class toy_maze:
         return [self.grid, self.grid]
         
 class toy_maze_grid:
-    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,level=7,expert=True):
+    def __init__(self, file,grid=10, final_reward=2, reward=1,cost=-0.01,level=15,expert=True):
         self.grid = grid
         self.final_reward = final_reward
         self.reward = reward
@@ -269,7 +269,7 @@ class toy_maze_grid:
         self.board[self.current_state_x,self.current_state_y]=0.5
         return self.board.flatten()/2.0, reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=1500):
+    def generate_expert_data(self, min_expert_frames=6000):
         print("Creating Expert Data ... ")
         data = pickle.load(open('/home/yutonyan/Q-model/full_maze_2.pkl', 'rb'))
         expert_action=data['actions']
