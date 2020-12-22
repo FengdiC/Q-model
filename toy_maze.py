@@ -108,12 +108,12 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=64, kernel_size=[3,3], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                inputs=self.input, filters=32, kernel_size=[3,3], strides=1,
+                kernel_initializer=tf.glorot_normal_initializer(),
                 padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
             conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
+                kernel_initializer=tf.glorot_normal_initializer(),
                 padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
             d = tf.layers.flatten(conv2)
             dense = tf.layers.dense(inputs=d, units=hidden,
