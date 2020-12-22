@@ -38,8 +38,8 @@ class toy_maze:
     def reset(self,eval=False):
         self.current_state_x = 0
         self.current_state_y = 0
-        self.board = np.zeros((self.grid,self.grid,2))
-        self.board[self.current_state_x,self.current_state_y,1]=2
+        self.board = np.zeros((self.grid,self.grid,1))
+        self.board[self.current_state_x,self.current_state_y]+=0.5
         self.timestep = 0
 
         if eval:
@@ -57,21 +57,20 @@ class toy_maze:
 
         self.terminal = False
         for x in self.rewards:
-            self.board[int(x[0]),int(x[1]),0]=1
-        self.board[int(self.end_state[0]),int(self.end_state[1]),0]=2
+            self.board[int(x[0]),int(x[1])]=1
+        self.board[int(self.end_state[0]),int(self.end_state[1])]=2
         for x in self.obstacles:
-            self.board[int(x[0]),int(x[1]),0]=-0.5
+            self.board[int(x[0]),int(x[1])]=-0.5
         for x in self.dangers:
-            self.board[int(x[0]),int(x[1]),0]=-2
-        self.state = np.append(self.board/2.0,self.board/2.0,axis=2)
-        self.state = np.append(self.state,self.board/2.0,axis=2)
-        self.state = np.append(self.state, self.board/2.0, axis=2)
+            self.board[int(x[0]),int(x[1])]=-2
+        self.state = np.repeat(self.board/2.0,4,axis=2)
+        # print(self.state.shape)
         return self.state
 
     def step(self, action):
         x=self.current_state_x
         y =self.current_state_y
-        self.board[self.current_state_x,self.current_state_y,1]=0
+        self.board[self.current_state_x,self.current_state_y] -= 0.5
 
         #take actions
         if action == 0: #left
@@ -85,23 +84,23 @@ class toy_maze:
         x = np.clip(x, 0, self.grid - 1)
         y = np.clip(y, 0, self.grid - 1)
         
-        if self.board[x,y,0]==2:
+        if self.board[x,y]==2:
             terminal = 1
             reward = self.final_reward
             # print("Reach Final Reward")
         else:
             terminal =0
-            if self.board[x,y,0]==-2:
+            if self.board[x,y]==-2:
                 reward=self.danger
                 # print("Reach Danger")
-            elif self.board[x,y,0]==1:
+            elif self.board[x,y]==1:
                 reward = self.reward
-                self.board[x,y,0]=0
+                self.board[x,y]=0
             else:
                 reward = self.cost
 
         # if blocked by obstacles
-        if self.board[x,y,0]==-0.5:
+        if self.board[x,y]==-0.5:
             reward =0
         else:
             self.current_state_x = x
@@ -109,8 +108,8 @@ class toy_maze:
 
         self.timestep += 1
         self.terminal = terminal
-        self.board[self.current_state_x,self.current_state_y,1]=2
-        new_state = np.append(self.state[:, :, 2:], self.board/2.0, axis=2)
+        self.board[self.current_state_x,self.current_state_y] += 0.5
+        new_state = np.append(self.state[:, :, 1:], self.board/2.0, axis=2)
         self.state = new_state
 
         return self.state, reward, terminal
@@ -123,7 +122,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10,2), np.float32)
+        expert_frames = np.zeros((num_expert, 10,10), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
@@ -134,7 +133,7 @@ class toy_maze:
             current_state = self.reset(eval=True)
             for j in range(len(expert_action)):
                 action = expert_action[j]
-                expert_frames[current_index] = current_state[:,:,-2:]
+                expert_frames[current_index] = current_state[:,:,-1]
                 s, r, t = self.step(action)
                 current_state=s
                 rewards[current_index] = r
