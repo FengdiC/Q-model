@@ -10,7 +10,7 @@ import PriorityBuffer
 import pickle
 from tensorboard_logger import tensorflowboard_logger
 import math
-from env import toy_maze,toy_maze_grid
+from env import toy_maze
 
 
 def find_vars(name):
@@ -51,7 +51,7 @@ def compute_regret(Q_value, grid, gamma, final_reward=1):
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, args, n_actions=2, hidden=128, grid=10, name="dqn", agent='dqn'):
+    def __init__(self, args, n_actions=2, hidden=128, grid=10, agent_history_length=4, name="dqn", agent='dqn'):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -70,9 +70,8 @@ class DQN:
         self.eta = args.eta
         self.agent = agent
 
-        self.input = tf.placeholder(shape=[None, self.args.state_size], dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid,self.grid,2*agent_history_length], dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None, ], dtype=tf.float32)
-        self.policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
 
         self.q_values = self.build_network(hidden)
@@ -108,10 +107,21 @@ class DQN:
     def build_network(self, hidden, index=0):
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
-            layer1 = tf.layers.dense(inputs=self.input, units=hidden, activation=tf.nn.relu,
-                                     kernel_initializer=tf.variance_scaling_initializer(scale=2), name='fc1')
-            dense = tf.layers.dense(inputs=layer1, units=hidden,
-                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc2")
+            conv1 = tf.layers.conv2d(
+                inputs=self.input, filters=32, kernel_size=[5,5], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
+            conv2 = tf.layers.conv2d(
+                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
+            conv3 = tf.layers.conv2d(
+                inputs=conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="same", activation=tf.nn.relu, use_bias=False, name='conv3')
+            d = tf.layers.flatten(conv3)
+            dense = tf.layers.dense(inputs=d, units=hidden,
+                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc3")
 
             # Splitting into value and advantage stream
             valuestream, advantagestream = tf.split(dense, 2, -1)
@@ -150,7 +160,7 @@ class DQN:
             if 'bias' not in v.name:
                 l2_reg_loss += tf.reduce_mean(tf.nn.l2_loss(v)) * self.args.dqfd_l2
         self.l2_reg_loss = l2_reg_loss
-        self.l_dq = l_dq
+        self.l_dq = l_dq 
         self.l_jeq = self.diff * (1 - self.prob) / (self.target_q + 0.001)
 
         loss_per_sample = l_dq
@@ -217,7 +227,10 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     Then a parameter update is performed on the main DQN.
     """
     states = np.squeeze(states)
+    states = np.reshape(states,(batch_size,10,10,-1))
+    # print(states[0,:,:,-2:])
     new_states = np.squeeze(new_states)
+    new_states = np.reshape(new_states,(batch_size,10,10,-1))
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input: new_states})
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input: new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
@@ -246,89 +259,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     return loss_sample, np.mean(l_dq), np.mean(l_jeq)
 
 
-class toy_env:
-    def __init__(self, grid, final_reward=1, min_expert_frames=512, expert=True):
-        self.grid = grid
-        self.final_reward = final_reward
-        self.final = False
-        self.n_actions = 2
-        self.reset()
-        if expert:
-            self.generate_expert_data(min_expert_frames=min_expert_frames)
-
-    def reset(self):
-        self.current_state_x = 0
-        self.current_state_y = 0
-        self.timestep = 0
-        return np.array([1, 1])
-
-    def get_current_state(self):
-        result = np.zeros((self.grid, self.grid), dtype=np.uint8)
-        result[self.current_state_x, self.current_state_y] = 1
-        result = np.reshape(result, [self.grid * self.grid])
-        return result
-
-    def step(self, action):
-        assert not (action != 0 and action != 1), "invalid action"
-        if action == 0:
-            self.current_state_x -= 1
-            self.current_state_y += 1
-            reward = 0
-        else:
-            self.current_state_x += 1
-            self.current_state_y += 1
-            reward = -0.01 / self.grid
-        self.current_state_x = np.clip(self.current_state_x, 0, self.grid - 1)
-        self.current_state_y = np.clip(self.current_state_y, 0, self.grid - 1)
-
-        if (self.current_state_x >= self.grid - 1) and (self.current_state_y >= self.grid - 1):
-            reward = self.final_reward
-            print("Reach final reward")
-            self.final = True
-        self.timestep += 1
-        if self.timestep >= self.grid - 1:
-            terminal = 1
-        else:
-            terminal = 0
-        return np.array([self.current_state_x + 1, self.current_state_y + 1]), reward, terminal
-
-    def generate_expert_data(self, min_expert_frames=512, expert_ratio=1):
-        print("Creating Expert Data ... ")
-        expert = {}
-        half_expert_traj = (self.grid - 1) // expert_ratio
-        num_batches = math.ceil(min_expert_frames / half_expert_traj)
-        num_expert = num_batches * half_expert_traj
-
-        expert_frames = np.zeros((num_expert, 2), np.uint8)
-        rewards = np.zeros((num_expert,), dtype=np.float32)
-        terminals = np.zeros((num_expert,), np.uint8)
-
-        current_index = 0
-        for i in range(num_batches):
-            current_state = self.reset()
-            for j in range(half_expert_traj):
-                s, r, t = self.step(1)
-                expert_frames[current_index] = s
-                rewards[current_index] = r
-                terminals[current_index] = t
-                current_index += 1
-                if t:
-                    self.reset()
-        expert['actions'] = np.ones((num_expert,), dtype=np.uint8)
-        expert['frames'] = expert_frames
-        expert['reward'] = rewards
-        expert['terminal'] = terminals
-        self.final = False
-        with open('expert_toy', 'wb') as fout:
-            pickle.dump(expert, fout)
-
-    def print_state(self):
-        print(self.current_state_x + 1, self.current_state_y + 1)
-
-    def get_default_shape(self):
-        return [self.grid, self.grid]
-
-
 def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps_length, replay_buf_size, args):
     frame_num = 0
     while frame_num < replay_buf_size:
@@ -340,7 +270,7 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             #
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
-            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,-2:], reward=reward, action=action, done=terminal)
             frame = next_frame
             frame_num += 1
             if terminal:
@@ -376,7 +306,7 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
             else:
                 action = action_getter.get_action(sess, frame_num, frame, selected_dqn["main"], evaluation=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,-2:], reward=reward, action=action, done=terminal)
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -567,7 +497,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,-2:], reward=reward, action=action, done=terminal)
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -635,10 +565,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         MAX_EPISODE_LENGTH = 2*grid * grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 400  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = args.replay_start_size  # Number of completely random actions,
         # before the agent starts learning
         MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 8000  # grid * grid +2 # Number of transitions stored in the replay memory
+        MEMORY_SIZE = args.replay_mem_size  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
@@ -646,13 +576,9 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('/home/yutonyan/Q-model/mazes')
-        elif args.env_id == 'maze_board':
-            env = toy_maze_grid('/home/yutonyan/Q-model/mazes')
-            env_test = toy_maze_grid('/home/yutonyan/Q-model/test_mazes')
-        else:
-            final_reward = 1
-            env = toy_env(grid, final_reward)
+            env = toy_maze(args.expert_dir+'mazes',level=15)
+            env_val = toy_maze(args.expert_dir+'test_mazes',level=5,expert=False)
+            env_test = toy_maze(args.expert_dir+'test_mazes_2',level=5,expert=False)
 
         with tf.variable_scope('mainDQN'):
             MAIN_DQN = DQN(args, env.n_actions, HIDDEN, grid=grid, name="mainDQN", agent=agent)
@@ -668,18 +594,18 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if priority:
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
-                                                                      state_shape=[args.state_size],
-                                                                      agent_history_length=1,
+                                                                      state_shape=[grid,grid,2],
+                                                                      agent_history_length=4,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],frame_dtype=np.float32,
-                                                           agent_history_length=1, agent=agent, batch_size=BS)
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,2],frame_dtype=np.float32,
+                                                           agent_history_length=4, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
                                                replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                                max_frames=MAX_FRAMES,
-                                               eps_initial=args.initial_exploration/2.0)
+                                               eps_initial=args.initial_exploration)
         saver = tf.train.Saver(max_to_keep=10)
         sess = tf.Session(config=config)
         sess.run(init)
@@ -716,6 +642,13 @@ def train(priority=True, agent='model', grid=10, seed=0):
             print("done pretraining ,test prioritized buffer")
             print("buffer expert size: ", my_replay_memory.expert_idx)
 
+        #pretrain evaluation
+        test_eps_reward, val_reward, test_eps_reward_t = eval(args, env_test, env_val, env, action_getter, sess,
+                                                              MAIN_DQN)
+        print(test_eps_reward, val_reward, test_eps_reward_t)
+        tflogger.log_scalar("Episode/Evaluation", test_eps_reward, frame_number)
+        tflogger.log_scalar("Episode/Evaluation_Val", val_reward, frame_number)
+        tflogger.log_scalar("Episode/Evaluation_Test", test_eps_reward_t, frame_number)
 
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH,
                                     REPLAY_MEMORY_START_SIZE, args)
@@ -757,34 +690,51 @@ def train(priority=True, agent='model', grid=10, seed=0):
                     return eps_number
             if last_eval > 100:
                 last_eval=0
-                test_eps_reward = eval(args,env_test,env,action_getter,sess,MAIN_DQN)
+                test_eps_reward,val_reward,test_eps_reward_t = eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN)
+                print(test_eps_reward,val_reward,test_eps_reward_t)
                 tflogger.log_scalar("Episode/Evaluation",test_eps_reward, frame_number)
+                tflogger.log_scalar("Episode/Evaluation_Val", val_reward, frame_number)
+                tflogger.log_scalar("Episode/Evaluation_Test",test_eps_reward_t, frame_number)
 
-def eval(args,env_test,env,action_getter,sess,MAIN_DQN):
-    frame = env.reset(eval=True)
-    terminal=False
+def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
-    for level in range(6):
+    env.restart()
+    for level in range(15):
+        terminal=False
         frame = env.reset(eval=True)
         episode_length = 0
-        while not terminal or episode_length < 200:
+        while episode_length < 80 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
             eps_reward += reward
-    frame = env_test.reset(eval=True)
-    for level in range(3):
+    val_eps_reward = 0
+    env_val.restart()
+    for level in range(5):
+        terminal = False
+        frame = env_val.reset(eval=True)
+        episode_length = 0
+        while episode_length < 80 and not terminal:
+            action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
+            next_frame, reward, terminal = env_val.step(action)
+            frame = next_frame
+            episode_length += 1
+            val_eps_reward += reward
+    test_eps_reward=0
+    env_test.restart()
+    for level in range(5):
+        terminal=False
         frame = env_test.reset(eval=True)
         episode_length = 0
-        while not terminal or episode_length < 200:
+        while episode_length < 80 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env_test.step(action)
             frame = next_frame
             episode_length += 1
-            eps_reward += reward
-    return eps_reward
+            test_eps_reward += reward
+    return eps_reward,val_eps_reward,test_eps_reward
 
 
 train()
