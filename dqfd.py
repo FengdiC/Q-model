@@ -518,6 +518,61 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
                                             })
     return loss_sample, np.mean(l_dq), np.mean(l_n_dq), np.mean(l_jeq), np.mean(l_l2), np.mean(mask)
 
+def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
+    frames_for_gif = []
+
+    current_data = {}
+    current_data["frames"] = []
+    current_data["reward"] = []
+    current_data["actions"] = []
+    current_data["terminal"] = []
+    terminal_life_lost, current_state = atari.reset(sess, evaluation=False)
+    for trajectory_id in range(args.num_trajectory_generated):
+        terminal_life_lost, current_state = atari.reset(sess, evaluation=False)
+        eval_reward = 0
+        for _ in range(max_eps_len):
+            # Fire (action 1), when a life was lost or the game just started,
+            # so that the agent does not stand around doing nothing. When playing
+            # with other environments, you might want to change this...
+            if terminal_life_lost and args.env_id == "BreakoutDeterministic-v4":
+                action = 1
+            else:
+                if not random:
+                    action = action_getter.get_action(sess, frame_num,
+                                                    atari.state,
+                                                    MAIN_DQN,
+                                                    evaluation=True)
+                else:
+                    action = action_getter.get_random_action()
+
+            next_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+            eval_reward += reward
+            current_data["frames"].append(current_state[:, :, 0])
+            current_data["reward"].append(reward)
+            current_data["actions"].append(action)
+            current_data["terminal"].append(terminal_life_lost)
+            if terminal_life_lost:
+                current_data["frames"].append(next_frame[:, :, 0])
+                current_data["reward"].append(0)
+                current_data["actions"].append(action_getter.get_random_action())
+                current_data["terminal"].append(terminal_life_lost)
+                if not terminal:
+                    next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+            current_state = next_frame
+
+            if gif:
+                frames_for_gif.append(new_frame)
+            elif terminal:
+                break
+        try:
+            if trajectory_id == 0:
+                utils.generate_gif(frame_num, frames_for_gif, eval_reward,
+                            "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
+        except IndexError:
+            print("No evaluation game finished")
+        pickle.dump(current_data, open("played_ai_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)  
+
+
 def train( priority=True):
     args = utils.argsparser()
     name = args.agent
@@ -590,21 +645,6 @@ def train( priority=True):
     saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
     sess.run(init)
-
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
-
-    #Pretrain step ..
-    if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
-        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
-                              args.pretrain_bc_iter, learn, pretrain=True)
-        print("done pretraining ,test prioritized buffer")
-        print("buffer expert size: ",my_replay_memory.expert_idx)
-        tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
-
-    if args.delete_expert:
-        print("Expert data deleted .... ")
-        my_replay_memory.delete_expert(MEMORY_SIZE)
-    print("Agent: ", name)
     if args.load_frame_num > 0:
         #load model ... 
         print("Model Loaded .... ")
@@ -624,6 +664,26 @@ def train( priority=True):
     else:
         utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                       MAIN_DQN, args)
+    if args.num_trajectory_generated:
+        generate_trajectory(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+                                    frame_number, model_name=name, gif=True)
+        quit()
+
+    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
+
+    #Pretrain step ..
+    if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
+        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
+                              args.pretrain_bc_iter, learn, pretrain=True)
+        print("done pretraining ,test prioritized buffer")
+        print("buffer expert size: ",my_replay_memory.expert_idx)
+        tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
+
+    if args.delete_expert:
+        print("Expert data deleted .... ")
+        my_replay_memory.delete_expert(MEMORY_SIZE)
+    print("Agent: ", name)
+
     print_iter = 25
     last_eval = EVAL_FREQUENCY * 0.8
     last_gif = GIF_FREQUENCY * 0.8
@@ -675,14 +735,14 @@ def train( priority=True):
 
         if EVAL_FREQUENCY <= last_eval:
             last_eval = last_eval - EVAL_FREQUENCY
-            # if GIF_FREQUENCY <= last_gif:
-            last_gif = last_gif - GIF_FREQUENCY
-            eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-                                frame_number, model_name=name, gif=True)
-            # else:
-            #     print("No Gifs", "Gif Freq: ", GIF_FREQUENCY, last_gif)
-            #     eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
-            #                      frame_number, model_name=name, gif=False)
+            if GIF_FREQUENCY <= last_gif:
+                last_gif = last_gif - GIF_FREQUENCY
+                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+                                    frame_number, model_name=name, gif=True)
+            else:
+                print("No Gifs", "Gif Freq: ", GIF_FREQUENCY, last_gif)
+                eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
+                                 frame_number, model_name=name, gif=False)
             if eval_reward > max_eval_reward:
                 max_eval_reward = eval_reward
 
