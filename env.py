@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 class toy_maze:
     def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01,level=15,expert=True,
-                 agent_history_length=4):
+                 agent_history_length=6):
         self.grid = grid
         self.expert_dir=expert_dir
         self.final_reward = final_reward
@@ -63,7 +63,7 @@ class toy_maze:
             self.board[int(x[0]),int(x[1])]=-0.5
         for x in self.dangers:
             self.board[int(x[0]),int(x[1])]=-2
-        self.state = np.repeat(self.board/2.0,4,axis=2)
+        self.state = np.repeat(self.board/2.0,self.agent_history_length,axis=2)
         # print(self.state.shape)
         return self.state
 
@@ -114,7 +114,7 @@ class toy_maze:
 
         return self.state, reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=6000):
+    def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
