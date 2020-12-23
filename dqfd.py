@@ -23,7 +23,7 @@ def softargmax(x, beta=1e10):
 class DQN:
     """Implements a Deep Q Network"""
     def __init__(self, args, n_actions=4, hidden=1024,
-               frame_height=84, frame_width=84, agent_history_length=4, agent='dqfd', name="dqn", max_reward=1,ratio_expert=1.0):
+               frame_height=84, frame_width=84, agent_history_length=4, old_mode=False, agent='dqfd', name="dqn", max_reward=1,ratio_expert=1.0):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -34,6 +34,7 @@ class DQN:
           frame_width: Integer, Width of a frame of an Atari game
           agent_history_length: Integer, Number of frames stacked together to create a state
         """
+        self.old_mode = old_mode
         self.name = name
         self.max_reward = max_reward
         self.ratio_expert=ratio_expert
@@ -124,41 +125,73 @@ class DQN:
         self.update = self.optimizer.minimize(self.loss)
 
     def build_network(self, data_input, hidden, reuse=False):
-        with tf.variable_scope("network", reuse=reuse):
-            # self.inputscaled = self.input
-            # Convolutional layers
-            conv1 = tf.layers.conv2d(
-            inputs=data_input, filters=32, kernel_size=[8, 8], strides=4,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
-            conv2 = tf.layers.conv2d(
-            inputs=conv1, filters=64, kernel_size=[4, 4], strides=2,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-            conv3 = tf.layers.conv2d(
-            inputs=conv2, filters=64, kernel_size=[3, 3], strides=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-            # self.conv4 = tf.layers.conv2d(
-            #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
-            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-            d = tf.layers.flatten(conv3)
-            dense = tf.layers.dense(inputs=d, units=hidden,
-                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
+        if self.old_mode:
+                conv1 = tf.layers.conv2d(
+                inputs=data_input, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+                conv2 = tf.layers.conv2d(
+                inputs=conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+                conv3 = tf.layers.conv2d(
+                inputs=conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+                # self.conv4 = tf.layers.conv2d(
+                #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+                d = tf.layers.flatten(conv3)
+                dense = tf.layers.dense(inputs=d, units=hidden,
+                                        kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
 
-            # Splitting into value and advantage stream
-            valuestream, advantagestream = tf.split(dense, 2, -1)
-            valuestream = tf.layers.flatten(valuestream)
-            advantagestream = tf.layers.flatten(advantagestream)
-            advantage = tf.layers.dense(
-            inputs=advantagestream, units=self.n_actions,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
-            value = tf.layers.dense(
-            inputs=valuestream, units=1,
-            kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+                # Splitting into value and advantage stream
+                valuestream, advantagestream = tf.split(dense, 2, -1)
+                valuestream = tf.layers.flatten(valuestream)
+                advantagestream = tf.layers.flatten(advantagestream)
+                advantage = tf.layers.dense(
+                inputs=advantagestream, units=self.n_actions,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+                value = tf.layers.dense(
+                inputs=valuestream, units=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+        else:
+            with tf.variable_scope("network", reuse=reuse):
+                # self.inputscaled = self.input
+                # Convolutional layers
+                conv1 = tf.layers.conv2d(
+                inputs=data_input, filters=32, kernel_size=[8, 8], strides=4,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+                conv2 = tf.layers.conv2d(
+                inputs=conv1, filters=64, kernel_size=[4, 4], strides=2,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+                conv3 = tf.layers.conv2d(
+                inputs=conv2, filters=64, kernel_size=[3, 3], strides=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+                # self.conv4 = tf.layers.conv2d(
+                #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+                #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+                #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+                d = tf.layers.flatten(conv3)
+                dense = tf.layers.dense(inputs=d, units=hidden,
+                                        kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
 
-            return value, advantage
+                # Splitting into value and advantage stream
+                valuestream, advantagestream = tf.split(dense, 2, -1)
+                valuestream = tf.layers.flatten(valuestream)
+                advantagestream = tf.layers.flatten(advantagestream)
+                advantage = tf.layers.dense(
+                inputs=advantagestream, units=self.n_actions,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+                value = tf.layers.dense(
+                inputs=valuestream, units=1,
+                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+
+        return value, advantage
 
 
     def loss_jeq(self):
@@ -521,7 +554,6 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,w
 
 def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len, atari, frame_num, model_name="dqn", gif=False, random=False):
     frames_for_gif = []
-
     current_data = {}
     current_data["frames"] = []
     current_data["reward"] = []
@@ -560,7 +592,6 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
                 if not terminal:
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             current_state = next_frame
-            print(count)
             if gif:
                 frames_for_gif.append(new_frame)
             if terminal:
@@ -575,40 +606,6 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
         print("Savings ... ")
         pickle.dump(current_data, open("played_ai_" + args.env_id +  "_" + str(args.num_trajectory_generated) + ".pkl", "wb"), protocol=4)  
         print("Total Rewards: ", np.sum(current_data["reward"]))
-
-def get_tensors_in_checkpoint_file(file_name,tensor_name=None, scope=None):
-    varlist=[]
-    var_value =[]
-    reader = pywrap_tensorflow.NewCheckpointReader(file_name)
-    if tensor_name is None:
-        var_to_shape_map = reader.get_variable_to_shape_map()
-        for key in sorted(var_to_shape_map):
-            if not scope is None and not scope in key:
-                continue
-            varlist.append(key)
-            var_value.append(reader.get_tensor(key))
-    else:
-        var_to_shape_map = reader.get_variable_to_shape_map()
-        for key in sorted(var_to_shape_map):
-            if tensor_name in key:
-                if not scope is None and not scope in key:
-                    continue
-                varlist.append(key)
-                var_value.append(reader.get_tensor(key))
-    return (varlist, var_value)
-
-def build_tensors_in_checkpoint_file(sess, loaded_tensors):
-    full_var_list = list()
-    # Loop all loaded tensors
-    print(loaded_tensors[0])
-    for i, tensor_name in enumerate(loaded_tensors[0]):
-        # Extract tensor
-        try:
-            tensor_aux = sess.get_tensor_by_name(tensor_name+":0")
-            full_var_list.append(tensor_aux)
-        except:
-            print('Not found: '+tensor_name)
-    return full_var_list
 
 def train( priority=True):
     args = utils.argsparser()
@@ -665,9 +662,9 @@ def train( priority=True):
     ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power
     #ratio_expert=0.01
     with tf.variable_scope('mainDQN'):
-        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward,ratio_expert=ratio_expert)
+        MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN, old_mode=args.old_mode, agent=name, name="mainDQN", max_reward=max_reward,ratio_expert=ratio_expert)
     with tf.variable_scope('targetDQN'):
-        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN", max_reward=max_reward,ratio_expert=ratio_expert)
+        TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN, old_mode=args.old_mode, agent=name, name="targetDQN", max_reward=max_reward,ratio_expert=ratio_expert)
     
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
@@ -688,17 +685,7 @@ def train( priority=True):
     if args.load_frame_num > 0:
         #load model ... 
         print("Model Loaded .... ")
-        # action_getter = utils.ActionGetter(atari.env.action_space.n,
-        #                             replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-        #                             max_frames=MAX_FRAMES,
-        #                             eps_initial=0.05)
-                                    
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
-        # restored_vars  = get_tensors_in_checkpoint_file(file_name=load_path)
-        # tensors_to_load = build_tensors_in_checkpoint_file(sess, restored_vars)
-        # loader = tf.train.Saver(tensors_to_load)
-        # loader.restore(sess, load_path)
-        # saver = tf.train.Saver(max_to_keep=None)
         saver.restore(sess, load_path)
         if not args.num_trajectory_generated:
             utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,

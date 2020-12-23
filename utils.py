@@ -43,6 +43,7 @@ def argsparser():
     parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
 
     parser.add_argument('--eps_max_frames', type=int, help='Max Episode Length', default=50000000)
+    parser.add_argument('--old_mode', type=int, help='Max Episode Length', default=0)
 
 
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
