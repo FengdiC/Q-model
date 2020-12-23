@@ -51,7 +51,7 @@ def compute_regret(Q_value, grid, gamma, final_reward=1):
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=4, name="dqn", agent='dqn'):
+    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=6, name="dqn", agent='dqn'):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -108,14 +108,14 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=64, kernel_size=[1,1], strides=1,
+                inputs=self.input, filters=32, kernel_size=[1,1], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
-                padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
-            # conv2 = tf.layers.conv2d(
-            #     inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
-            #     kernel_initializer=tf.glorot_normal_initializer(),
-            #     padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
-            d = tf.layers.flatten(conv1)
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            conv2 = tf.layers.conv2d(
+                inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
+                kernel_initializer=tf.glorot_normal_initializer(),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            d = tf.layers.flatten(conv2)
             dense = tf.layers.dense(inputs=d, units=hidden,
                                     kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
 
@@ -125,10 +125,10 @@ class DQN:
             advantagestream = tf.layers.flatten(advantagestream)
             advantage = tf.layers.dense(
                 inputs=advantagestream, units=self.n_actions,
-                kernel_initializer=tf.tf.glorot_normal_initializer(), name="advantage")
+                kernel_initializer=tf.glorot_normal_initializer(), name="advantage")
             value = tf.layers.dense(
                 inputs=valuestream, units=1,
-                kernel_initializer=tf.tf.glorot_normal_initializer(), name='value')
+                kernel_initializer=tf.glorot_normal_initializer(), name='value')
             q_values = value + tf.subtract(advantage, tf.reduce_mean(advantage, axis=1, keepdims=True))
             return q_values
 
@@ -589,12 +589,12 @@ def train(priority=True, agent='model', grid=10, seed=0):
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
                                                                       state_shape=[grid,grid],
-                                                                      agent_history_length=4,
+                                                                      agent_history_length=6,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid],frame_dtype=np.float32,
-                                                           agent_history_length=4, agent=agent, batch_size=BS)
+                                                           agent_history_length=6, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
                                                replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
