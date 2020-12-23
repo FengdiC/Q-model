@@ -476,7 +476,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
 
     expert_ratio = []
 
-    NETW_UPDATE_FREQ = 2048  # Number of chosen actions between updating the target network.
+    NETW_UPDATE_FREQ = args.target_update_freq  # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma  # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq  # Every four actions a gradient descend step is performed
     BS = 32
@@ -487,9 +487,9 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
             elif agent != 'dqn':
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             else:
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame[:,:,-1], reward=reward, action=action, done=terminal)
             frame = next_frame
@@ -694,7 +694,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=False
+    plot=True
     for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
