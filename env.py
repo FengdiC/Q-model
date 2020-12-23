@@ -336,7 +336,7 @@ def mazes_generation():
     maze['rewards'].append(r)
     maze['obstacles'].append(o)
     maze['dangers'].append(d)
-    for i in range(4):
+    for i in range(99):
         e, d, r, o = generate_maze(10)
         print("rewards: ", r)
         print("end_state: ", e)
