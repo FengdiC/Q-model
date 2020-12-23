@@ -76,7 +76,7 @@ def argsparser():
     parser.add_argument('--expert_priority_modifier', type=int, help='Max Episode Length', default=4)
     parser.add_argument('--min_expert_priority', type=int, help='Max Episode Length', default=0.05)
 
-    parser.add_argument('--dqfd_l2', type=int, help='Lambda 1 for expert', default=0.00001)
+    parser.add_argument('--dqfd_l2', type=float, help='Lambda 1 for expert', default=0.00001)
     parser.add_argument('--dqfd_margin', type=float, help='Lambda 1 for expert', default=0.8)
     parser.add_argument('--dqfd_n_step', type=int, help='Lambda 1 for expert', default=10)
     parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
@@ -85,7 +85,6 @@ def argsparser():
 
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
-
     parser.add_argument('--load_frame_num', type=int, help='If load model 0, else load frame num ....', default=0)
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
