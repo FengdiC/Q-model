@@ -726,6 +726,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
                     idx_offset = j
                 else:
                     idx_offset = min(j, term_indx[0])
+                if idx + idx_offset > self.count - 1:
+                    idx_offset = self.count - 1 - idx
+                    
                 not_terminal[i, j] = 1 - self.terminal_flags[idx + idx_offset]
                 n_step_actions[i, j] = self.actions[idx + idx_offset]
                 n_step_state[i, j], _ = self._get_current_next_state(idx + idx_offset)

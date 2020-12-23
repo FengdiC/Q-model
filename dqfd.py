@@ -13,7 +13,7 @@ import pickle
 import utils
 import PriorityBuffer
 import logger
-
+from tensorflow.python import pywrap_tensorflow
 from tensorboard_logger import tensorflowboard_logger
 
 def softargmax(x, beta=1e10):
@@ -34,6 +34,7 @@ class DQN:
           frame_width: Integer, Width of a frame of an Atari game
           agent_history_length: Integer, Number of frames stacked together to create a state
         """
+        self.name = name
         self.max_reward = max_reward
         self.ratio_expert=ratio_expert
         self.args = args
@@ -530,7 +531,7 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
     for trajectory_id in range(args.num_trajectory_generated):
         terminal_life_lost, current_state = atari.reset(sess, evaluation=False)
         eval_reward = 0
-        for _ in range(max_eps_len):
+        for count in range(max_eps_len):
             # Fire (action 1), when a life was lost or the game just started,
             # so that the agent does not stand around doing nothing. When playing
             # with other environments, you might want to change this...
@@ -547,7 +548,7 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
 
             next_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
             eval_reward += reward
-            current_data["frames"].append(current_state[:, :, 0])
+            current_data["frames"].append(current_state[:, :, 0].astype(np.uint8))
             current_data["reward"].append(reward)
             current_data["actions"].append(action)
             current_data["terminal"].append(terminal_life_lost)
@@ -559,10 +560,10 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
                 if not terminal:
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             current_state = next_frame
-
+            print(count)
             if gif:
                 frames_for_gif.append(new_frame)
-            elif terminal:
+            if terminal:
                 break
         try:
             if trajectory_id == 0:
@@ -570,8 +571,44 @@ def generate_trajectory(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps
                             "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
         except IndexError:
             print("No evaluation game finished")
-        pickle.dump(current_data, open("played_ai_" + args.env +  "_" + str(num_traj) + ".pkl", "wb"), protocol=4)  
+        print("Frames: ", len(current_data["frames"]))
+        print("Savings ... ")
+        pickle.dump(current_data, open("played_ai_" + args.env_id +  "_" + str(args.num_trajectory_generated) + ".pkl", "wb"), protocol=4)  
+        print("Total Rewards: ", np.sum(current_data["reward"]))
 
+def get_tensors_in_checkpoint_file(file_name,tensor_name=None, scope=None):
+    varlist=[]
+    var_value =[]
+    reader = pywrap_tensorflow.NewCheckpointReader(file_name)
+    if tensor_name is None:
+        var_to_shape_map = reader.get_variable_to_shape_map()
+        for key in sorted(var_to_shape_map):
+            if not scope is None and not scope in key:
+                continue
+            varlist.append(key)
+            var_value.append(reader.get_tensor(key))
+    else:
+        var_to_shape_map = reader.get_variable_to_shape_map()
+        for key in sorted(var_to_shape_map):
+            if tensor_name in key:
+                if not scope is None and not scope in key:
+                    continue
+                varlist.append(key)
+                var_value.append(reader.get_tensor(key))
+    return (varlist, var_value)
+
+def build_tensors_in_checkpoint_file(sess, loaded_tensors):
+    full_var_list = list()
+    # Loop all loaded tensors
+    print(loaded_tensors[0])
+    for i, tensor_name in enumerate(loaded_tensors[0]):
+        # Extract tensor
+        try:
+            tensor_aux = sess.get_tensor_by_name(tensor_name+":0")
+            full_var_list.append(tensor_aux)
+        except:
+            print('Not found: '+tensor_name)
+    return full_var_list
 
 def train( priority=True):
     args = utils.argsparser()
@@ -631,10 +668,11 @@ def train( priority=True):
         MAIN_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="mainDQN", max_reward=max_reward,ratio_expert=ratio_expert)
     with tf.variable_scope('targetDQN'):
         TARGET_DQN = DQN(args, atari.env.action_space.n, HIDDEN,agent=name, name="targetDQN", max_reward=max_reward,ratio_expert=ratio_expert)
-
+    
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
     TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+    print(MAIN_DQN_VARS)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
@@ -645,6 +683,8 @@ def train( priority=True):
     saver = tf.train.Saver(max_to_keep=5)
     sess = tf.Session(config=config)
     sess.run(init)
+    if not args.num_trajectory_generated:
+        tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
     if args.load_frame_num > 0:
         #load model ... 
         print("Model Loaded .... ")
@@ -654,22 +694,28 @@ def train( priority=True):
         #                             eps_initial=0.05)
                                     
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
-        saver.restore(sess, load_path);
-        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
-                                      MAIN_DQN, args, frame_number=frame_number)
-        eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
-                             model_name=name, gif=True, random=False)
-        tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
-        tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
+        # restored_vars  = get_tensors_in_checkpoint_file(file_name=load_path)
+        # tensors_to_load = build_tensors_in_checkpoint_file(sess, restored_vars)
+        # loader = tf.train.Saver(tensors_to_load)
+        # loader.restore(sess, load_path)
+        # saver = tf.train.Saver(max_to_keep=None)
+        saver.restore(sess, load_path)
+        if not args.num_trajectory_generated:
+            utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
+                                        MAIN_DQN, args, frame_number=frame_number)
+            eval_reward, eval_var = utils.evaluate_model(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari, frame_number,
+                                model_name=name, gif=True, random=False)
+            tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
+            tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
     else:
-        utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
-                                      MAIN_DQN, args)
+        if not args.num_trajectory_generated:
+            utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
+                                        MAIN_DQN, args)
     if args.num_trajectory_generated:
         generate_trajectory(sess, args, EVAL_STEPS, MAIN_DQN, action_getter, MAX_EPISODE_LENGTH, atari,
                                     frame_number, model_name=name, gif=True)
         quit()
 
-    tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
 
     #Pretrain step ..
     if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
