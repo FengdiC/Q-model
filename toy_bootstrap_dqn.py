@@ -468,7 +468,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     if args.env_id == 'maze':
         env = toy_maze('mazes')
     else:
-        final_reward = 1
+        final_reward = -1
         env = toy_env(grid, final_reward, args=args)
 
     bootstrap_dqns = []
@@ -508,7 +508,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     print("Agent: ", name)
     last_eval = 0
     build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-    max_eps = 160
+    max_eps = 600
     regret_list = []
 
     #compute regret
@@ -529,8 +529,8 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
             TARGET_DQN = selected_dqn["target"]
             q_values = MAIN_DQN.get_q_value(sess)
             pi = np.argmax(q_values, axis=2)
-            correct = grid - 1 - np.sum(np.diag(pi)[:-1])
-            # correct = np.sum(pi[:, 0])
+            # correct = grid - 1 - np.sum(np.diag(pi)[:-1])
+            correct = np.sum(pi[:, 0])
             print(grid , eps_number, correct, eps_rw)
             regret_list.append(correct)
             # #compute regret
@@ -660,7 +660,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         # main DQN and target DQN networks:
         print("Agent: ", name)
 
-        final_reward = 1
+        final_reward = -1
         env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
@@ -699,7 +699,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 160
+        max_eps = 600
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
@@ -743,8 +743,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                # correct = np.sum(pi[:,0])
+                # correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
 
@@ -765,17 +765,17 @@ idx = range(50,80,3)
 # num1 = train_bootdqn(grid=50,agent='bootdqn',seed=0)
 # num2 = train_bootdqn(grid=50,agent='bootdqn',seed=1)
 # num3 = train_bootdqn(grid=50,agent='bootdqn',seed=2)
-#
-# num4 = train(grid=50,agent='dqn',seed=0)
-# num5 = train(grid=50,agent='dqn',seed=1)
-# num6 = train(grid=50,agent='dqn',seed=2)
-# import sys
-# sys.exit(str(num1)+'_'+str(num2)+'_'+str(num3)+'_'+str(num4)+'_'+str(num5)+'_'+str(num6))
+
+num4 = train(grid=50,agent='expert',seed=0)
+num5 = train(grid=50,agent='expert',seed=1)
+num6 = train(grid=50,agent='expert',seed=2)
+import sys
+sys.exit(str(num4)+'_'+str(num5)+'_'+str(num6))
 
 
 # Compare bewteen all algorithms
 
-num_runs = 10
+# num_runs = 10
 # reach = np.zeros((5, num_runs))
 # for seed in range(3):
 #     for grid_index in range(num_runs):
@@ -795,24 +795,24 @@ num_runs = 10
 #         reach[4,grid_index] += num_potential
 #         reach[2,grid_index] += num
 #     np.save('bootdqn_explor',reach)
-#     plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
-#     plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
-#     plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
-#     plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
-#     plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
-#     plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
-#     plt.tight_layout()
-#     plt.savefig('chain_rlfd')
+#     # plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
+#     # plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
+#     # plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
+#     # plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
+#     # plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
+#     # plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+#     # plt.tight_layout()
+#     # plt.savefig('chain_rlfd')
 #
 # reach = reach/3.0
 # np.save('bootdqn_explor',reach)
-
-reach =np.load('bootdqn_explor.npy')
-plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
-plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
-plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
-plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
-plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
-plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
-plt.tight_layout()
-plt.savefig('chain_rlfd')
+#
+# # reach =np.load('bootdqn_explor.npy')
+# plt.plot(range(50,80,3),reach[0,:num_runs],label='DQN with EZ greedy',color='b')
+# plt.plot(range(50,80,3),reach[1,:num_runs],label='bootstrapped DQN',color='m')
+# plt.plot(range(50,80,3),reach[3,:num_runs],label='DQfD',color='tab:orange')
+# plt.plot(range(50,80,3),reach[4,:num_runs],label='RLfD through shaping',color='y')
+# plt.plot(range(50,80,3),reach[2,:num_runs],label='BQfD',color='r')
+# plt.legend(loc='upper center', bbox_to_anchor=(0.5,-0.1))
+# plt.tight_layout()
+# plt.savefig('chain_rlfd')

@@ -108,16 +108,16 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=32, kernel_size=[3,3], strides=1,
+                inputs=self.input, filters=64, kernel_size=[1,1], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
-            conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
-                kernel_initializer=tf.glorot_normal_initializer(),
-                padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
-            d = tf.layers.flatten(conv2)
+            # conv2 = tf.layers.conv2d(
+            #     inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
+            #     kernel_initializer=tf.glorot_normal_initializer(),
+            #     padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
+            d = tf.layers.flatten(conv1)
             dense = tf.layers.dense(inputs=d, units=hidden,
-                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc3")
+                                    kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
 
             # Splitting into value and advantage stream
             valuestream, advantagestream = tf.split(dense, 2, -1)
@@ -125,10 +125,10 @@ class DQN:
             advantagestream = tf.layers.flatten(advantagestream)
             advantage = tf.layers.dense(
                 inputs=advantagestream, units=self.n_actions,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2), name="advantage")
+                kernel_initializer=tf.tf.glorot_normal_initializer(), name="advantage")
             value = tf.layers.dense(
                 inputs=valuestream, units=1,
-                kernel_initializer=tf.variance_scaling_initializer(scale=2), name='value')
+                kernel_initializer=tf.tf.glorot_normal_initializer(), name='value')
             q_values = value + tf.subtract(advantage, tf.reduce_mean(advantage, axis=1, keepdims=True))
             return q_values
 
@@ -487,9 +487,9 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
             elif agent != 'dqn':
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             else:
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame[:,:,-1], reward=reward, action=action, done=terminal)
             frame = next_frame
@@ -694,7 +694,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
+    plot=False
     for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
@@ -709,7 +709,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             frame = next_frame
             episode_length += 1
             eps_reward += reward
-        plot=True
+        plot=False
     val_eps_reward = 0
     env_val.restart()
     for level in range(5):
