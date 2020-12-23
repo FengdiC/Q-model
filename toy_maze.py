@@ -487,9 +487,9 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
             elif agent != 'dqn':
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
             else:
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame[:,:,-1], reward=reward, action=action, done=terminal)
             frame = next_frame

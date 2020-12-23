@@ -468,7 +468,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     if args.env_id == 'maze':
         env = toy_maze('mazes')
     else:
-        final_reward = -1
+        final_reward = 1
         env = toy_env(grid, final_reward, args=args)
 
     bootstrap_dqns = []
@@ -529,8 +529,8 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
             TARGET_DQN = selected_dqn["target"]
             q_values = MAIN_DQN.get_q_value(sess)
             pi = np.argmax(q_values, axis=2)
-            # correct = grid - 1 - np.sum(np.diag(pi)[:-1])
-            correct = np.sum(pi[:, 0])
+            correct = grid - 1 - np.sum(np.diag(pi)[:-1])
+            # correct = np.sum(pi[:, 0])
             print(grid , eps_number, correct, eps_rw)
             regret_list.append(correct)
             # #compute regret
@@ -660,7 +660,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         # main DQN and target DQN networks:
         print("Agent: ", name)
 
-        final_reward = -1
+        final_reward = 1
         env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
@@ -743,8 +743,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                # correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                correct = np.sum(pi[:,0])
+                correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                # correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
 
