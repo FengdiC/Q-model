@@ -63,8 +63,13 @@ class toy_maze:
         for x in self.dangers:
             self.board[int(x[0]),int(x[1]),3]=1
         self.board[int(self.end_state[0]),int(self.end_state[1]),0]=1
+
+        new_current_state = np.zeros((self.grid, self.grid))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
         for i in range(4, 4 + self.agent_history_length):
-            self.board[self.current_state_x,self.current_state_y, i]=1
+            self.board[:, :, i]=new_current_state
         return self.board
 
     def step(self, action):
@@ -107,10 +112,16 @@ class toy_maze:
         self.timestep += 1
         self.terminal = terminal
         # self.board[self.current_state_x,self.current_state_y,0] = 1
+
+        new_current_state = np.zeros((self.grid, self.grid))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
+
         for i in range(4, 4 + self.agent_history_length):
             self.board[:, :, i] = 0
             if i + 1 == 4 + self.agent_history_length:
-                self.board[self.current_state_x, self.current_state_y, i]=1
+                self.board[:, :, i]=new_current_state
             else:
                 self.board[:, :, i]=self.board[:, :, i + 1]
         
