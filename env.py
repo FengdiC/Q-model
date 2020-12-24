@@ -196,7 +196,7 @@ class toy_maze:
 
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
-        data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
+        data = pickle.load(open(self.expert_dir+'long_maze_1.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
@@ -272,20 +272,20 @@ def play():
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("full_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("long_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         else:
             obs_next, rew, terminal = env.step(action)
             data_list.append([action, obs, rew, terminal])
             obs=obs_next
             count += 1
-            if env.terminal and env.level>4:
+            if env.terminal and env.level>10:
                 env_done= True
             if env.terminal:
                 env.reset(eval=True)
 
         if obs is not None:
-            plot_state(obs)
+            plot_state(obs[:,:,-1])
             key = input("action: \n")
             if 'a' in key:
                 action = key_to_action['a']
@@ -298,8 +298,7 @@ def play():
 
 
 def plot_state(state,grid=10):
-    square = state[:,:,0]*200+200
-    square += state[:,:,1]*50
+    square = state[:,:]*200+200
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 
@@ -431,3 +430,17 @@ def mazes_generation():
 
 # play()
 # mazes_generation()
+
+# maze=pickle.load(open('mazes','rb'))
+# for i in range(85):
+#     e, d, r, o = generate_maze(10)
+#     print("rewards: ", r)
+#     print("end_state: ", e)
+#     print("dangers: ", d)
+#     print("obstables: ", o)
+#     maze['end_state'].insert(0,e)
+#     maze['rewards'].insert(0,r)
+#     maze['obstacles'].insert(0,o)
+#     maze['dangers'].insert(0,d)
+# with open('mazes_large', 'wb') as fout:
+#     pickle.dump(maze, fout)
