@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 class toy_maze:
     def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=0, level=15,expert=True,
-                 agent_history_length=1):
+                 agent_history_length=4):
         self.grid = grid
         self.expert_dir=expert_dir
         self.final_reward = final_reward
@@ -39,8 +39,7 @@ class toy_maze:
     def reset(self,eval=False):
         self.current_state_x = 0
         self.current_state_y = 0
-        self.board = np.zeros((self.grid,self.grid,1))
-        self.board[self.current_state_x,self.current_state_y,0]=1
+        self.board= np.zeros((self.grid, self.grid, 4 + self.agent_history_length))
         self.timestep = 0
 
         if eval:
@@ -57,19 +56,21 @@ class toy_maze:
         self.rewards = copy.deepcopy(self.data['rewards'][-self.level])
 
         self.terminal = False
-        self.board= np.zeros((self.grid, self.grid, 5))
         for x in self.rewards:
-            self.board[int(x[0]),int(x[1]),2]=1
-        self.board[int(self.end_state[0]),int(self.end_state[1]),1]=1
+            self.board[int(x[0]),int(x[1]),1]=1
         for x in self.obstacles:
-            self.board[int(x[0]),int(x[1]),3]=1
+            self.board[int(x[0]),int(x[1]),2]=1
         for x in self.dangers:
-            self.board[int(x[0]),int(x[1]),4]=1
+            self.board[int(x[0]),int(x[1]),3]=1
+        self.board[int(self.end_state[0]),int(self.end_state[1]),0]=1
+        for i in range(4, 4 + self.agent_history_length):
+            self.board[self.current_state_x,self.current_state_y, i]=1
         return self.board
 
     def step(self, action):
         self.board[self.current_state_x,self.current_state_y,0] = 0
-
+        x = self.current_state_x
+        y = self.current_state_y
         #take actions
         if action == 0: #left
             y=self.current_state_y - 1
@@ -97,7 +98,7 @@ class toy_maze:
             else:
                 reward = -self.cost
         # if blocked by obstacles
-        if self.board[x,y,3]==1 or (self.current_state_x == x and self.current_state_y== y):
+        if self.board[x,y,3]==1:
             reward = self.obstacles_cost
         else:
             self.current_state_x = x
@@ -105,7 +106,14 @@ class toy_maze:
 
         self.timestep += 1
         self.terminal = terminal
-        self.board[self.current_state_x,self.current_state_y,0] = 1
+        # self.board[self.current_state_x,self.current_state_y,0] = 1
+        for i in range(4, 4 + self.agent_history_length):
+            self.board[:, :, i] = 0
+            if i + 1 == 4 + self.agent_history_length:
+                self.board[self.current_state_x,self.current_state_y, i]=1
+            else:
+                self.board[:, :, i]=self.board[:, :, i + 1]
+        
         return self.board, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=5500):
@@ -116,7 +124,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
+        expert_frames = np.zeros((num_expert, 10,10, 8), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
