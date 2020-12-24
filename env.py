@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 
 
 class toy_maze:
-    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01,level=15,expert=True,
-                 agent_history_length=6):
+    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=0, level=15,expert=True,
+                 agent_history_length=1):
         self.grid = grid
         self.expert_dir=expert_dir
         self.final_reward = final_reward
@@ -22,6 +22,7 @@ class toy_maze:
         self.cost = cost/grid
         self.danger = -final_reward
         self.data = pickle.load(open(self.expert_dir+file, 'rb'))
+        self.obstacles_cost = obstacle_cost
         self.level=0
         self.total_level=level
         self.n_actions=4
@@ -63,14 +64,67 @@ class toy_maze:
             self.board[int(x[0]),int(x[1])]=-0.5
         for x in self.dangers:
             self.board[int(x[0]),int(x[1])]=-2
-        self.state = np.repeat(self.board/2.0,self.agent_history_length,axis=2)
+
+        #current_state
+        #termination
+        #reward
+        #obstacle
+        #danger zone
+        new_representation = np.zeros((self.grid, self.grid, 5))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                if self.board[i, j] == 2:
+                    new_representation[i, j, 2] = 1
+                    new_representation[self.current_state_x, self.current_state_y, 1] = 1
+                elif self.board[i, j] == 1:
+                    new_representation[i, j, 2] = 1
+                elif self.board[i, j] == -2:
+                    new_representation[i, j, 4] = 1
+                elif self.board[i, j] == -0.5:
+                    new_representation[i, j, 3] = 1
+        new_representation[self.current_state_x, self.current_state_y, 0] = 1
+        self.state = new_representation
+
+
+        # new_representation = np.zeros((self.grid, self.grid, 4))
+        # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
+        # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
+        # mx2, my2 = max(0, self.current_state_x - 1), self.current_state_y
+        # mx3, my3 = min(self.grid - 1, self.current_state_x + 1), self.current_state_y
+        # new_representation[mx0, mx0, 2] = 1
+        # new_representation[mx1, mx1, 2] = 1
+        # new_representation[mx2, mx2, 2] = 1
+        # new_representation[mx3, mx3, 2] = 1
+        # new_representation[mx0, mx0, 0] = self.cost
+        # new_representation[mx1, mx1, 0] = self.cost
+        # new_representation[mx2, mx2, 0] = self.cost
+        # new_representation[mx3, mx3, 0] = self.cost
+        # for i in range(self.grid):
+        #     for j in range(self.grid):
+        #         if self.board[i, j] == 2:
+        #             new_representation[i, j, 0] = 1
+        #             new_representation[self.current_state_x, self.current_state_y, 1] = -1
+        #         elif self.board[i, j] == 1:
+        #             new_representation[i, j, 0] = 0.5
+        #         elif self.board[i, j] == -2:
+        #             new_representation[i, j, 0] = -1
+        #         elif self.board[i, j] == -0.5:
+        #             new_representation[i, j, 2] = -1
+        #             new_representation[i, j, 0] = self.obstacles_cost
+        #         new_representation[i, j, 3] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
+        # new_representation[self.current_state_x, self.current_state_y, 1] = 1
+        # self.state = new_representation
+        # self.state = np.repeat(self.board/2.0,self.agent_history_length,axis=2)
         # print(self.state.shape)
         return self.state
 
     def step(self, action):
         x=self.current_state_x
         y =self.current_state_y
-        self.board[self.current_state_x,self.current_state_y] -= 0.5
+        self.board[self.current_state_x,self.current_state_y] = 0
+
+        past_x = x
+        past_y = y
 
         #take actions
         if action == 0: #left
@@ -97,20 +151,46 @@ class toy_maze:
                 reward = self.reward
                 self.board[x,y]=0
             else:
-                reward = self.cost
-
+                reward = -self.cost
         # if blocked by obstacles
-        if self.board[x,y]==-0.5:
-            reward =0
+        if self.board[x,y]==-0.5 or (past_x == x and past_y == y):
+            reward = self.obstacles_cost
         else:
             self.current_state_x = x
             self.current_state_y = y
 
         self.timestep += 1
         self.terminal = terminal
-        self.board[self.current_state_x,self.current_state_y] += 0.5
-        new_state = np.append(self.state[:, :, 1:], self.board/2.0, axis=2)
-        self.state = new_state
+        self.board[self.current_state_x,self.current_state_y] = 0.5
+
+        # new_representation = np.zeros((self.grid, self.grid, 4))
+        # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
+        # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
+        # mx2, my2 = max(0, self.current_state_x - 1), self.current_state_y
+        # mx3, my3 = min(self.grid - 1, self.current_state_x + 1), self.current_state_y
+        # new_representation[mx0, mx0, 2] = 1
+        # new_representation[mx1, mx1, 2] = 1
+        # new_representation[mx2, mx2, 2] = 1
+        # new_representation[mx3, mx3, 2] = 1
+        # new_representation[mx0, mx0, 0] = self.cost
+        # new_representation[mx1, mx1, 0] = self.cost
+        # new_representation[mx2, mx2, 0] = self.cost
+        # new_representation[mx3, mx3, 0] = self.cost
+        # for i in range(self.grid):
+        #     for j in range(self.grid):
+        #         if self.board[i, j] == 2:
+        #             new_representation[i, j, 0] = 1
+        #             new_representation[self.current_state_x, self.current_state_y, 1] = -1
+        #         elif self.board[i, j] == 1:
+        #             new_representation[i, j, 0] = 0.5
+        #         elif self.board[i, j] == -2:
+        #             new_representation[i, j, 0] = -1
+        #         elif self.board[i, j] == -0.5:
+        #             new_representation[i, j, 2] = -1
+        #             new_representation[i, j, 0] = self.obstacles_cost
+        #         new_representation[i, j, 3] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
+        # new_representation[self.current_state_x, self.current_state_y, 1] = 1
+        # self.state = new_representation
 
         return self.state, reward, terminal
 
@@ -122,7 +202,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10), np.float32)
+        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
@@ -133,7 +213,7 @@ class toy_maze:
             current_state = self.reset(eval=True)
             for j in range(len(expert_action)):
                 action = expert_action[j]
-                expert_frames[current_index] = current_state[:,:,-1]
+                expert_frames[current_index] = current_state
                 s, r, t = self.step(action)
                 current_state=s
                 rewards[current_index] = r

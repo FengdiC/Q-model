@@ -51,7 +51,7 @@ def compute_regret(Q_value, grid, gamma, final_reward=1):
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=6, name="dqn", agent='dqn'):
+    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=1, name="dqn", agent='dqn'):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -70,7 +70,7 @@ class DQN:
         self.eta = args.eta
         self.agent = agent
 
-        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length], dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length * 5], dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
 
@@ -264,7 +264,7 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             #
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
-            replay_buffer.add(obs_t=frame[:,:,-1], reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
             frame = next_frame
             frame_num += 1
             if terminal:
@@ -491,7 +491,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=frame[:,:,-1], reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -522,6 +522,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                 print("UPDATING Network ... ", frame_num)
                 network_updater.update_networks(sess)
             if terminal:
+                #print("EPS terminated ... ", episode_length, episode_reward_sum, reward)
                 break
             if env.terminal:
                 env.reset()
@@ -588,13 +589,13 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if priority:
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
-                                                                      state_shape=[grid,grid],
-                                                                      agent_history_length=6,
+                                                                      state_shape=[grid, grid, 5],
+                                                                      agent_history_length=1,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid],frame_dtype=np.float32,
-                                                           agent_history_length=6, agent=agent, batch_size=BS)
+                                                           agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
                                                replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -694,12 +695,13 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
+    plot=False
     for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
+        episode_reward = 0
         episode_length = 0
-        while episode_length < 80 and not terminal:
+        while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             if plot:
                 plot_state(frame[:,:,-1])
@@ -708,15 +710,17 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
+            episode_reward += reward
             eps_reward += reward
         plot=False
+        print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     val_eps_reward = 0
     env_val.restart()
     for level in range(5):
         terminal = False
         frame = env_val.reset(eval=True)
         episode_length = 0
-        while episode_length < 80 and not terminal:
+        while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env_val.step(action)
             frame = next_frame
@@ -728,7 +732,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
         terminal=False
         frame = env_test.reset(eval=True)
         episode_length = 0
-        while episode_length < 80 and not terminal:
+        while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env_test.step(action)
             frame = next_frame
