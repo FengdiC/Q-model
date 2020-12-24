@@ -695,7 +695,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=False
+    plot=True
     for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
@@ -704,7 +704,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
         while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             if plot:
-                plot_state(frame[:,:,-1])
+                plot_state(frame[:,:])
                 if episode_length>20:
                     plot = False
             next_frame, reward, terminal = env.step(action)
@@ -742,7 +742,11 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
 
 import matplotlib.pyplot as plt
 def plot_state(state,grid=10):
-    square = state[:,:]*200+200
+    square = state[:,:,0]*300
+    square += state[:, :, 1] * 400
+    square += state[:, :, 2] * 200
+    square += state[:, :, 3] * 150
+    square += state[:, :, 4] * 50
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 

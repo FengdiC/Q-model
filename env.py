@@ -74,7 +74,7 @@ class toy_maze:
         for i in range(self.grid):
             for j in range(self.grid):
                 if self.board[i, j] == 2:
-                    new_representation[i, j, 2] = 1
+                    new_representation[i, j, 1] = 1
                     new_representation[self.current_state_x, self.current_state_y, 1] = 1
                 elif self.board[i, j] == 1:
                     new_representation[i, j, 2] = 1
@@ -84,38 +84,6 @@ class toy_maze:
                     new_representation[i, j, 3] = 1
         new_representation[self.current_state_x, self.current_state_y, 0] = 1
         self.state = new_representation
-
-
-        # new_representation = np.zeros((self.grid, self.grid, 4))
-        # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
-        # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
-        # mx2, my2 = max(0, self.current_state_x - 1), self.current_state_y
-        # mx3, my3 = min(self.grid - 1, self.current_state_x + 1), self.current_state_y
-        # new_representation[mx0, mx0, 2] = 1
-        # new_representation[mx1, mx1, 2] = 1
-        # new_representation[mx2, mx2, 2] = 1
-        # new_representation[mx3, mx3, 2] = 1
-        # new_representation[mx0, mx0, 0] = self.cost
-        # new_representation[mx1, mx1, 0] = self.cost
-        # new_representation[mx2, mx2, 0] = self.cost
-        # new_representation[mx3, mx3, 0] = self.cost
-        # for i in range(self.grid):
-        #     for j in range(self.grid):
-        #         if self.board[i, j] == 2:
-        #             new_representation[i, j, 0] = 1
-        #             new_representation[self.current_state_x, self.current_state_y, 1] = -1
-        #         elif self.board[i, j] == 1:
-        #             new_representation[i, j, 0] = 0.5
-        #         elif self.board[i, j] == -2:
-        #             new_representation[i, j, 0] = -1
-        #         elif self.board[i, j] == -0.5:
-        #             new_representation[i, j, 2] = -1
-        #             new_representation[i, j, 0] = self.obstacles_cost
-        #         new_representation[i, j, 3] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
-        # new_representation[self.current_state_x, self.current_state_y, 1] = 1
-        # self.state = new_representation
-        # self.state = np.repeat(self.board/2.0,self.agent_history_length,axis=2)
-        # print(self.state.shape)
         return self.state
 
     def step(self, action):
@@ -162,36 +130,6 @@ class toy_maze:
         self.timestep += 1
         self.terminal = terminal
         self.board[self.current_state_x,self.current_state_y] = 0.5
-
-        # new_representation = np.zeros((self.grid, self.grid, 4))
-        # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
-        # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
-        # mx2, my2 = max(0, self.current_state_x - 1), self.current_state_y
-        # mx3, my3 = min(self.grid - 1, self.current_state_x + 1), self.current_state_y
-        # new_representation[mx0, mx0, 2] = 1
-        # new_representation[mx1, mx1, 2] = 1
-        # new_representation[mx2, mx2, 2] = 1
-        # new_representation[mx3, mx3, 2] = 1
-        # new_representation[mx0, mx0, 0] = self.cost
-        # new_representation[mx1, mx1, 0] = self.cost
-        # new_representation[mx2, mx2, 0] = self.cost
-        # new_representation[mx3, mx3, 0] = self.cost
-        # for i in range(self.grid):
-        #     for j in range(self.grid):
-        #         if self.board[i, j] == 2:
-        #             new_representation[i, j, 0] = 1
-        #             new_representation[self.current_state_x, self.current_state_y, 1] = -1
-        #         elif self.board[i, j] == 1:
-        #             new_representation[i, j, 0] = 0.5
-        #         elif self.board[i, j] == -2:
-        #             new_representation[i, j, 0] = -1
-        #         elif self.board[i, j] == -0.5:
-        #             new_representation[i, j, 2] = -1
-        #             new_representation[i, j, 0] = self.obstacles_cost
-        #         new_representation[i, j, 3] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
-        # new_representation[self.current_state_x, self.current_state_y, 1] = 1
-        # self.state = new_representation
-
         return self.state, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=5500):
