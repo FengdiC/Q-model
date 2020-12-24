@@ -571,7 +571,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes',expert_dir=args.expert_dir,level=8)
+            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -695,8 +695,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
-    for level in range(8):
+    plot=False
+    for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
