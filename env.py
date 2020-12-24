@@ -75,7 +75,7 @@ class toy_maze:
             for j in range(self.grid):
                 if self.board[i, j] == 2:
                     new_representation[i, j, 2] = 1
-                    new_representation[self.current_state_x, self.current_state_y, 1] = 1
+                    new_representation[i, j, 1] = 1
                 elif self.board[i, j] == 1:
                     new_representation[i, j, 2] = 1
                 elif self.board[i, j] == -2:
@@ -84,8 +84,6 @@ class toy_maze:
                     new_representation[i, j, 3] = 1
         new_representation[self.current_state_x, self.current_state_y, 0] = 1
         self.state = new_representation
-
-
         # new_representation = np.zeros((self.grid, self.grid, 4))
         # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
         # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
@@ -162,7 +160,25 @@ class toy_maze:
         self.timestep += 1
         self.terminal = terminal
         self.board[self.current_state_x,self.current_state_y] = 0.5
-
+        #current_state
+        #termination
+        #reward
+        #obstacle
+        #danger zone
+        new_representation = np.zeros((self.grid, self.grid, 5))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                if self.board[i, j] == 2:
+                    new_representation[i, j, 2] = 1
+                    new_representation[i, j, 1] = 1
+                elif self.board[i, j] == 1:
+                    new_representation[i, j, 2] = 1
+                elif self.board[i, j] == -2:
+                    new_representation[i, j, 4] = 1
+                elif self.board[i, j] == -0.5:
+                    new_representation[i, j, 3] = 1
+        new_representation[self.current_state_x, self.current_state_y, 0] = 1
+        self.state = new_representation
         # new_representation = np.zeros((self.grid, self.grid, 4))
         # mx0, my0 = self.current_state_x, max(0, self.current_state_y - 1)
         # mx1, my1 = self.current_state_x, min(self.grid - 1, self.current_state_y + 1)
@@ -196,7 +212,7 @@ class toy_maze:
 
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
-        data = pickle.load(open(self.expert_dir+'long_maze_1.pkl', 'rb'))
+        data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
@@ -272,20 +288,20 @@ def play():
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("long_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("full_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         else:
             obs_next, rew, terminal = env.step(action)
             data_list.append([action, obs, rew, terminal])
             obs=obs_next
             count += 1
-            if env.terminal and env.level>10:
+            if env.terminal and env.level>4:
                 env_done= True
             if env.terminal:
                 env.reset(eval=True)
 
         if obs is not None:
-            plot_state(obs[:,:,-1])
+            plot_state(obs)
             key = input("action: \n")
             if 'a' in key:
                 action = key_to_action['a']
@@ -298,7 +314,8 @@ def play():
 
 
 def plot_state(state,grid=10):
-    square = state[:,:]*200+200
+    square = state[:,:,0]*200+200
+    square += state[:,:,1]*50
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 
@@ -430,17 +447,3 @@ def mazes_generation():
 
 # play()
 # mazes_generation()
-
-# maze=pickle.load(open('mazes','rb'))
-# for i in range(85):
-#     e, d, r, o = generate_maze(10)
-#     print("rewards: ", r)
-#     print("end_state: ", e)
-#     print("dangers: ", d)
-#     print("obstables: ", o)
-#     maze['end_state'].insert(0,e)
-#     maze['rewards'].insert(0,r)
-#     maze['obstacles'].insert(0,o)
-#     maze['dangers'].insert(0,d)
-# with open('mazes_large', 'wb') as fout:
-#     pickle.dump(maze, fout)
