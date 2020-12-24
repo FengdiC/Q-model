@@ -695,7 +695,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
+    plot=False
     for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
