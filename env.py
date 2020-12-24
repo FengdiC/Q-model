@@ -83,22 +83,22 @@ class toy_maze:
         x = np.clip(x, 0, self.grid - 1)
         y = np.clip(y, 0, self.grid - 1)
         
-        if self.board[x,y,1]==1:
+        if self.board[x,y,0]==1:
             terminal = 1
             reward = self.final_reward
             # print("Reach Final Reward")
         else:
             terminal =0
-            if self.board[x,y,4]==1:
+            if self.board[x,y,3]==1:
                 reward=self.danger
                 # print("Reach Danger")
-            elif self.board[x,y,2]==1:
+            elif self.board[x,y,1]==1:
                 reward = self.reward
-                self.board[x,y,2]=0
+                self.board[x,y,1]=0
             else:
                 reward = -self.cost
         # if blocked by obstacles
-        if self.board[x,y,3]==1:
+        if self.board[x,y,2]==1:
             reward = self.obstacles_cost
         else:
             self.current_state_x = x
@@ -110,7 +110,7 @@ class toy_maze:
         for i in range(4, 4 + self.agent_history_length):
             self.board[:, :, i] = 0
             if i + 1 == 4 + self.agent_history_length:
-                self.board[self.current_state_x,self.current_state_y, i]=1
+                self.board[self.current_state_x, self.current_state_y, i]=1
             else:
                 self.board[:, :, i]=self.board[:, :, i + 1]
         
@@ -148,6 +148,7 @@ class toy_maze:
         expert['frames'] = expert_frames
         expert['reward'] = rewards
         expert['terminal'] = terminals
+        print("Rewards: ", np.sum(expert['reward']))
         with open(self.expert_dir+'expert_maze', 'wb') as fout:
             pickle.dump(expert, fout)
 
