@@ -51,7 +51,7 @@ def compute_regret(Q_value, grid, gamma, final_reward=1):
 class DQN:
     """Implements a Deep Q Network"""
 
-    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=1, name="dqn", agent='dqn'):
+    def __init__(self, args, n_actions=4, hidden=256, grid=10, agent_history_length=4, name="dqn", agent='dqn'):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -70,7 +70,7 @@ class DQN:
         self.eta = args.eta
         self.agent = agent
 
-        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length * 5], dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length +1], dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
 
@@ -571,7 +571,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
+            env = toy_maze('mazes',expert_dir=args.expert_dir,level=8)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -695,8 +695,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=False
-    for level in range(15):
+    plot=True
+    for level in range(8):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
@@ -742,11 +742,9 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
 
 import matplotlib.pyplot as plt
 def plot_state(state,grid=10):
-    square = state[:,:,0]*300
-    square += state[:, :, 1] * 400
-    square += state[:, :, 2] * 200
-    square += state[:, :, 3] * 150
-    square += state[:, :, 4] * 50
+    square = state[:,:,4]*200+200
+    pos = (state[:,:,3]==-1)
+    square += pos*250
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 
