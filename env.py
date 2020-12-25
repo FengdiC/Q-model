@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 class toy_maze:
-    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.1, obstacle_cost=0, level=15,expert=True,
+    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.05, obstacle_cost=0, level=15,expert=True,
                  agent_history_length=4):
         self.grid = grid
         self.expert_dir=expert_dir
@@ -100,7 +100,7 @@ class toy_maze:
                 reward = self.reward
                 self.board[x,y,self.agent_history_length]=0
             else:
-                reward = -self.cost
+                reward = self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
             # reward = self.obstacles_cost
@@ -125,7 +125,7 @@ class toy_maze:
 
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
-        data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
+        data = pickle.load(open(self.expert_dir+'long_maze_1.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))

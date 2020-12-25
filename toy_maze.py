@@ -571,7 +571,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
+            env = toy_maze('mazes_large',expert_dir=args.expert_dir,level=10)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -696,7 +696,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     eps_reward=0
     env.restart()
     plot=False
-    for level in range(15):
+    for level in range(5):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
@@ -715,17 +715,24 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
         plot=False
         print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     val_eps_reward = 0
-    env_val.restart()
     for level in range(5):
         terminal = False
-        frame = env_val.reset(eval=True)
+        frame = env.reset(eval=True)
+        episode_reward = 0
         episode_length = 0
         while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
-            next_frame, reward, terminal = env_val.step(action)
+            if plot:
+                plot_state(frame[:, :])
+                if episode_length > 20:
+                    plot = False
+            next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
+            episode_reward += reward
             val_eps_reward += reward
+        plot = False
+        print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     test_eps_reward=0
     env_test.restart()
     for level in range(5):
