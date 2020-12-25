@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 class toy_maze:
-    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=0, level=15,expert=True,
+    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.1, obstacle_cost=0, level=15,expert=True,
                  agent_history_length=4):
         self.grid = grid
         self.expert_dir=expert_dir
@@ -68,7 +68,7 @@ class toy_maze:
         for i in range(self.grid):
             for j in range(self.grid):
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
-        for i in range(4):
+        for i in range(self.agent_history_length):
             self.board[:, :, i]=new_current_state
         return self.board
 
@@ -103,7 +103,8 @@ class toy_maze:
                 reward = -self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
-            reward = self.obstacles_cost
+            # reward = self.obstacles_cost
+            pass
         else:
             self.current_state_x = x
             self.current_state_y = y
