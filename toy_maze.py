@@ -571,7 +571,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes_large',expert_dir=args.expert_dir,level=10)
+            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -597,9 +597,9 @@ def train(priority=True, agent='model', grid=10, seed=0):
             my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,5],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-        action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
+        action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE//3, eps_final=0.05,
                                                replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                               max_frames=MAX_FRAMES,
+                                               max_frames=MAX_FRAMES//10,
                                                eps_initial=args.initial_exploration)
         saver = tf.train.Saver(max_to_keep=10)
         sess = tf.Session(config=config)
@@ -696,7 +696,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     eps_reward=0
     env.restart()
     plot=False
-    for level in range(5):
+    for level in range(10):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
