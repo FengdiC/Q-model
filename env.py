@@ -98,8 +98,8 @@ class toy_maze:
             reward = self.final_reward
             # print("Reach Final Reward")
         elif self.board[x,y,self.agent_history_length]==-1:
-            reward=self.danger
             terminal =1
+            reward=self.danger
         else:
             terminal =0
             if self.board[x,y,self.agent_history_length]==0.5:
@@ -129,18 +129,33 @@ class toy_maze:
         self.board[:, :, self.agent_history_length-1]=new_current_state
         return self.board, reward, terminal
 
+    def generate_state(self, x, y):
+        new_current_state = np.zeros((self.grid, self.grid))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                new_current_state[i, j] = (np.abs(x - i) + np.abs(y - j))/self.grid - 1
+        board_state = np.expand_dims(np.copy(self.board[:, :, self.agent_history_length]), axis=2)
+        new_current_state = np.expand_dims(new_current_state, axis=2)
+        new_current_state = np.repeat(new_current_state, self.agent_history_length, axis=2)
+        return np.expand_dims(np.concatenate([new_current_state, board_state], axis=2), axis=0)
+
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
         num_batches = math.ceil(min_expert_frames / len(expert_action))
-        num_expert = num_batches * len(expert_action)
+        # num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
-        rewards = np.zeros((num_expert,), dtype=np.float32)
-        actions = np.zeros((num_expert,), dtype=np.float32)
-        terminals = np.zeros((num_expert,), np.uint8)
+        # expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
+        # rewards = np.zeros((num_expert,), dtype=np.float32)
+        # actions = np.zeros((num_expert,), dtype=np.float32)
+        # terminals = np.zeros((num_expert,), np.uint8)
+
+        expert_frames = []
+        rewards = []
+        actions = []
+        terminals = []
 
         current_index = 0
         for i in range(num_batches):
@@ -148,19 +163,27 @@ class toy_maze:
             current_state = self.reset(eval=True)
             for j in range(len(expert_action)):
                 action = expert_action[j]
-                expert_frames[current_index] = current_state
+                expert_frames.append(current_state)
                 s, r, t = self.step(action)
                 current_state=s
-                rewards[current_index] = r
-                actions[current_index] = action
-                terminals[current_index] = t
+                rewards.append(r)
+                actions.append(action)
+                terminals.append(t)
                 current_index += 1
+                # if t:
+                #     current_state = self.reset(eval=True)
                 if t:
+                    rewards.append(0)
+                    actions.append(np.random.randint(0, self.n_actions))
+                    terminals.append(t)
+                    expert_frames.append(current_state)
                     current_state = self.reset(eval=True)
-        expert['actions'] = actions
-        expert['frames'] = expert_frames
-        expert['reward'] = rewards
-        expert['terminal'] = terminals
+                # if t:
+                #     print(i, j, t)
+        expert['actions'] = np.array(actions)
+        expert['frames'] = np.array(expert_frames)
+        expert['reward'] = np.array(rewards)
+        expert['terminal'] = np.array(terminals)
         print("Rewards: ", np.sum(expert['reward']))
         with open(self.expert_dir+'expert_maze', 'wb') as fout:
             pickle.dump(expert, fout)

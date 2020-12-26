@@ -115,6 +115,7 @@ class DQN:
                 inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+
             d = tf.layers.flatten(conv2)
             dense = tf.layers.dense(inputs=d, units=hidden,
                                     kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
@@ -265,6 +266,8 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
             replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
             frame = next_frame
             frame_num += 1
             if terminal:
@@ -300,7 +303,9 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
             else:
                 action = action_getter.get_action(sess, frame_num, frame, selected_dqn["main"], evaluation=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=frame[:,:,-2:], reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:, :], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -492,6 +497,8 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -610,18 +617,11 @@ def train(priority=True, agent='model', grid=10, seed=0):
             "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_lr_" + str(args.lr)+"_var_"+str(args.var) + "_seed_" + str(
                 args.seed) + "_" + args.custom_id, sess, args)
 
-        my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
-
         print("Agent: ", agent)
         regret_list = []
         max_eps = 500
-        # # compute regret
-        # Q_value = np.zeros((grid, grid, 2))
-        # Q_value[:, :, 1] = final_reward
-        # V = compute_regret(Q_value, grid, args.gamma, final_reward)
-        # print("True value for initial state: ", V)
-
         last_eval = 0
+        my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
         if agent == 'shaping':
             print("Beginning to pretrain")
             train_step_dqfd(
@@ -639,7 +639,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         #pretrain evaluation
         test_eps_reward, val_reward, test_eps_reward_t = eval(args, env_test, env_val, env, action_getter, sess,
-                                                              MAIN_DQN)
+                                                              MAIN_DQN, eps_number)
         print(test_eps_reward, val_reward, test_eps_reward_t)
         tflogger.log_scalar("Episode/Evaluation", test_eps_reward, frame_number)
         tflogger.log_scalar("Episode/Evaluation_Val", val_reward, frame_number)
@@ -683,20 +683,22 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 if (len(regret_list) > 5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
-            if last_eval > 100:
+            if last_eval > 1000:
                 last_eval=0
-                test_eps_reward,val_reward,test_eps_reward_t = eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN)
+                test_eps_reward,val_reward,test_eps_reward_t = eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, eps_number)
                 print(test_eps_reward,val_reward,test_eps_reward_t)
                 tflogger.log_scalar("Episode/Evaluation",test_eps_reward, frame_number)
                 tflogger.log_scalar("Episode/Evaluation_Val", val_reward, frame_number)
                 tflogger.log_scalar("Episode/Evaluation_Test",test_eps_reward_t, frame_number)
 
-def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
+def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, frame_num):
     episode_length=0
     eps_reward=0
     env.restart()
     plot=False
-    for level in range(10):
+    frame = env.reset(eval=True)
+    generate_max_q_value_map(args, sess, env, MAIN_DQN, frame_num)
+    for level in range(1):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
@@ -712,10 +714,14 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             episode_length += 1
             episode_reward += reward
             eps_reward += reward
+            #print(episode_length, "rew:", reward, "term:", terminal)
+            print(env.current_state_x, env.current_state_y)
+            if terminal:
+                print("End Position", env.current_state_x, env.current_state_y)
         plot=False
         print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     val_eps_reward = 0
-    for level in range(5):
+    for level in range(1):
         terminal = False
         frame = env.reset(eval=True)
         episode_reward = 0
@@ -748,6 +754,26 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     return eps_reward,val_eps_reward,test_eps_reward
 
 import matplotlib.pyplot as plt
+def generate_max_q_value_map(args, sess, env, main_dqn, frame_num):
+    q_value_map = np.zeros((env.grid, env.grid))
+    for i in range(env.grid):
+        for j in range(env.grid):
+            q_value_map[i, j] = np.max(sess.run(main_dqn.q_values, feed_dict={main_dqn.input:env.generate_state(i, j)})[0])
+    plt.imshow(q_value_map, cmap='hot', interpolation='nearest')
+    plt.savefig("max_q_value_" + args.custom_id + "_frame_num_" + str(frame_num) + ".png")
+    plt.close()
+    print(np.min(q_value_map), np.max(q_value_map))        
+
+    q1 = sess.run(main_dqn.q_values, feed_dict={main_dqn.input:env.generate_state(0, 0)})[0] #2
+    # q2 = sess.run(main_dqn.q_values, feed_dict={main_dqn.input:env.generate_state(7, 8)})[0] #4
+    # q3 = sess.run(main_dqn.q_values, feed_dict={main_dqn.input:env.generate_state(9, 8)})[0] #3
+    # q4 = sess.run(main_dqn.q_values, feed_dict={main_dqn.input:env.generate_state(8, 9)})[0] #0
+    print("Start Value", q1)
+
+    plt.imshow(np.squeeze(env.generate_state(i, j)[0, :, :, -1]), cmap='hot', interpolation='nearest')
+    plt.savefig("state_feature_" + args.custom_id + "_frame_num_" + str(frame_num) + ".png")
+    plt.close()        
+
 def plot_state(state,grid=10):
     square = state[:,:,4]*200+200
     pos = (state[:,:,3]==-1)
