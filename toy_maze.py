@@ -108,11 +108,11 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=32, kernel_size=[1,1], strides=1,
+                inputs=self.input, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
             conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
+                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
             d = tf.layers.flatten(conv2)
@@ -710,6 +710,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
+            if reward <0:
+                continue
             episode_reward += reward
             eps_reward += reward
         plot=False
@@ -729,6 +731,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
+            if reward <0:
+                continue
             episode_reward += reward
             val_eps_reward += reward
         plot = False
@@ -744,6 +748,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env_test.step(action)
             frame = next_frame
             episode_length += 1
+            if reward <0:
+                continue
             test_eps_reward += reward
     return eps_reward,val_eps_reward,test_eps_reward
 

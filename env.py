@@ -13,14 +13,14 @@ import matplotlib.pyplot as plt
 
 
 class toy_maze:
-    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.05, obstacle_cost=0, level=15,expert=True,
+    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=-0.005, level=15,expert=True,
                  agent_history_length=4):
         self.grid = grid
         self.expert_dir=expert_dir
         self.final_reward = final_reward
         self.reward = reward
         self.cost = cost/grid
-        self.danger = -final_reward
+        self.danger = -final_reward/4
         self.data = pickle.load(open(self.expert_dir+file, 'rb'))
         self.obstacles_cost = obstacle_cost
         self.level=0
@@ -49,12 +49,12 @@ class toy_maze:
                 self.level=1
         else:
             self.level = np.random.randint(1, self.total_level + 1)
-            # if self.total_level>6:
-            #     bias = 0.56
-            #     if np.random.uniform()<bias:
-            #         self.level=np.random.randint(6,self.total_level+1)
-            #     else:
-            #         self.level = np.random.randint(1,6)
+            if self.total_level>10:
+                bias = 0.9
+                if np.random.uniform()<bias:
+                    self.level=np.random.randint(11,self.total_level+1)
+                else:
+                    self.level = np.random.randint(1,11)
 
         self.end_state = copy.deepcopy(self.data['end_state'][-self.level])
         self.obstacles = copy.deepcopy(self.data['obstacles'][-self.level][:self.grid-1])
@@ -129,7 +129,7 @@ class toy_maze:
         self.board[:, :, self.agent_history_length-1]=new_current_state
         return self.board, reward, terminal
 
-    def generate_expert_data(self, min_expert_frames=5500):
+    def generate_expert_data(self, min_expert_frames=3500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
