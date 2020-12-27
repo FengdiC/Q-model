@@ -13,14 +13,14 @@ import matplotlib.pyplot as plt
 
 
 class toy_maze:
-    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=-0.5, level=15,expert=True,
+    def __init__(self, file,expert_dir='./',grid=10, final_reward=2, reward=1,cost=-0.01, obstacle_cost=0, level=15,expert=True,
                  agent_history_length=4):
         self.grid = grid
         self.expert_dir=expert_dir
         self.final_reward = final_reward
         self.reward = reward
         self.cost = cost/grid
-        self.danger = -final_reward/4
+        self.danger = -final_reward/10
         self.data = pickle.load(open(self.expert_dir+file, 'rb'))
         self.obstacles_cost = obstacle_cost
         self.level=0
@@ -43,13 +43,11 @@ class toy_maze:
         self.timestep = 0
 
         if eval:
-            self.eval = True
             if self.level<self.total_level:
                 self.level+=1
             else:
                 self.level=1
         else:
-            self.eval = False
             self.level = np.random.randint(1, self.total_level + 1)
             # if self.total_level>6:
             #     bias = 0.56
@@ -78,7 +76,7 @@ class toy_maze:
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
         for i in range(self.agent_history_length):
             self.board[:, :, i]=new_current_state
-        return self.board
+        return np.array([self.current_state_x, self.current_state_y])/self.grid * 2 - 1
 
     def generate_state(self, x, y):
         new_current_state = np.zeros((self.grid, self.grid))
@@ -121,10 +119,7 @@ class toy_maze:
                 reward = self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
-            if self.eval:
-                pass
-            else:
-                reward += self.obstacles_cost
+            pass
         else:
             self.current_state_x = x
             self.current_state_y = y
@@ -141,7 +136,7 @@ class toy_maze:
         self.board[:, :, 0:self.agent_history_length-1] = self.board[:, :, 1:self.agent_history_length]
         self.board[:, :, self.agent_history_length-1] = 0
         self.board[:, :, self.agent_history_length-1]=new_current_state
-        return self.board, reward, terminal
+        return np.array([self.current_state_x, self.current_state_y])/self.grid * 2 - 1, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
@@ -151,7 +146,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / len(expert_action))
         num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
+        expert_frames = np.zeros((num_expert, 2), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
