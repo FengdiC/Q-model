@@ -638,7 +638,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         #pretrain evaluation
         test_eps_reward, val_reward, test_eps_reward_t = eval(args, env_test, env_val, env, action_getter, sess,
-                                                              MAIN_DQN, eps_number)
+                                                              MAIN_DQN,TARGET_DQN, eps_number)
         print(test_eps_reward, val_reward, test_eps_reward_t)
         tflogger.log_scalar("Episode/Evaluation", test_eps_reward, frame_number)
         tflogger.log_scalar("Episode/Evaluation_Val", val_reward, frame_number)
@@ -722,7 +722,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, fram
         print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     plot=True
     val_eps_reward = 0
-    for level in range(1):
+    for level in range(5):
         terminal = False
         frame = env.reset(eval=True)
         episode_reward = 0

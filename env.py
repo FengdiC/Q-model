@@ -51,12 +51,12 @@ class toy_maze:
         else:
             self.eval = False
             self.level = np.random.randint(1, self.total_level + 1)
-            if self.total_level>10:
-                bias = 0.9
-                if np.random.uniform()<bias:
-                    self.level=np.random.randint(11,self.total_level+1)
-                else:
-                    self.level = np.random.randint(1,11)
+            # if self.total_level>10:
+            #     bias = 0.9
+            #     if np.random.uniform()<bias:
+            #         self.level=np.random.randint(11,self.total_level+1)
+            #     else:
+            #         self.level = np.random.randint(1,11)
 
         self.end_state = copy.deepcopy(self.data['end_state'][-self.level])
         self.obstacles = copy.deepcopy(self.data['obstacles'][-self.level][:self.grid-1])
@@ -121,10 +121,11 @@ class toy_maze:
                 reward = self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
-            if self.eval:
-                pass
-            else:
-                reward += self.obstacles_cost
+            pass
+            # if self.eval:
+            #     pass
+            # else:
+            #     reward += self.obstacles_cost
         else:
             self.current_state_x = x
             self.current_state_y = y
@@ -153,7 +154,7 @@ class toy_maze:
         new_current_state = np.repeat(new_current_state, self.agent_history_length, axis=2)
         return np.expand_dims(np.concatenate([new_current_state, board_state], axis=2), axis=0)
 
-    def generate_expert_data(self, min_expert_frames=5500):
+    def generate_expert_data(self, min_expert_frames=8500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
