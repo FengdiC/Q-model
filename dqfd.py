@@ -177,7 +177,7 @@ class DQN:
                 #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
                 #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
                 d = tf.layers.flatten(conv3)
-                dense = tf.layers.dense(inputs=d, units=hidden,
+                dense = tf.layers.dense(inputs=d, units=hidden, activation=tf.nn.relu,
                                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc5")
 
                 # Splitting into value and advantage stream
@@ -669,7 +669,8 @@ def train( priority=True):
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
     TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
-    print(MAIN_DQN_VARS)
+    print(MAIN_DQN_VARS, TARGET_DQN_VARS)
+    quit()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)

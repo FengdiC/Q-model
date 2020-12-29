@@ -20,7 +20,7 @@ class toy_maze:
         self.final_reward = final_reward
         self.reward = reward
         self.cost = cost/grid
-        self.danger = -final_reward
+        self.danger = -final_reward/10
         self.data = pickle.load(open(self.expert_dir+file, 'rb'))
         self.obstacles_cost = obstacle_cost
         self.level=0
@@ -48,7 +48,13 @@ class toy_maze:
             else:
                 self.level=1
         else:
-            self.level=np.random.randint(1,self.total_level+1)
+            self.level = np.random.randint(1, self.total_level + 1)
+            # if self.total_level>6:
+            #     bias = 0.56
+            #     if np.random.uniform()<bias:
+            #         self.level=np.random.randint(6,self.total_level+1)
+            #     else:
+            #         self.level = np.random.randint(1,6)
 
         self.end_state = copy.deepcopy(self.data['end_state'][-self.level])
         self.obstacles = copy.deepcopy(self.data['obstacles'][-self.level][:self.grid-1])
@@ -68,9 +74,19 @@ class toy_maze:
         for i in range(self.grid):
             for j in range(self.grid):
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
-        for i in range(4):
+        for i in range(self.agent_history_length):
             self.board[:, :, i]=new_current_state
-        return self.board
+        return np.array([self.current_state_x, self.current_state_y])/self.grid * 2 - 1
+
+    def generate_state(self, x, y):
+        new_current_state = np.zeros((self.grid, self.grid))
+        for i in range(self.grid):
+            for j in range(self.grid):
+                new_current_state[i, j] = (np.abs(x - i) + np.abs(y - j))/self.grid - 1
+        board_state = np.expand_dims(np.copy(self.board[:, :, self.agent_history_length]), axis=2)
+        new_current_state = np.expand_dims(new_current_state, axis=2)
+        new_current_state = np.repeat(new_current_state, self.agent_history_length, axis=2)
+        return np.expand_dims(np.concatenate([new_current_state, board_state], axis=2), axis=0)
 
     def step(self, action):
         x = self.current_state_x
@@ -91,19 +107,19 @@ class toy_maze:
             terminal = 1
             reward = self.final_reward
             # print("Reach Final Reward")
+        elif self.board[x,y,self.agent_history_length]==-1:
+            reward=self.danger
+            terminal =1
         else:
             terminal =0
-            if self.board[x,y,self.agent_history_length]==-1:
-                reward=self.danger
-                # print("Reach Danger")
-            elif self.board[x,y,self.agent_history_length]==0.5:
+            if self.board[x,y,self.agent_history_length]==0.5:
                 reward = self.reward
                 self.board[x,y,self.agent_history_length]=0
             else:
                 reward = self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
-            reward = self.obstacles_cost
+            pass
         else:
             self.current_state_x = x
             self.current_state_y = y
@@ -120,18 +136,17 @@ class toy_maze:
         self.board[:, :, 0:self.agent_history_length-1] = self.board[:, :, 1:self.agent_history_length]
         self.board[:, :, self.agent_history_length-1] = 0
         self.board[:, :, self.agent_history_length-1]=new_current_state
-        return self.board, reward, terminal
-
+        return np.array([self.current_state_x, self.current_state_y])/self.grid * 2 - 1, reward, terminal
 
     def generate_expert_data(self, min_expert_frames=5500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']
         expert = {}
-        num_batches = math.ceil(min_expert_frames / (len(expert_action) + 1))
-        num_expert = num_batches * (len(expert_action) + 1)
+        num_batches = math.ceil(min_expert_frames / len(expert_action))
+        num_expert = num_batches * len(expert_action)
 
-        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
+        expert_frames = np.zeros((num_expert, 2), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
@@ -150,10 +165,6 @@ class toy_maze:
                 terminals[current_index] = t
                 current_index += 1
                 if t:
-                    expert_frames[current_index] = s
-                    rewards[current_index] = 0
-                    actions[current_index] = np.random.randint(0, self.n_actions)
-                    terminals[current_index] = t
                     current_state = self.reset(eval=True)
         expert['actions'] = actions
         expert['frames'] = expert_frames
@@ -213,7 +224,7 @@ def play():
             data_list.append([action, obs, rew, terminal])
             obs=obs_next
             count += 1
-            if env.terminal and env.level>4:
+            if env.terminal and env.level>9:
                 env_done= True
             if env.terminal:
                 env.reset(eval=True)
@@ -230,10 +241,10 @@ def play():
             else:
                 action = key_to_action['s']
 
-
 def plot_state(state,grid=10):
-    square = state[:,:,0]*200+200
-    square += state[:,:,1]*50
+    square = state[:,:,4]*200+200
+    pos = (state[:,:,3]==-1)
+    square += pos*250
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 
@@ -254,15 +265,16 @@ def generate_maze(grid):
     obstacles=[]
     rewards=[]
     dangers = []
-    while count<8:
+    while count<6:
         state = [np.random.randint(0,grid),np.random.randint(0,grid)]
         if state[0]==0 and state[1]==0:
             continue
         dist_to_e = np.abs(state[0] - end_state[0]) + np.abs(state[1] - end_state[1])
         if dist_to_e == 0:
             continue
-        dist_to_d = min([np.abs(state[0] - x[0]) + np.abs(state[1] - x[1]) for x in dangers] or [99])
-        if dist_to_d==0:
+        dist_to_d = min([np.abs(state[0] - x[0]) + np.abs(state[1] - x[1]) +
+                         np.abs(np.abs(state[0] - x[0]) - np.abs(state[1] - x[1])) for x in dangers] or [99])
+        if dist_to_d <= 2:
             continue
         dangers.append(state)
         count+=1
@@ -360,7 +372,7 @@ def mazes_generation():
         maze['rewards'].append(r)
         maze['obstacles'].append(o)
         maze['dangers'].append(d)
-    with open('test_mazes', 'wb') as fout:
+    with open('test_mazes_2', 'wb') as fout:
         pickle.dump(maze, fout)
 
 # play()
