@@ -108,11 +108,11 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=32, kernel_size=[1,1], strides=1,
+                inputs=self.input, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
             conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=64, kernel_size=[1,1], strides=1,
+                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
             d = tf.layers.flatten(conv2)
@@ -265,6 +265,9 @@ def build_initial_replay_buffer(sess, env, replay_buffer, action_getter, max_eps
             next_frame, reward, terminal = env.step(action)
             #  Store transition in the replay memory
             replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
+
             frame = next_frame
             frame_num += 1
             if terminal:
@@ -300,7 +303,10 @@ def train_step_bootdqn(sess, args, env, bootstrap_dqns, replay_buffer, frame_num
             else:
                 action = action_getter.get_action(sess, frame_num, frame, selected_dqn["main"], evaluation=True)
             next_frame, reward, terminal = env.step(action)
-            replay_buffer.add(obs_t=frame[:,:,-2:], reward=reward, action=action, done=terminal)
+            replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
+
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
@@ -492,12 +498,15 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=False)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame[:,:,:], reward=reward, action=action, done=terminal)
+            if terminal:
+                replay_buffer.add(obs_t=next_frame[:,:,:], reward=0, action=action_getter.get_random_action(), done=terminal)
+
             frame = next_frame
             episode_length += 1
             episode_reward_sum += reward
         frame_num += 1
 
-        if frame_num % UPDATE_FREQ == 0 and frame_num > grid - 1:
+        if (frame_num % UPDATE_FREQ == 0 and frame_num > grid - 1) or pretrain:
             generated_states, generated_actions, generated_diffs, generated_rewards, generated_new_states, \
             generated_terminal_flags, generated_weights, idxes, expert_idxes = replay_buffer.sample(
                 BS, args.beta, expert=pretrain)  # Generated trajectories
@@ -571,7 +580,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes',expert_dir=args.expert_dir,level=8)
+            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -581,8 +590,11 @@ def train(priority=True, agent='model', grid=10, seed=0):
             TARGET_DQN = DQN(args, env.n_actions, HIDDEN, grid=grid, name="targetDQN", agent=agent)
 
         init = tf.global_variables_initializer()
-        MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
-        TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+        # MAIN_DQN_VARS = tf.trainable_variables(scope="mainDQN")
+        # TARGET_DQN_VARS = tf.trainable_variables(scope="targetDQN")
+        MAIN_DQN_VARS = find_vars("mainDQN")
+        TARGET_DQN_VARS = find_vars("targetDQN")
+        print(MAIN_DQN_VARS, TARGET_DQN_VARS)
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
 
@@ -695,8 +707,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
-    for level in range(8):
+    plot=False
+    for level in range(15):
         terminal=False
         frame = env.reset(eval=True)
         episode_reward = 0
@@ -710,8 +722,9 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env.step(action)
             frame = next_frame
             episode_length += 1
-            episode_reward += reward
-            eps_reward += reward
+            if reward >= 0:
+                episode_reward += reward
+                eps_reward += reward
         plot=False
         print(level, "reward: ", episode_reward, "eps_len:", episode_length)
     val_eps_reward = 0
@@ -725,7 +738,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env_val.step(action)
             frame = next_frame
             episode_length += 1
-            val_eps_reward += reward
+            if reward >= 0:
+                val_eps_reward += reward
     test_eps_reward=0
     env_test.restart()
     for level in range(5):
@@ -737,7 +751,8 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN):
             next_frame, reward, terminal = env_test.step(action)
             frame = next_frame
             episode_length += 1
-            test_eps_reward += reward
+            if reward >= 0:
+                test_eps_reward += reward
     return eps_reward,val_eps_reward,test_eps_reward
 
 import matplotlib.pyplot as plt
