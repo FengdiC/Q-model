@@ -107,22 +107,22 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=512, kernel_size=[3,3], strides=1,
+                inputs=self.input, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
             conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=512, kernel_size=[3,3], strides=1,
+                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-            conv3 = tf.layers.conv2d(
-                inputs=conv2, filters=256, kernel_size=[3,3], strides=1,
-                kernel_initializer=tf.glorot_normal_initializer(),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
-            conv4 = tf.layers.conv2d(
-                inputs=conv3, filters=256, kernel_size=[3,3], strides=1,
-                kernel_initializer=tf.glorot_normal_initializer(),
-                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
-            d = tf.layers.flatten(conv4)
+            # conv3 = tf.layers.conv2d(
+            #     inputs=conv2, filters=256, kernel_size=[3,3], strides=1,
+            #     kernel_initializer=tf.glorot_normal_initializer(),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            # conv4 = tf.layers.conv2d(
+            #     inputs=conv3, filters=256, kernel_size=[3,3], strides=1,
+            #     kernel_initializer=tf.glorot_normal_initializer(),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            d = tf.layers.flatten(conv2)
             dense = tf.layers.dense(inputs=d, units=hidden,
                                     kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
 
