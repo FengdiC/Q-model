@@ -69,7 +69,7 @@ class DQN:
         self.eta = args.eta
         self.agent = agent
 
-        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length +1], dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length + 4], dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
 
@@ -107,15 +107,22 @@ class DQN:
         # layers
         with tf.variable_scope('Q_network_' + str(index)):
             conv1 = tf.layers.conv2d(
-                inputs=self.input, filters=64, kernel_size=[3,3], strides=1,
+                inputs=self.input, filters=512, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
             conv2 = tf.layers.conv2d(
-                inputs=conv1, filters=64, kernel_size=[3,3], strides=1,
+                inputs=conv1, filters=512, kernel_size=[3,3], strides=1,
                 kernel_initializer=tf.glorot_normal_initializer(),
                 padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
-
-            d = tf.layers.flatten(conv2)
+            conv3 = tf.layers.conv2d(
+                inputs=conv2, filters=256, kernel_size=[3,3], strides=1,
+                kernel_initializer=tf.glorot_normal_initializer(),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            conv4 = tf.layers.conv2d(
+                inputs=conv3, filters=256, kernel_size=[3,3], strides=1,
+                kernel_initializer=tf.glorot_normal_initializer(),
+                padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            d = tf.layers.flatten(conv4)
             dense = tf.layers.dense(inputs=d, units=hidden,
                                     kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
 
@@ -598,12 +605,12 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if priority:
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
-                                                                      state_shape=[grid, grid, 5],
+                                                                      state_shape=[grid, grid, 8],
                                                                       agent_history_length=1,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,5],frame_dtype=np.float32,
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,8],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE//3, eps_final=0.05,
@@ -734,6 +741,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, fram
             frame = next_frame
             episode_length += 1
             if reward >= 0:
+                episode_reward += reward
                 val_eps_reward += reward
         print(10 + level, "reward: ", episode_reward, "eps_len:", episode_length)
 

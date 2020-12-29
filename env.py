@@ -64,13 +64,27 @@ class toy_maze:
             self.board[int(x[0]),int(x[1]),self.agent_history_length]=-1
         self.board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length]=1
 
+        self.new_board= np.zeros((self.grid, self.grid, 4 + self.agent_history_length))
+        #self.agent_history_length + 0 = reward
+        #self.agent_history_length + 1 = obstacles
+        #self.agent_history_length + 2 = dangers
+        #self.agent_history_length + 3 = terminal
+        for x in self.rewards:
+            self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 0] = 1
+        for x in self.obstacles:
+            self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 1] = 1
+        for x in self.dangers:
+            self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 2] = 2
+        self.new_board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length + 3] = 1
+
         new_current_state = np.zeros((self.grid, self.grid))
         for i in range(self.grid):
             for j in range(self.grid):
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
         for i in range(4):
             self.board[:, :, i]=new_current_state
-        return self.board
+        #return self.board
+        return self.new_board
 
     def step(self, action):
         x = self.current_state_x
@@ -99,6 +113,7 @@ class toy_maze:
             elif self.board[x,y,self.agent_history_length]==0.5:
                 reward = self.reward
                 self.board[x,y,self.agent_history_length]=0
+                self.new_board[x, y, self.agent_history_length] = 0
             else:
                 reward = self.cost
         # if blocked by obstacles
@@ -120,7 +135,13 @@ class toy_maze:
         self.board[:, :, 0:self.agent_history_length-1] = self.board[:, :, 1:self.agent_history_length]
         self.board[:, :, self.agent_history_length-1] = 0
         self.board[:, :, self.agent_history_length-1]=new_current_state
-        return self.board, reward, terminal
+
+        self.new_board[:, :, 0:self.agent_history_length-1] = self.new_board[:, :, 1:self.agent_history_length]
+        self.new_board[:, :, self.agent_history_length-1] = 0
+        self.new_board[:, :, self.agent_history_length-1]=new_current_state
+        
+        return self.new_board, reward, terminal
+        #return self.board, reward, terminal
 
 
     def generate_expert_data(self, min_expert_frames=5500):
@@ -131,7 +152,7 @@ class toy_maze:
         num_batches = math.ceil(min_expert_frames / (len(expert_action) + 1))
         num_expert = num_batches * (len(expert_action) + 1)
 
-        expert_frames = np.zeros((num_expert, 10,10, 5), np.float32)
+        expert_frames = np.zeros((num_expert, 10,10, 4 + self.agent_history_length), np.float32)
         rewards = np.zeros((num_expert,), dtype=np.float32)
         actions = np.zeros((num_expert,), dtype=np.float32)
         terminals = np.zeros((num_expert,), np.uint8)
