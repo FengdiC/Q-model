@@ -74,7 +74,7 @@ class toy_maze:
         for x in self.obstacles:
             self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 1] = 1
         for x in self.dangers:
-            self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 2] = 2
+            self.new_board[int(x[0]),int(x[1]),self.agent_history_length + 2] = 1
         self.new_board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length + 3] = 1
 
         new_current_state = np.zeros((self.grid, self.grid))
@@ -118,7 +118,8 @@ class toy_maze:
                 reward = self.cost
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
-            reward = self.obstacles_cost
+            pass
+            #reward = self.obstacles_cost
         else:
             self.current_state_x = x
             self.current_state_y = y
