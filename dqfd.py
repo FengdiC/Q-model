@@ -669,8 +669,6 @@ def train( priority=True):
     init = tf.global_variables_initializer()
     MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
     TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
-    print(MAIN_DQN_VARS, TARGET_DQN_VARS)
-    quit()
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
