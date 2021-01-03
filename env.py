@@ -36,7 +36,7 @@ class toy_maze:
     def restart(self):
         self.level=0
 
-    def reset(self,eval=False):
+    def reset(self,eval=False,expert=False):
         self.current_state_x = 0
         self.current_state_y = 0
         self.board= np.zeros((self.grid, self.grid, 1 + self.agent_history_length))
@@ -44,7 +44,7 @@ class toy_maze:
         self.picked=0
         self.eval= eval
 
-        if eval:
+        if eval or expert:
             if self.level<self.total_level:
                 self.level+=1
             else:
@@ -85,8 +85,9 @@ class toy_maze:
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
         for i in range(4):
             self.board[:, :, i]=new_current_state
+            self.new_board[:,:,i] = new_current_state
         # return self.board
-        return self.new_board
+        return np.copy(self.new_board)
 
     def step(self, action):
         x = self.current_state_x
@@ -143,15 +144,15 @@ class toy_maze:
             for j in range(self.grid):
                 new_current_state[i, j] = (np.abs(self.current_state_x - i) + np.abs(self.current_state_y - j))/self.grid - 1
 
-        self.board[:, :, 0:self.agent_history_length-1] = self.board[:, :, 1:self.agent_history_length]
+        self.board[:, :, 0:self.agent_history_length-1] = np.copy(self.board[:, :, 1:self.agent_history_length])
         self.board[:, :, self.agent_history_length-1] = 0
         self.board[:, :, self.agent_history_length-1]=new_current_state
 
-        self.new_board[:, :, 0:self.agent_history_length-1] = self.new_board[:, :, 1:self.agent_history_length]
+        self.new_board[:, :, 0:self.agent_history_length-1] = np.copy(self.new_board[:, :, 1:self.agent_history_length])
         self.new_board[:, :, self.agent_history_length-1] = 0
         self.new_board[:, :, self.agent_history_length-1]=new_current_state
         
-        return self.new_board, reward, terminal
+        return np.copy(self.new_board), reward, terminal
         # return self.board, reward, terminal
 
 
@@ -171,7 +172,7 @@ class toy_maze:
         current_index = 0
         for i in range(num_batches):
             self.level =0 
-            current_state = self.reset(eval=True)
+            current_state = self.reset(expert=True)
             for j in range(len(expert_action)):
                 action = expert_action[j]
                 expert_frames[current_index] = current_state
@@ -186,7 +187,7 @@ class toy_maze:
                     rewards[current_index] = 0
                     actions[current_index] = np.random.randint(0, self.n_actions)
                     terminals[current_index] = t
-                    current_state = self.reset(eval=True)
+                    current_state = self.reset(expert=True)
         expert['actions'] = actions
         expert['frames'] = expert_frames
         expert['reward'] = rewards

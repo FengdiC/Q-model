@@ -692,7 +692,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 if (len(regret_list) > 5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
-            if last_eval > 100:
+            if last_eval > 500:
                 last_eval=0
                 test_eps_reward,val_reward,test_eps_reward_t = eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, eps_number)
                 print(test_eps_reward,val_reward,test_eps_reward_t)
@@ -704,7 +704,7 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, fram
     episode_length=0
     eps_reward=0
     env.restart()
-    plot=True
+    plot=False
     env.level = 0
     for level in range(10):
         terminal=False
