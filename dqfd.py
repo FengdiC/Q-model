@@ -105,9 +105,9 @@ class DQN:
             self.loss, self.loss_per_sample = self.expert_no_n_posterior_loss(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = False
             self.use_n_policy = True
-        elif agent == "expert_diff_policy":
+        elif agent == "expert_n_no_policy":
             print("Expert Loss off policy")
-            self.loss, self.loss_per_sample = self.expert_loss_diff_policy(MAIN_DQN_VARS,decay=args.decay)
+            self.loss, self.loss_per_sample = self.expert_n_no_policy(MAIN_DQN_VARS,decay=args.decay)
             self.use_n_step_prio = True
             self.use_n_policy = True
         elif agent == "dqfd_with_priority_weight":
@@ -262,22 +262,23 @@ class DQN:
         return loss, loss_per_sample
 
 
-    def expert_loss_diff_policy(self, t_vars,decay='t', loss_cap=None):
+    def expert_n_no_policy(self, t_vars,decay='t', loss_cap=None):
         # decay 't' means order one decay 1/(beta+t)
         #       's' means beta^2+t/(beta+t)^2
         # here set beta = 4
-        if decay =='t':
-          ratio = 1/(4+self.diff)
-        elif decay =='s':
-          ratio = (16+4*self.diff)/tf.square(4+self.diff)
-        self.prob = tf.reduce_sum(tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
-                               axis=1)
-        
-        self.posterior = self.target_q+self.eta*self.var*ratio *(1-self.prob)*self.expert_state
-        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight*self.policy,
+        if decay == 't':
+            ratio = 1 / (4 + self.diff)
+        elif decay == 's':
+            ratio = (16 + 4 * self.diff) / tf.square(4 + self.diff)
+        self.prob = tf.reduce_sum(
+            tf.multiply(self.action_prob, tf.one_hot(self.action, self.n_actions, dtype=tf.float32)),
+            axis=1)
+
+        self.posterior = self.target_q + self.eta * self.var * ratio * (1 - self.prob) * self.expert_state
+        l_dq = tf.losses.huber_loss(labels=self.posterior, predictions=self.Q, weights=self.weight,
                                     reduction=tf.losses.Reduction.NONE)
 
-        self.n_posterior = self.target_n_q + 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state
+        self.n_posterior = self.target_n_q + self.eta * self.var * ratio * self.nstep_minus_prob * self.expert_state
         l_n_dq = tf.losses.huber_loss(labels=self.n_posterior, predictions=self.Q, weights=self.weight,
                                       reduction=tf.losses.Reduction.NONE)
 
@@ -288,10 +289,10 @@ class DQN:
         self.l2_reg_loss = l2_reg_loss
         self.l_dq = l_dq
         self.l_n_dq = l_n_dq
-        self.l_jeq = 0.4*self.eta*self.var*ratio * (self.nstep_minus_prob+1-self.prob) * self.expert_state/(self.target_n_q+0.001)
+        self.l_jeq = self.eta * self.var * ratio * self.nstep_minus_prob / (self.target_n_q + 0.001)
 
         loss_per_sample = self.l_dq + self.args.LAMBDA_1 * self.l_n_dq
-        loss = tf.reduce_mean(loss_per_sample+self.l2_reg_loss)
+        loss = tf.reduce_mean(loss_per_sample + self.l2_reg_loss)
         return loss, loss_per_sample
 
     def expert_no_policy(self, t_vars, decay='t', loss_cap=None):
