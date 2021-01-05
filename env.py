@@ -239,14 +239,14 @@ def play():
                 current_data["actions"].append(action)
                 current_data["terminal"].append(terminal)
                 # replay_mem.add(obs[:, :, 0], action, rew, terminal)
-            pickle.dump(current_data, open("full_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
+            pickle.dump(current_data, open("perfect_maze_" + str(num_traj) + ".pkl", "wb"), protocol=4)
             data_list = []
         else:
             obs_next, rew, terminal = env.step(action)
             data_list.append([action, obs, rew, terminal])
             obs=obs_next
             count += 1
-            if env.terminal and env.level>4:
+            if env.terminal and env.level>9:
                 env_done= True
             if env.terminal:
                 env.reset(eval=True)
@@ -265,8 +265,8 @@ def play():
 
 
 def plot_state(state,grid=10):
-    square = state[:,:,0]*200+200
-    square += state[:,:,1]*50
+    square = state[:,:,4]*200+200
+    square += state[:,:,3]*500
     fig, ax = plt.subplots()
     im = ax.imshow(square)
 
@@ -398,3 +398,17 @@ def mazes_generation():
 
 # play()
 # mazes_generation()
+
+# maze=pickle.load(open('mazes','rb'))
+# for i in range(6):
+#     e, d, r, o = generate_maze(10)
+#     print("rewards: ", r)
+#     print("end_state: ", e)
+#     print("dangers: ", d)
+#     print("obstables: ", o)
+#     maze['end_state'].insert(0,e)
+#     maze['rewards'].insert(0,r)
+#     maze['obstacles'].insert(0,o)
+#     maze['dangers'].insert(0,d)
+# with open('mazes', 'wb') as fout:
+#     pickle.dump(maze, fout)
