@@ -69,7 +69,7 @@ class DQN:
         self.eta = args.eta
         self.agent = agent
 
-        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length + 4], dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid,self.grid,agent_history_length + 1], dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
 
@@ -584,7 +584,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
         print("Agent: ", agent)
 
         if args.env_id == 'maze':
-            env = toy_maze('mazes',expert_dir=args.expert_dir,level=20)
+            env = toy_maze('mazes',expert_dir=args.expert_dir,level=15)
             env_val = toy_maze('test_mazes',expert_dir=args.expert_dir,level=5,expert=False)
             env_test = toy_maze('test_mazes_2',expert_dir=args.expert_dir,level=5,expert=False)
 
@@ -605,12 +605,12 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if priority:
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
-                                                                      state_shape=[grid, grid, 8],
+                                                                      state_shape=[grid, grid, 5],
                                                                       agent_history_length=1,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,8],frame_dtype=np.float32,
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[grid,grid,5],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
@@ -692,7 +692,7 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 if (len(regret_list) > 5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
                     print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
                     return eps_number
-            if last_eval > 500:
+            if last_eval > 100:
                 last_eval=0
                 test_eps_reward,val_reward,test_eps_reward_t = eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, eps_number)
                 print(test_eps_reward,val_reward,test_eps_reward_t)
@@ -711,14 +711,13 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, fram
         frame = env.reset(eval=True)
         episode_reward = 0
         episode_length = 0
+        if plot:
+            plot_state(frame[:,:], 0)
+            plot = False
         rand = np.random.randint(0, rand_moves)
         while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env.step(action)
-            if plot:
-                plot_state(frame[:, :], 0)
-                if episode_length>20:
-                    plot = False
             frame = next_frame
             episode_length += 1
             if reward >= 0:
@@ -726,15 +725,16 @@ def eval(args,env_test,env_val,env,action_getter,sess,MAIN_DQN, TARGET_DQN, fram
                 eps_reward += reward
         plot=False
         print(level, "reward: ", episode_reward, "eps_len:", episode_length)
-    q_value_map = np.max(sess.run(MAIN_DQN.q_values, feed_dict={MAIN_DQN.input: np.expand_dims(frame,0)})[0])
-    print(q_value_map)
     plot=False
     val_eps_reward = 0
-    for level in range(10):
+    for level in range(5):
         terminal = False
         frame = env.reset(eval=True)
         episode_reward = 0
         episode_length = 0
+        if plot:
+            plot_state(frame[:,:], 1)
+            plot = False
         while episode_length < 200 and not terminal:
             action = action_getter.get_action(sess, 0, frame, MAIN_DQN, evaluation=True, temporal=False)
             next_frame, reward, terminal = env.step(action)
@@ -802,9 +802,9 @@ def plot_state(state,index, grid=10):
             text = ax.text(j, i, square[i, j],
                            ha="center", va="center", color="w")
     fig.tight_layout()
-    plt.show(block=False)
-    plt.pause(0.5)
-    # plt.savefig("fig_" + str(index) + ".png")
+    #plt.show(block=False)
+    #plt.pause(0.5)
+    plt.savefig("fig_" + str(index) + ".png")
     plt.close()
 
 
