@@ -155,7 +155,7 @@ class ReplayBuffer(object):
         self.expert_idx = 0
         self.var = var
         self.agent = agent
-        self.loaded_frame_number = loaded_frame_number
+        self.loaded_diff_offset = loaded_diff_offset
 
         self.bootstrap = bootstrap
         if self.bootstrap > 0:
