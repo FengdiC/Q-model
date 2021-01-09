@@ -139,7 +139,8 @@ class MinSegmentTree(SegmentTree):
 
 class ReplayBuffer(object):
     def __init__(self, size, agent="dqn", var=1.0, bootstrap=-1, state_shape=[84, 84],
-                 action_shape=None, agent_history_length=4, batch_size=32, frame_dtype=np.uint8, rescale_reward=True):
+                 action_shape=None, agent_history_length=4, batch_size=32, frame_dtype=np.uint8, 
+                 rescale_reward=True, loaded_diff_offset=0):
         """Create Replay buffer.
         Parameters
         ----------
@@ -154,6 +155,7 @@ class ReplayBuffer(object):
         self.expert_idx = 0
         self.var = var
         self.agent = agent
+        self.loaded_frame_number = loaded_frame_number
 
         self.bootstrap = bootstrap
         if self.bootstrap > 0:
@@ -192,7 +194,7 @@ class ReplayBuffer(object):
     def get_idx(self):
         return self._next_idx
 
-    def add_expert(self, obs_t, reward, action,diff, done):
+    def add_expert(self, obs_t, reward, action, diff, done):
         if self.rescale_reward:
             reward = np.sign(reward) * np.log(1+np.abs(reward))
         self.actions[self.expert_idx] = action
@@ -385,7 +387,7 @@ class ReplayBuffer(object):
 
         for i in range(num_data):
             self.add_expert(obs_t=data['frames'][i], reward=data['reward'][i], action=data['actions'][i],
-                     diff = self.var, done=data['terminal'][i])
+                     diff = self.var + self.loaded_diff_offset , done=data['terminal'][i])
 
         max_reward = np.max(self.rewards)
         #Reward check
@@ -459,7 +461,7 @@ class ReplayBuffer(object):
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, size, alpha, bootstrap=-1, state_shape=[84, 84], agent_history_length=4, agent="dqn", 
-                action_shape=None, batch_size=32, frame_dtype=np.uint8, rescale_reward=True):
+                action_shape=None, batch_size=32, frame_dtype=np.uint8, rescale_reward=True, loaded_diff_offset=0):
         print("Priority Queue!")
         """Create Prioritized Replay buffer.
         Parameters
@@ -475,7 +477,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         ReplayBuffer.__init__
         """
         super(PrioritizedReplayBuffer, self).__init__(size=size,agent_history_length=agent_history_length, action_shape=action_shape, 
-                                                        bootstrap=bootstrap, state_shape=state_shape, frame_dtype=frame_dtype, batch_size=batch_size, rescale_reward=rescale_reward)
+                                                        bootstrap=bootstrap, state_shape=state_shape, frame_dtype=frame_dtype, 
+                                                        batch_size=batch_size, rescale_reward=rescale_reward, loaded_diff_offset=loaded_diff_offset)
         assert alpha >= 0
         self._alpha = alpha
         self.agent = agent

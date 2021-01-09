@@ -639,10 +639,12 @@ def train( priority=True):
     print("Agent: ", name)
     if priority:
         print("Priority")
-        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name, batch_size=args.batch_size)
+        my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha, agent=name, 
+                                                                  loaded_diff_offset=args.loaded_diff_offset, batch_size=args.batch_size)
     else:
         print("Not Priority")
-        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name, batch_size=args.batch_size)
+        my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, agent=name, batch_size=args.batch_size,
+                                                      loaded_diff_offset=args.loaded_diff_offset)
 
     # saver.restore(sess, "../models/" + name + "/" + args.env_id + "/"  + "model-" + str(5614555))
     if args.load_frame_num == 0:
@@ -656,7 +658,7 @@ def train( priority=True):
         os.makedirs("./" + args.checkpoint_dir + "/" + name + "/" + args.env_id + "_seed_" + str(args.seed) + "/")
     print("Expert Directory: ", args.expert_dir + args.expert_file)
     if os.path.exists(args.expert_dir + args.expert_file):
-        max_reward, num_expert = my_replay_memory.load_expert_data( args.expert_dir + args.expert_file)
+        max_reward, num_expert = my_replay_memory.load_expert_data(args.expert_dir + args.expert_file)
     else:
         print("No Expert Data ... ")
     ratio_expert = float(num_expert/(MEMORY_SIZE-num_expert))**args.power

@@ -86,6 +86,9 @@ def argsparser():
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--load_frame_num', type=int, help='If load model 0, else load frame num ....', default=0)
+    parser.add_argument('--loaded_diff_offset', type=int, help='If load model 0, else load frame num ....', default=0)
+
+
     parser.add_argument('--initial_exploration', type=float, help='Amount of exploration at start', default=1.0)
     parser.add_argument('--stochastic_environment', type=str, choices=['True', 'False'], default='False')
     parser.add_argument('--custom_id', type=str, default='')

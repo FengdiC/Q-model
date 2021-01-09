@@ -218,8 +218,12 @@ def write_summary(dpath, all_per_key, op):
         # new_value = op(value_list)
         # new_step = int(np.mean(step_list))
         # new_wall_time = np.mean(wall_time)
-            summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=data[event_id].value)])
-            scalar_event = Event(wall_time=data[event_id].wall_time, step=data[event_id].step, summary=summary)
+            if isinstance(data[event_id], list):
+                data_elem = data[event_id][0]
+            else:
+                data_elem = data[event_id]
+            summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=data_elem.value)])
+            scalar_event = Event(wall_time=data_elem.wall_time, step=data_elem.step, summary=summary)
             writer.add_event(scalar_event)
 
     writer.flush()
