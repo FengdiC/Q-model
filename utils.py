@@ -512,8 +512,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_diff_non_expert.append(np.sum(generated_diffs * (1 - expert_idxes)) /max(1, np.sum(1 - expert_idxes)))
             episode_diff_expert.append(np.sum(generated_diffs * expert_idxes) /max(1, np.sum(expert_idxes)))
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
-                                            min_expert_priority=args.min_expert_priority,pretrain = pretrain)
-            
+                                            min_expert_priority=args.min_expert_priority, pretrain=pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)
             episode_loss.append(loss)
         if pretrain:
@@ -528,7 +527,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
                 break
     episode_weights = np.concatenate(episode_weights, axis=0)
     return episode_reward_sum, episode_length, np.mean(episode_loss),np.mean(episode_dq_loss), np.mean(episode_dq_n_loss), np.mean(episode_jeq_loss), np.mean(episode_l2_loss), \
-           time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights), np.mean(episode_diff_non_expert), np.mean(episode_diff_expert), np.mean(episode_mask_mean)
+           time.time() - start_time, np.mean(expert_ratio), np.mean(episode_weights), np.std(episode_weights), np.mean(episode_diff_non_expert), episode_diff_expert, np.mean(episode_mask_mean)
 
 
 

@@ -723,7 +723,6 @@ def train( priority=True):
     last_gif = GIF_FREQUENCY * 0.8
     initial_time = time.time()
     max_eval_reward = -1
-
     while frame_number < MAX_FRAMES:
         eps_rw, eps_len, eps_loss, eps_dq_loss, eps_dq_n_loss, eps_jeq_loss, eps_l2_loss,eps_time, exp_ratio, gen_weight_mean, \
         gen_weight_std, non_expert_gen_diff, expert_gen_diff, mean_mask= utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN,
@@ -758,8 +757,10 @@ def train( priority=True):
                             frame_number)
         tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
-        tflogger.log_scalar("Episode/Non Expert Gen Diff", non_expert_gen_diff, frame_number)
-        tflogger.log_scalar("Episode/Expert Gen Diff", expert_gen_diff, frame_number)
+
+        tflogger.log_scalar("Episode/Expert Diff Min", np.min(expert_gen_diff), frame_number)
+        tflogger.log_scalar("Episode/Expert Diff Max", np.max(expert_gen_diff), frame_number)
+        tflogger.log_scalar("Episode/Expert Diff Mean", np.mean(expert_gen_diff), frame_number)
         #tflogger.log_scalar("Episode/Mean Mask", mean_mask, frame_number)
 
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
