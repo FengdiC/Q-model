@@ -83,6 +83,7 @@ def argsparser():
     parser.add_argument('--state_size', type=int, help='for toy examples', default=2)
 
 
+
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--load_frame_num', type=int, help='If load model 0, else load frame num ....', default=0)
@@ -141,6 +142,12 @@ class Resize:
                                                 [self.frame_height, self.frame_width],
                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
+        self.large_frame = tf.placeholder(shape=[250, 160, 3], dtype=tf.uint8)
+        self.large_processed = tf.image.rgb_to_grayscale(self.large_frame)
+        self.large_processed = tf.image.resize_images(self.large_processed,
+                                                [self.frame_height, self.frame_width],
+                                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
     def process(self, session, frame):
         """
         Args:
@@ -149,8 +156,11 @@ class Resize:
         Returns:
             A processed (96, 96, 1) frame in grayscale
         """
-        return session.run(self.processed, feed_dict={self.frame: frame})
-
+        try:
+            result = session.run(self.processed, feed_dict={self.frame: frame})
+        except:
+            result = session.run(self.large_processed, feed_dict={self.large_frame: frame})
+        return result
 class ActionGetter:
     """Determines an action according to an epsilon greedy strategy with annealing epsilon"""
 
@@ -416,7 +426,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
             if terminal and len(eval_rewards) == 0:
                 gif = False  # Save only the first game of the evaluation as a gif
                 break
-            elif terminal:
+            if terminal:
                 break
         if terminal:
             eval_rewards.append(episode_reward_sum)
@@ -430,7 +440,7 @@ def evaluate_model(sess, args, eval_steps, MAIN_DQN, action_getter, max_eps_len,
                         "./" + args.gif_dir + "/" + model_name + "/" + args.env_id  + "_seed_" + str(args.seed) +  "/" + "gif_")
     except IndexError:
         print("No evaluation game finished")
-    return np.mean(eval_rewards),np.var(eval_rewards)
+    return np.mean(eval_rewards), np.var(eval_rewards)
 
 
 def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, replay_buffer, atari, frame_num, eps_length,

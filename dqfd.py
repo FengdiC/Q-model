@@ -685,7 +685,7 @@ def train( priority=True):
         tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
     if args.load_frame_num > 0:
         #load model ... 
-        print("Model", args.load_frame_Num  , "Loaded .... ")
+        print("Model", args.load_frame_num  , "Loaded .... ")
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
         saver.restore(sess, load_path)
         if not args.num_trajectory_generated:
