@@ -156,7 +156,7 @@ class toy_maze:
         return np.copy(self.board), reward, terminal
 
 
-    def generate_expert_data(self, min_expert_frames=5500):
+    def generate_expert_data(self, min_expert_frames=500):
         print("Creating Expert Data ... ")
         data = pickle.load(open(self.expert_dir+'full_maze_1.pkl', 'rb'))
         expert_action=data['actions']

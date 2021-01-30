@@ -111,6 +111,8 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
     current_data["terminal"] = []
 
     while running:
+        if count % 100 == 0:
+            print("Currently at index: ", count)
         if env_done and count > 0:
             env_done = False
             num_traj += 1
