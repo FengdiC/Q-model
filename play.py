@@ -228,7 +228,7 @@ def main():
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=8)
+    play(env, args, zoom=3, fps=7)
 
 
 if __name__ == '__main__':
