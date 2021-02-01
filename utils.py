@@ -240,7 +240,7 @@ class ActionGetter:
         duration_left -= 1
         return past_action, duration_left
 
-    def get_action(self, session, frame_number, state, main_dqn, evaluation=False, building_replay=False,temporal=False):
+    def get_action(self, session, frame_number, state, main_dqn, evaluation=False, building_replay=False, building_replay_min_exploration=0.05, temporal=False):
         """
         Args:
             session: A tensorflow session object
@@ -263,6 +263,8 @@ class ActionGetter:
             #print("Was here .... 2")
             eps = self.slope_2 * frame_number + self.intercept_2
         #print(eps)
+        if building_replay:
+            eps = max(building_replay_min_exploration, eps)
         eps = max(eps, self.min_eps)
         if temporal:
             if self.duration_left > 0:
@@ -351,11 +353,11 @@ def build_initial_replay_buffer(sess, atari, replay_buffer, action_getter, max_e
         _, current_state = atari.reset(sess)
         for _ in range(max_eps):
             # 
-            # if args.stochastic_exploration == "True":
-            #     action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
-            # else:
-            #     action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, building_replay=True)
-            action = action_getter.get_random_action()
+            if args.stochastic_exploration == "True":
+                action = action_getter.get_stochastic_action(sess, atari.state, MAIN_DQN)
+            else:
+                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, building_replay=True)
+            #action = action_getter.get_random_action()
             # print("Action: ",action)
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             #  Store transition in the replay memory
