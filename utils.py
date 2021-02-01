@@ -82,8 +82,6 @@ def argsparser():
     parser.add_argument('--delete_expert', type=int, help='0 for false', default=0)
     parser.add_argument('--state_size', type=int, help='for toy examples', default=2)
 
-
-
     parser.add_argument('--env_id', type=str, default='SeaquestDeterministic-v4')
     parser.add_argument('--stochastic_exploration', type=str, default="False")
     parser.add_argument('--load_frame_num', type=int, help='If load model 0, else load frame num ....', default=0)
@@ -520,7 +518,8 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_jeq_loss.append(loss_jeq)
             episode_l2_loss.append(loss_l2)
             episode_diff_non_expert.append(np.sum(generated_diffs * (1 - expert_idxes)) /max(1, np.sum(1 - expert_idxes)))
-            episode_diff_expert.append(np.sum(generated_diffs * expert_idxes) /max(1, np.sum(expert_idxes)))
+            if np.sum(expert_idxes) > 1:
+                episode_diff_expert.append(np.sum(generated_diffs * expert_idxes)/max(1, np.sum(expert_idxes)))
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority, pretrain=pretrain)
             expert_ratio.append(np.sum(expert_idxes)/BS)

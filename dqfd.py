@@ -758,9 +758,10 @@ def train( priority=True):
         tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
         tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
 
-        tflogger.log_scalar("Episode/Expert Diff Min", np.min(expert_gen_diff), frame_number)
-        tflogger.log_scalar("Episode/Expert Diff Max", np.max(expert_gen_diff), frame_number)
-        tflogger.log_scalar("Episode/Expert Diff Mean", np.mean(expert_gen_diff), frame_number)
+        if len(expert_gen_diff) > 0:
+            tflogger.log_scalar("Episode/Expert Diff Min", np.min(expert_gen_diff), frame_number)
+            tflogger.log_scalar("Episode/Expert Diff Max", np.max(expert_gen_diff), frame_number)
+            tflogger.log_scalar("Episode/Expert Diff Mean", np.mean(expert_gen_diff), frame_number)
         #tflogger.log_scalar("Episode/Mean Mask", mean_mask, frame_number)
 
         tflogger.log_scalar("Total Episodes", eps_number, frame_number)
