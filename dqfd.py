@@ -683,11 +683,18 @@ def train( priority=True):
     sess.run(init)
     if not args.num_trajectory_generated:
         tflogger = tensorflowboard_logger("./" + args.log_dir + "/" + name + "_" + args.env_id + "_priority_" + str(priority) + "_seed_" + str(args.seed) + "_" + args.custom_id, sess, args)
+    
+    
+    
     if args.load_frame_num > 0:
         #load model ... 
         print("Model", args.load_frame_num  , "Loaded .... ")
         load_path = "./" + args.checkpoint_dir + "/" + name + "/" + args.env_id +  "_seed_" + str(args.seed) + "/" + "model-" + str(frame_number)
         saver.restore(sess, load_path)
+        if args.delete_expert:
+            print("Expert data deleted .... ")
+            my_replay_memory.delete_expert(MEMORY_SIZE)
+
         if not args.num_trajectory_generated:
             utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, MEMORY_SIZE,
                                         MAIN_DQN, args, frame_number=frame_number)
@@ -696,6 +703,16 @@ def train( priority=True):
             tflogger.log_scalar("Evaluation/Reward", eval_reward, frame_number)
             tflogger.log_scalar("Evaluation/Reward Variance", eval_var, frame_number)
     else:
+        #Pretrain step ..
+        if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
+            utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
+                                args.pretrain_bc_iter, learn, pretrain=True)
+            print("done pretraining ,test prioritized buffer")
+            print("buffer expert size: ",my_replay_memory.expert_idx)
+            tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
+        if args.delete_expert:
+            print("Expert data deleted .... ")
+            my_replay_memory.delete_expert(MEMORY_SIZE)
         if not args.num_trajectory_generated:
             utils.build_initial_replay_buffer(sess, atari, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE,
                                         MAIN_DQN, args)
@@ -705,17 +722,8 @@ def train( priority=True):
         quit()
 
 
-    #Pretrain step ..
-    if args.pretrain_bc_iter > 0 and args.load_frame_num == 0:
-        utils.train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter, my_replay_memory, atari, 0,
-                              args.pretrain_bc_iter, learn, pretrain=True)
-        print("done pretraining ,test prioritized buffer")
-        print("buffer expert size: ",my_replay_memory.expert_idx)
-        tflogger.log_scalar("Expert Priorities", my_replay_memory._it_sum.sum(my_replay_memory.agent_history_length, my_replay_memory.expert_idx), frame_number)
 
-    if args.delete_expert:
-        print("Expert data deleted .... ")
-        my_replay_memory.delete_expert(MEMORY_SIZE)
+
     print("Agent: ", name)
 
     print_iter = 25
