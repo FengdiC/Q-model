@@ -40,7 +40,7 @@ def argsparser():
     parser.add_argument('--eval_len', type=int, help='Max Episode Length', default=18000)
     parser.add_argument('--target_update_freq', type=int, help='Max Episode Length', default=10000)
     parser.add_argument('--replay_start_size', type=int, help='Max Episode Length', default=50000)
-    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=50000000)
+    parser.add_argument('--max_frames', type=int, help='Max Episode Length', default=200000000)
 
     parser.add_argument('--eps_max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--old_mode', type=int, help='Max Episode Length', default=0)
