@@ -520,7 +520,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             episode_jeq_loss.append(loss_jeq)
             episode_l2_loss.append(loss_l2)
             episode_diff_non_expert.append(np.sum(generated_diffs * (1 - expert_idxes)) /max(1, np.sum(1 - expert_idxes)))
-            if np.sum(expert_idxes) > 1:
+            if np.sum(expert_idxes) >= 1:
                 episode_diff_expert.append(np.sum(generated_diffs * expert_idxes)/max(1, np.sum(expert_idxes)))
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num, expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority, pretrain=pretrain)
