@@ -217,7 +217,7 @@ class ReplayBuffer(object):
             print("Dataset too small, cannot add more expert actions .... ")
             quit()
         self._next_idx = max(self._next_idx, self.expert_idx)
-        if self._next_idx != 0 and done and self.terminal_flags[old_index - 1]:
+        if self._next_idx != 0 and done:
             print("expert", self._next_idx, self.count)
             self.current_sequence_start = self._next_idx
             #if sequence is completed ... 
@@ -255,7 +255,7 @@ class ReplayBuffer(object):
         if self._next_idx < self.expert_idx:
             self._next_idx = self.expert_idx
 
-        if self._next_idx != 0 and done and self.terminal_flags[old_index - 1]:
+        if self._next_idx != 0 and done:
              #print("expert", self._next_idx, self.count)
             self.current_sequence_start = self._next_idx
             #if sequence is completed ... 

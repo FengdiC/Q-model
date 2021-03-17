@@ -362,7 +362,7 @@ def build_initial_replay_buffer(sess, atari, replay_buffer, action_getter, max_e
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             #  Store transition in the replay memory
             # replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
-            replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
+            # replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             if terminal_life_lost:
                 rand_action = action_getter.get_random_action()
                 replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=rand_action, done=terminal_life_lost)
@@ -480,7 +480,7 @@ def train_step_dqfd(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_ge
             # replay_buffer.add(obs_t=next_frame[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             if terminal_life_lost:
-                replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
+                #replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
                 if not terminal:
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
                     episode_reward_sum += reward
@@ -573,7 +573,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             # Store transition in the replay memory
             replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             if terminal_life_lost:
-                replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
+                #replay_buffer.add(obs_t=next_frame[:, :, 0], reward=0, action=action_getter.get_random_action(), done=terminal_life_lost)
                 if not terminal:
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
                     episode_reward_sum += reward
