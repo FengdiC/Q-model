@@ -59,12 +59,12 @@ class toy_maze:
 
         self.terminal = False
         for x in self.rewards:
-            self.board[int(x[0]),int(x[1]),self.agent_history_length]=0.5
+            self.board[int(x[0]),int(x[1]),self.agent_history_length]=0.05
         for x in self.obstacles:
             self.board[int(x[0]),int(x[1]),self.agent_history_length]=-0.5
         for x in self.dangers:
             self.board[int(x[0]),int(x[1]),self.agent_history_length]=-1
-        self.board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length]=1
+        self.board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length]=0.5
 
         self.new_board= np.zeros((self.grid, self.grid, 4 + self.agent_history_length))
         #self.agent_history_length + 0 = reward
@@ -105,7 +105,8 @@ class toy_maze:
         x = np.clip(x, 0, self.grid - 1)
         y = np.clip(y, 0, self.grid - 1)
         
-        if self.board[x,y,self.agent_history_length]==1:
+        
+        if self.board[x,y,self.agent_history_length]>=0.5:
             terminal = 1
             if self.eval:
                 reward = self.final_reward
@@ -117,16 +118,21 @@ class toy_maze:
             reward = self.danger
         else:
             terminal =0
-            if self.board[x,y,self.agent_history_length]==0.5:
+            if self.board[x,y,self.agent_history_length]>0 and self.board[x,y,self.agent_history_length]<0.5:
                 if self.eval:
-                    reward = 1
+                    reward=1
                 else:
                     reward = self.reward + self.picked*0.5
-                self.picked+=1
-                self.board[x,y,self.agent_history_length]=0
-                self.new_board[x, y, self.agent_history_length] = 0
+                    self.picked+=1
+                    self.board[x,y,self.agent_history_length]=0
+                    self.new_board[x, y, self.agent_history_length] = 0
             else:
                 reward = self.cost
+        for r in self.rewards:
+            if self.board[int(r[0]),int(r[1]),self.agent_history_length]>0 and self.board[int(r[0]),int(r[1]),self.agent_history_length]<0.5:
+                self.board[int(r[0]),int(r[1]),self.agent_history_length]=0.05+self.picked*0.025
+        self.board[int(self.end_state[0]),int(self.end_state[1]),self.agent_history_length]=self.picked*0.025+0.5
+
         # if blocked by obstacles
         if self.board[x,y,self.agent_history_length]==-0.5 or (self.current_state_x==x and self.current_state_y==y):
             pass
