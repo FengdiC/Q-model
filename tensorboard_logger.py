@@ -9,17 +9,19 @@ import json
 class tensorflowboard_logger:
     def __init__(self, figure_dir, sess, args):
         self.scalar = tf.placeholder(tf.float32, shape=[])
-        print("Writing logs to ", figure_dir + "/" + str(int(time.time())))
+        self.current_time = str(int(time.time()))
+        print("Writing logs to ", figure_dir + "/" + self.current_time)
         self.sess = sess
-        self.directory = figure_dir + "/" + str(int(time.time()))
+        self.directory = figure_dir + "/" + self.current_time
         self.writer = tf.summary.FileWriter(self.directory, graph=sess.graph, flush_secs=30)
         self.logged_scalar_dict = {}
 
         #dump the initial settings in the directory as well ...
-        jsonStr = json.dumps(args.__dict__)
-        file = open(self.directory + "/args.json", "w")
-        file.write(jsonStr)
-        file.close()
+        if not args is None:
+            jsonStr = json.dumps(args.__dict__)
+            file = open(self.directory + "/args.json", "w")
+            file.write(jsonStr)
+            file.close()
 
 
     def log_scalar(self, scalar_name, scalar_value, step):

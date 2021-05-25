@@ -67,7 +67,7 @@ class DQN:
         self.eta = args.eta
         self.agent=agent
 
-        self.input = tf.placeholder(shape=[None, self.args.state_size],dtype=tf.float32)
+        self.input = tf.placeholder(shape=[None, self.grid, self.grid, 1],dtype=tf.float32)
         self.weight = tf.placeholder(shape=[None,],dtype=tf.float32)
         self.policy = tf.placeholder(shape=[None, ], dtype=tf.float32)
         self.diff = tf.placeholder(shape=[None, ], dtype=tf.float32)
@@ -92,13 +92,18 @@ class DQN:
                              axis=1)
 
         MAIN_DQN_VARS = find_vars(name)
-        if self.agent == 'bootdqn':
+        if self.agent == "bootdqn":
+            print("Using Agent bootdqn", self.agent)
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
-        elif self.agent =='expert':
+        elif self.agent =="expert":
+            print("Using Agent expert", self.agent)
             self.loss, self.loss_per_sample= self.expert_loss(MAIN_DQN_VARS)
-        elif self.agent =='dqfd':
+            print("Using Agent ", self.agent)
+        elif self.agent == "dqfd":
+            print("Using Agent dqfd", self.agent)
             self.loss, self.loss_per_sample = self.dqfd_loss(MAIN_DQN_VARS)
-        else:
+        elif self.agent == "dqn":
+            print("Using Agent dqn", self.agent)
             self.loss, self.loss_per_sample = self.dqn_loss(MAIN_DQN_VARS)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=args.lr)
         self.update = self.optimizer.minimize(self.loss, var_list=MAIN_DQN_VARS)
@@ -106,11 +111,34 @@ class DQN:
     def build_network(self, hidden, index=0):
         #layers
         with tf.variable_scope('Q_network_' + str(index)):
-            layer1 = tf.layers.dense(inputs=self.input, units = hidden, activation=tf.nn.relu,
-                                        kernel_initializer=tf.variance_scaling_initializer(scale=2),name='fc1')
-            dense = tf.layers.dense(inputs=layer1, units=hidden,
-                                    kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc2")
+            # layer1 = tf.layers.dense(inputs=self.input, units = hidden, activation=tf.nn.relu,
+            #                             kernel_initializer=tf.variance_scaling_initializer(scale=2),name='fc1')
+            # dense = tf.layers.dense(inputs=layer1, units=hidden,
+            #                         kernel_initializer=tf.variance_scaling_initializer(scale=2), name="fc2")
 
+            # f1 = tf.layers.dense(inputs=self.input, units=hidden, activation=tf.nn.relu, 
+            #                         kernel_initializer=tf.glorot_normal_initializer(), name="fc1")            
+            # f2 = tf.layers.dense(inputs=f1, units=hidden, activation=tf.nn.relu, 
+            #                         kernel_initializer=tf.glorot_normal_initializer(), name="fc2")
+            conv1 = tf.layers.conv2d(
+            inputs=self.input, filters=32, kernel_size=[3, 3], strides=2,
+            kernel_initializer=tf.glorot_normal_initializer(),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            conv2 = tf.layers.conv2d(
+            inputs=conv1, filters=64, kernel_size=[3, 3], strides=2,
+            kernel_initializer=tf.glorot_normal_initializer(),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            conv3 = tf.layers.conv2d(
+            inputs=conv2, filters=64, kernel_size=[3, 3], strides=2,
+            kernel_initializer=tf.glorot_normal_initializer(),
+            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            # self.conv4 = tf.layers.conv2d(
+            #     inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
+            #     kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            #     padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            d = tf.layers.flatten(conv3)
+            dense = tf.layers.dense(inputs=d, units=hidden, activation=tf.nn.relu, 
+                                    kernel_initializer=tf.glorot_normal_initializer(), name="fc3")
             # Splitting into value and advantage stream
             valuestream, advantagestream = tf.split(dense, 2, -1)
             valuestream = tf.layers.flatten(valuestream)
@@ -191,8 +219,10 @@ class DQN:
         q_values = np.zeros((self.grid, self.grid, self.n_actions), dtype=np.float32)
         for i in range(self.grid):
             for j in range(self.grid):
-                state = np.array([i,j])/(0.5*self.grid)-1
-                state = np.reshape(state,(1,2))
+                #state = np.array([i,j, 0])/(0.5*self.grid)-1
+                #state = np.reshape(state,(1,3))
+                state = np.zeros((1, self.grid, self.grid, 1))
+                state[0, i, j, 0] = 1
                 value = sess.run(self.q_values, feed_dict={self.input:state})
                 q_values[i, j] = value[0]
         return q_values
@@ -213,8 +243,8 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
     target Q-value that the prediction Q-value is regressed to.
     Then a parameter update is performed on the main DQN.
     """
-    states = np.squeeze(states)
-    new_states = np.squeeze(new_states)
+    states = np.expand_dims(np.squeeze(states), axis=3)
+    new_states = np.expand_dims(np.squeeze(new_states), axis=3)
     arg_q_max = session.run(main_dqn.best_action, feed_dict={main_dqn.input:new_states})
     q_vals = session.run(target_dqn.q_values, feed_dict={target_dqn.input:new_states})
     double_q = q_vals[range(batch_size), arg_q_max]
@@ -240,6 +270,9 @@ def learn(session, states, actions, diffs, rewards, new_states, terminal_flags,
                                      main_dqn.weight:weights,
                                      main_dqn.diff: diffs
                                      })
+    # for i in range(batch_size):
+    #     if loss_sample > 0.05:
+    #         print(i, loss_sample[i], target_q[i], r[i], np.mean(loss_sample))
     return loss_sample, np.mean(l_dq), np.mean(l_jeq)
 
 class toy_env:
@@ -256,7 +289,9 @@ class toy_env:
         self.current_state_x = 0
         self.current_state_y = 0
         self.timestep = 0
-        return np.array([-1,-1])
+        state = np.zeros((self.grid, self.grid))
+        state[self.current_state_x, self.current_state_y] = 1
+        return state
 
     def step(self, action):
         assert not (action != 0 and action != 1), "invalid action"
@@ -273,14 +308,16 @@ class toy_env:
 
         if (self.current_state_x >= self.grid - 1) and (self.current_state_y >= self.grid - 1):
             reward = self.final_reward
-            print("Reach final reward")
             self.final=True
         self.timestep += 1
         if self.timestep >= self.grid - 1:
             terminal = 1
         else:
             terminal = 0
-        return np.array([self.current_state_x,self.current_state_y])/(self.grid*0.5)-1, reward, terminal
+        state = np.zeros((self.grid, self.grid))
+        state[int(self.current_state_x), int(self.current_state_y)] = 1
+        return state, reward, terminal
+        #return np.array([self.current_state_x/self.grid, self.current_state_y/self.grid, self.timestep/self.grid]) * 2 - 1, reward, terminal
 
 
     def generate_expert_data(self, min_expert_frames=512, expert_ratio=1, args=None):
@@ -289,25 +326,27 @@ class toy_env:
         num_batches = math.ceil(min_expert_frames/half_expert_traj)
         num_expert = num_batches * half_expert_traj
         
-        expert_frames = np.zeros((num_expert, 2), np.float32)
-        rewards = np.zeros((num_expert, ), dtype=np.float32)
-        terminals = np.zeros((num_expert,), np.uint8)
-
+        expert_frames = []
+        rewards = []
+        terminals = []
         current_index = 0
         for i in range(num_batches):
             current_state = self.reset()
             for j in range(half_expert_traj):
-                expert_frames[current_index] = current_state
+                expert_frames.append(current_state)
                 s, r, t = self.step(1)
                 current_state = s
-                rewards[current_index] = r 
-                terminals[current_index] = t
-                current_index += 1
+                rewards.append(r)
+                terminals.append(t)
                 if t:
-                    expert_frames[current_index] = s
-                    rewards[current_index] = 0
-                    terminals[current_index] = t                    
-                    current_state = self.reset()
+                    expert_frames.append(current_state)
+                    rewards.append(0)
+                    terminals.append(t)
+                    break
+        expert_frames = np.array(expert_frames).astype(np.float32)
+        rewards = np.array(rewards).astype(np.float32)
+        terminals = np.array(terminals).astype(np.float32)
+
         expert['actions'] = np.ones((num_expert,), dtype=np.uint8)
         expert['frames'] = expert_frames
         expert['reward'] = rewards
@@ -508,7 +547,7 @@ def train_bootdqn(priority=True, agent='model', num_bootstrap=20,seed=0,grid=10)
     print("Agent: ", name)
     last_eval = 0
     build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH, REPLAY_MEMORY_START_SIZE, args)
-    max_eps = 600
+    max_eps = 500
     regret_list = []
 
     #compute regret
@@ -550,7 +589,7 @@ def potential(grid):
     return potential
 
 def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, replay_buffer, frame_num, eps_length,
-                    learn, action_getter, grid, shaping,agent,pretrain=False):
+                    learn, action_getter, grid, shaping,agent,pretrain=False, temporal=True, NETW_UPDATE_FREQ=512):
     start_time = time.time()
     episode_reward_sum = 0
     episode_length = 0
@@ -563,7 +602,6 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
 
     expert_ratio = []
 
-    NETW_UPDATE_FREQ = 2048  # Number of chosen actions between updating the target network.
     DISCOUNT_FACTOR = args.gamma  # gamma in the Bellman equation
     UPDATE_FREQ = args.update_freq  # Every four actions a gradient descend step is performed
     BS = 32
@@ -573,10 +611,10 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
         if not pretrain:
             if args.stochastic_exploration == "True":
                 action = action_getter.get_stochastic_action(sess, frame, MAIN_DQN)
-            elif agent!='dqn':
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN,evaluation=True)
+            # elif agent!='dqn':
+            #     action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=True)
             else:
-                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False,temporal=True)
+                action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=temporal)
             next_frame, reward, terminal = env.step(action)
             replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
             if terminal:
@@ -634,33 +672,37 @@ def potential_pretrain(session, states, actions, diffs, rewards, new_states, ter
                                      })
     return loss_sample, np.mean(l_dq), np.mean(l_jeq)
 
-def train(priority=True, agent='model', grid=10, seed=0):
+def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, env_mode=0, temporal=True, 
+            NETW_UPDATE_FREQ=512):
     tf.reset_default_graph()
     with tf.variable_scope(agent):
         args = utils.argsparser()
         args.seed = seed
         name = agent
-        if agent=='expert':
-            args.lr=0.0005
-        else:
-            args.lr=0.05
+        # if agent=='expert':
+        #     args.lr=0.0005
+        # else:
+        #     args.lr=0.05
         tf.random.set_random_seed(args.seed)
         np.random.seed(args.seed)
         shaping = potential(grid)
 
         MAX_EPISODE_LENGTH = grid*grid
 
-        REPLAY_MEMORY_START_SIZE = 32 * 110  # Number of completely random actions,
+        REPLAY_MEMORY_START_SIZE = 500  # Number of completely random actions,
         # before the agent starts learning
-        MAX_FRAMES = 50000000  # Total number of frames the agent sees
-        MEMORY_SIZE = 32 * 2200  # grid * grid +2 # Number of transitions stored in the replay memory
+        MAX_FRAMES = 25000  # Total number of frames the agent sees
+        MEMORY_SIZE = 10000  # grid * grid +2 # Number of transitions stored in the replay memory
         # evaluation episode
         HIDDEN = 512
         BS = 32
         # main DQN and target DQN networks:
         print("Agent: ", name)
-
-        final_reward = 1
+        
+        if env_mode == 0:
+            final_reward = 1 #1, -1
+        else:
+            final_reward = -1
         env = toy_env(grid, final_reward, args=args)
 
         with tf.variable_scope('mainDQN'):
@@ -669,21 +711,21 @@ def train(priority=True, agent='model', grid=10, seed=0):
             TARGET_DQN = DQN(args, env.n_actions, HIDDEN,  grid=grid, name="targetDQN",agent=agent)
 
         init = tf.global_variables_initializer()
-        MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
-        TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+        MAIN_DQN_VARS = find_vars('mainDQN')
+        TARGET_DQN_VARS = find_vars('targetDQN')
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
 
         if priority:
             print("Priority", grid, grid * grid)
-            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,
-                                                                      state_shape=[args.state_size], agent_history_length=1,
-                                                                      agent=name, frame_dtype=np.float32, batch_size=BS)
+            my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE*20, args.alpha,
+                                                                      state_shape=[grid_size, grid_size], agent_history_length=1,
+                                                                      agent=name, frame_dtype=np.float32, batch_size=BS, rescale_reward=False)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[args.state_size],
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE*20, state_shape=[grid_size, grid_size],
                                                            agent_history_length=1, agent=name, frame_dtype=np.float32, 
-                                                           batch_size=BS)
+                                                           batch_size=BS, rescale_reward=False)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE,
                                            replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
@@ -693,13 +735,13 @@ def train(priority=True, agent='model', grid=10, seed=0):
         sess = tf.Session(config=config)
         sess.run(init)
         eps_number = 0
-        frame_number = 0
+        frame_number = REPLAY_MEMORY_START_SIZE
 
         my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
 
         print("Agent: ", name)
         regret_list = []
-        max_eps = 600
+        max_eps = max_len
         # # compute regret
         # Q_value = np.zeros((grid, grid, 2))
         # Q_value[:, :, 1] = final_reward
@@ -711,14 +753,16 @@ def train(priority=True, agent='model', grid=10, seed=0):
             print("Beginning to pretrain shaping", my_replay_memory.count)
             train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, pretrain=True)
+                args.pretrain_bc_iter, potential_pretrain, action_getter, grid, shaping, agent, 
+                pretrain=True, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
             print("done pretraining ,test prioritized buffer, shaping")
             print("buffer expert size: ", my_replay_memory.expert_idx)
         else:
             print("Beginning to pretrain")
             train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,pretrain=True)
+                args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,
+                pretrain=True, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
             print("done pretraining ,test prioritized buffer")
             print("buffer expert size: ", my_replay_memory.expert_idx)
 
@@ -729,10 +773,20 @@ def train(priority=True, agent='model', grid=10, seed=0):
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH,
                                         REPLAY_MEMORY_START_SIZE,args)
 
-        while frame_number < MAX_FRAMES:
+
+
+        eps_return_list = []
+        eps_length_list = []
+        eps_loss_list = []
+        eps_eval_return_list = []
+        if temporal:
+            tf_name = "ezgreedy"
+        else:
+            tf_name = "egreedy"
+        while eps_number < max_eps:
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio, _, _ = train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                MAX_EPISODE_LENGTH, learn, action_getter, grid,shaping, agent,pretrain=False)
+                MAX_EPISODE_LENGTH, learn, action_getter, grid,shaping, agent,pretrain=False, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
             frame_number += eps_len
             eps_number += 1
             last_eval += eps_len
@@ -743,38 +797,138 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 q_values = MAIN_DQN.get_q_value(sess)
                 pi = np.argmax(q_values, axis=2)
                 # print(np.diag(pi)[:-1])
-                correct = grid -1 - np.sum(np.diag(pi)[:-1])
-                # correct = np.sum(pi[:,0])
+                if final_reward == 1:
+                    correct = grid -1 - np.sum(np.diag(pi)[:-1])
+                else:
+                    correct = np.sum(pi[:,0])
                 print(grid , eps_number, correct,eps_rw)
                 regret_list.append(correct)
-
+                eps_return_list.append(eps_rw)
+                eps_length_list.append(eps_len)
+                eps_loss_list.append(eps_loss)
+                
+                tflogger.log_scalar("Training/Reward_" + tf_name, eps_rw, eps_number)
+                tflogger.log_scalar("Training/Loss_" + tf_name, eps_loss, eps_number)
+                tflogger.log_scalar("Training/Regret_" + tf_name, correct, eps_number)
                 # compute regret
                 # regret_list.append(V - compute_regret(q_values, grid, args.gamma,  final_reward))
                 # print(V, eps_number, regret_list[-1], eps_rw)
                 # regret_list.append(eps_rw)
-                if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
-                    print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed)
-                    return eps_number
+                #if (len(regret_list)>5 and np.mean(regret_list[-3:]) < 0.02 and env.final) or eps_number > max_eps:
+                #print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed) #possibly modify the criterion
+                #return eps_number #reward, regret, 
 
+            if eps_number % 20 == 0:
+                episode_reward_sum = 0
+                next_frame = env.reset()
+                for _ in range(MAX_EPISODE_LENGTH):
+                    action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True)
+                    next_frame, reward, terminal = env.step(action)
+                    episode_reward_sum += reward
+                    if terminal:
+                        break
+                eps_eval_return_list.append(episode_reward_sum)
+                tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
+
+                # q_values = MAIN_DQN.get_q_value(sess)
+                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/a_0" +  str(agent) + ".png")
+                # plt.close()
+                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/a_1.png")
+                # plt.close()
+
+                # q_values = TARGET_DQN.get_q_value(sess)
+                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/t_a_0" +  str(agent) + ".png")
+                # plt.close()
+                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/t_a_1" +  str(agent) + ".png")
+                # plt.close()
+
+        return np.array(eps_return_list), np.array(eps_length_list), np.array(regret_list), np.array(eps_loss_list), np.array(eps_eval_return_list)
 # train_bootdqn(grid=20,agent='bootdqn')
 # train(grid=55,agent='dqfd')
-
 import matplotlib.pyplot as plt
 idx = range(50,80,3)
+max_len = 600
+grid_size = 48
+final_mode = 0
+NETW_UPDATE_FREQ=256
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+tflogger = tensorflowboard_logger("logs/toy_chain/", sess, None)
 
-# num1 = train_bootdqn(grid=50,agent='bootdqn',seed=0)
-# num2 = train_bootdqn(grid=50,agent='bootdqn',seed=1)
-# num3 = train_bootdqn(grid=50,agent='bootdqn',seed=2)
 
-num4 = train(grid=50,agent='expert',seed=0)
-num5 = train(grid=50,agent='expert',seed=1)
-num6 = train(grid=50,agent='expert',seed=2)
-import sys
-sys.exit(str(num4)+'_'+str(num5)+'_'+str(num6))
+args = utils.argsparser()
+train(tflogger, grid=grid_size,agent=args.agent,seed=args.seed, max_len=max_len, env_mode=final_mode, temporal=args.use_ezgreedy, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+#train(tflogger, grid=grid_size,agent="dqn",seed=1, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+#train(tflogger, grid=grid_size,agent="dqn",seed=2, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# dqn_eps_ret = (dqn_eps_ret1 + dqn_eps_ret2 + dqn_eps_ret3)
+# dqn_eps_len = (dqn_eps_len1 + dqn_eps_len2 + dqn_eps_len3)
+# dqn_eps_regret = (dqn_regret1 + dqn_regret2 + dqn_regret3)
+# dqn_eps_loss = (dqn_loss1 + dqn_loss2 + dqn_loss3)
+# plt.plot(np.arange(max_len), dqn_eps_ret, label="DQN Returns")
+# plt.xlabel("Training step")
+# plt.ylabel("Reward")
+# plt.title("Training Reward")
+# plt.legend()
+# plt.savefig("figures/dqn_result_rew.png")
+# plt.close()
+# #dqn with expert, bqfd, dqfd
+# train(tflogger, grid=grid_size,agent="dqfd",seed=0, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# train(tflogger, grid=grid_size,agent="dqfd",seed=1, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# train(tflogger,grid=grid_size,agent="dqfd",seed=2, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# dqfd_eps_ret = (dqfd_eps_ret1 + dqfd_eps_ret2 + dqfd_eps_ret3)
+# dqfd_eps_len = (dqfd_eps_len1 + dqfd_eps_len2 + dqfd_eps_len3)
+# dqfd_eps_regret = (dqfd_regret1 + dqfd_regret2 + dqfd_regret3)
+# dqfd_eps_loss = (dqfd_loss1 + dqfd_loss2 + dqfd_loss3)
+# print(dqfd_eps_ret)
 
+# train(tflogger, grid=grid_size,agent="expert",seed=0, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# train(tflogger, grid=grid_size,agent="expert",seed=1, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+# train(tflogger, grid=grid_size,agent="expert",seed=2, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+
+# plt.plot(np.arange(max_len), dqfd_eps_ret, label="DQFD Returns")
+# plt.xlabel("Training step")
+# plt.ylabel("Reward")
+# plt.title("Training Reward")
+# plt.legend()
+# plt.savefig("figures/dqfd_result_rew.png")
+# plt.close()
+
+# plt.plot(np.arange(max_len), dqn_eps_ret, label="DQN Returns")
+# plt.plot(np.arange(max_len), dqfd_eps_ret, label="DQFD Returns")
+# plt.plot(np.arange(max_len), bqfd_eps_ret, label="BQFD Returns")
+# plt.xlabel("Training step")
+# plt.ylabel("Reward")
+# plt.title("Training Reward")
+# plt.legend()
+# plt.savefig("figures/result_rew.png")
+# plt.close()
+
+# plt.plot(np.arange(max_len), dqn_eps_regret, label="DQN Regret")
+# plt.plot(np.arange(max_len), dqfd_eps_regret, label="DQFD Regret")
+# plt.plot(np.arange(max_len), bqfd_eps_regret, label="BQFD Regret")
+# plt.xlabel("Training step")
+# plt.ylabel("Len")
+# plt.title("Regret")
+# plt.legend()
+# plt.savefig("figures/result_regret.png")
+# plt.close()
+
+# plt.plot(np.arange(max_len), dqn_eps_loss, label="DQN Loss")
+# plt.plot(np.arange(max_len), dqfd_eps_loss, label="DQFD Loss")
+# plt.plot(np.arange(max_len), bqfd_eps_loss, label="BQFD Loss")
+# plt.xlabel("Training step")
+# plt.ylabel("Len")
+# plt.title("Loss")
+# plt.legend()
+# plt.savefig("figures/result_loss.png")
+# plt.close()
 
 # Compare bewteen all algorithms
-
 # num_runs = 10
 # reach = np.zeros((5, num_runs))
 # for seed in range(3):

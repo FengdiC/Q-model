@@ -157,9 +157,9 @@ def play(env, args, transpose=True, fps=13, zoom=None, callback=None, keys_to_ac
             obs, rew, env_done, terminal, frame = env.step(sess, action)
             data_list.append([action, current_obs, rew, terminal])
             count += 1
-            if terminal:
-                data_list.append([action, obs, 0, terminal])
-                count += 1
+            # if terminal:
+            #     data_list.append([action, obs, 0, terminal])
+            #     count += 1
             current_obs = obs
         if current_obs is not None:
             rendered = env.env.render(mode='rgb_array')
@@ -228,7 +228,7 @@ def main():
     args = parser.parse_args()
     #env = gym.make(args.env)
     env = utils.Atari(args.env, False)
-    play(env, args, zoom=3, fps=7)
+    play(env, args, zoom=3, fps=12)
 
 
 if __name__ == '__main__':

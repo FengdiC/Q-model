@@ -22,30 +22,50 @@ def find_vars(name):
 
 
 class mini_seaquest_dive:
-    def __init__(self, env_type, init_pos=[0, 1, 2, 3, 4], rewards_value=[1, 2, 3, 4], rewards_indices=[6, 7, 8, 9], env_size=12, max_timestep=100):
+    def __init__(self, env_type, half_reset_layers=4, reward_per_position=2, init_pos=[0, 1, 2, 3, 4], rewards_value=[1, 2, 3, 4], rewards_indices=[6, 7, 8, 9], env_size=12, resurface_time=100, max_timestep=100):
         self.max_timestep = max_timestep
         self.env_size = env_size
         self.env_type = env_type
         self.rewards = np.zeros((env_size, ))
         self.init_pos = init_pos
         self.n_actions = 3
+        self.input_size = 3 + env_size
+        self.resurface_time = resurface_time
+        self.reward_per_position = reward_per_position
+        self.half_reset_layers = half_reset_layers
 
-        self.rewards_value = rewards_value
-        self.rewards_indices = rewards_indices
+        if self.env_type == "full_reset" or self.env_type == "full_reset_easy" or self.env_type == "full_reset_hard":
+            self.rewards_left = np.zeros((env_size, )) + reward_per_position
+            for i in range(self.env_size):
+                self.rewards[i] = 1
+        elif self.env_type == "per_step_reset":
+            self.rewards_left = np.zeros((env_size, )) + reward_per_position
+            for i in range(self.env_size):
+                self.rewards[i] = 1
+        else:
+            self.rewards_value = rewards_value
+            self.rewards_indices = rewards_indices
+            for i in range(len(self.rewards_value)):
+                self.rewards[self.rewards_indices[i]] = self.rewards_value[i]
+                
         #action, 0=up, 1=stay, 2=down
         #state, current_position/env_size, current_timestep/100, timestep until resurface
 
-        for i in range(len(self.rewards_value)):
-            self.rewards[self.rewards_indices[i]] = self.rewards_value[i]
-
     def reset(self):
         self.current_time = 0
+        self.last_surface = 0
         self.current_position = self.init_pos[np.random.randint(0, len(self.init_pos))]
-        state = np.array([self.current_position/self.env_size, self.current_time/self.max_timestep]) * 2 - 1
+        state = np.array([self.current_position/self.env_size, self.current_time/self.max_timestep, self.last_surface/self.resurface_time])
+        state = np.concatenate([state, self.rewards_left/self.reward_per_position], axis=0) * 2 - 1
+
+        if "reset" in self.env_type:
+            self.rewards_left = np.zeros((self.env_size, )) + self.reward_per_position
         return state
 
     def step(self, action):
+        self.submerged_time = 0
         self.current_time += 1
+        self.last_surface += 1
         if action == 0:
             #print("Ever here?", self.current_position)
             self.current_position = np.clip(self.current_position - 1, 0, self.env_size - 1)
@@ -53,22 +73,37 @@ class mini_seaquest_dive:
         elif action == 2:
             self.current_position = np.clip(self.current_position + 1, 0, self.env_size - 1)
 
-        reward = self.rewards[int(self.current_position)]
+        if self.env_type == "full_reset" or self.env_type == "full_reset_easy" or self.env_type == "full_reset_hard":
+            if np.sum(self.rewards_left) == 0:
+                self.rewards_left = np.zeros((self.env_size, )) + self.reward_per_position
+
+
+        if self.env_type == "full_reset" or self.env_type == "full_reset_easy" or self.env_type == "full_reset_hard":
+            #print(self.rewards_left[int(self.current_position)])
+            if self.rewards_left[int(self.current_position)] > 0:
+                self.rewards_left[int(self.current_position)] = max(0, self.rewards_left[int(self.current_position)] - 1)
+                reward = self.rewards[int(self.current_position)]
+            else:
+                reward = 0              
+        else:
+            reward = self.rewards[int(self.current_position)]
         done = 0
-        if self.current_time > self.max_timestep:
+        if self.current_time >= self.max_timestep:
             done = 1
-        if self.env_type == "dive":
-            if self.current_time > 0 and self.current_time % 20 == 0 and not self.current_position == 0:
-                done = 1
-            elif self.current_time > 0 and self.current_time % 20 == 0 and self.current_position == 0:
-                #print("Resurfaced ... ", done)
-                reward += 0.0
-        state = np.array([self.current_position/self.env_size, self.current_time/self.max_timestep]) * 2 - 1
+
+        if self.current_position == 0:
+            self.last_surface = 0
+        else:
+            self.submerged_time += 1
+        if self.last_surface == self.resurface_time and not self.current_position == 0:
+            done = 1
+        state = np.array([self.current_position/self.env_size, self.current_time/self.max_timestep, self.last_surface/self.resurface_time])
+        state = np.concatenate([state, self.rewards_left/self.reward_per_position], axis=0) * 2 - 1
         return state, reward, done
 
 class DQN:
     """Implements a Deep Q Network"""
-    def __init__(self, args, n_actions=3, hidden=256, input_size=2, agent_history_length=4, name="dqn", agent='dqn'):
+    def __init__(self, args, n_actions=3, hidden=256, input_size=3, agent_history_length=4, name="dqn", agent='dqn'):
         """
         Args:
           n_actions: Integer, number of possible actions
@@ -270,6 +305,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
     BS = args.batch_size
     terminal = False
     frame = env.reset()
+    state_list = [frame[0]]
     for _ in range(eps_length):
         if not pretrain:
             if args.stochastic_exploration == "True":
@@ -277,6 +313,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
             else:
                 action = action_getter.get_action(sess, frame_num, frame, MAIN_DQN, evaluation=False, temporal=True)
             next_frame, reward, terminal = env.step(action)
+            state_list.append(next_frame[0])
             replay_buffer.add(obs_t=frame, reward=reward, action=action, done=terminal)
             if terminal:
                 replay_buffer.add(obs_t=next_frame, reward=0, action=action_getter.get_random_action(), done=terminal)
@@ -295,7 +332,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                                             expert_idxes, MAIN_DQN, TARGET_DQN, BS, DISCOUNT_FACTOR, agent)
             episode_dq_loss.append(loss_dq)
             episode_jeq_loss.append(loss_jeq)
-
+            
             replay_buffer.update_priorities(idxes, loss, expert_idxes, frame_num,
                                             expert_priority_modifier=args.expert_priority_modifier,
                                             min_expert_priority=args.min_expert_priority, pretrain=pretrain)
@@ -314,7 +351,7 @@ def train_step_dqfd(sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, repl
                 break
 
     return episode_reward_sum, episode_length, np.mean(episode_loss), np.mean(episode_dq_loss), \
-           np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio), regret_list, frame_list
+           np.mean(episode_jeq_loss), time.time() - start_time, np.mean(expert_ratio), regret_list, frame_list, state_list
 
 
 def train(priority=True, agent='model', grid=10, seed=0):
@@ -337,20 +374,32 @@ def train(priority=True, agent='model', grid=10, seed=0):
         # main DQN and target DQN networks:
         print("Agent: ", agent)
 
-        if args.env_id == "dive":
-            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
-                                     init_pos=[0, 1, 2, 3, 4], rewards_value=[1, 1.25, 1.5, 2], rewards_indices=[6, 7, 8, 9], env_size=12)
-        elif args.env_id == "layer":
-            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
-                                     init_pos=[0, 1], rewards_value=[1, 1.25, 1.5, 2], rewards_indices=[3, 5, 7, 9], env_size=12)
-        elif args.env_id == "middle":
-            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
-                                     init_pos=[0, 1, 3], rewards_value=[2, 2, 2], rewards_indices=[5, 6, 7], env_size=12)
+        if args.env_id == "full_reset":
+            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH, reward_per_position=2,
+                                     init_pos=[0],  env_size=12, resurface_time=25)
+        elif args.env_id == "full_reset_easy":    
+            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH, reward_per_position=1,
+                                     init_pos=[0],  env_size=12, resurface_time=25)
+        elif args.env_id == "full_reset_hard":    
+            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH, reward_per_position=3,
+                                     init_pos=[0],  env_size=12, resurface_time=30)
+        elif args.env_id == "per_step_reset":    
+            env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH, reward_per_position=1,
+                                     init_pos=[0],  env_size=12, resurface_time=25)
+        # if args.env_id == "dive":
+        #     env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
+        #                              init_pos=[0, 1], rewards_value=[1, 2, 3, 4, 4.5, 5, 40], rewards_indices=[7, 8, 9, 10, 11, 12, 17], env_size=20, resurface_time=20)
+        # elif args.env_id == "dive_reset":
+        #     env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
+        #                              init_pos=[0, 1], rewards_value=[1, 1.25, 1.5, 2], rewards_indices=[3, 5, 7, 9], env_size=12, resurface_time=MAX_EPISODE_LENGTH)
+        # elif args.env_id == "middle":
+        #     env = mini_seaquest_dive(env_type=args.env_id, max_timestep=MAX_EPISODE_LENGTH,
+        #                              init_pos=[0, 1, 3], rewards_value=[2, 2, 2], rewards_indices=[5, 6, 7], env_size=12, resurface_time=MAX_EPISODE_LENGTH)
 
         with tf.variable_scope('mainDQN'):
-            MAIN_DQN = DQN(args, env.n_actions, HIDDEN, name="mainDQN", agent=agent)
+            MAIN_DQN = DQN(args, env.n_actions, HIDDEN, input_size=env.input_size, name="mainDQN", agent=agent)
         with tf.variable_scope('targetDQN'):
-            TARGET_DQN = DQN(args, env.n_actions, HIDDEN, name="targetDQN", agent=agent)
+            TARGET_DQN = DQN(args, env.n_actions, HIDDEN, input_size=env.input_size, name="targetDQN", agent=agent)
 
         init = tf.global_variables_initializer()
         # MAIN_DQN_VARS = tf.trainable_variables(scope="mainDQN")
@@ -363,12 +412,12 @@ def train(priority=True, agent='model', grid=10, seed=0):
         if priority:
             print("Priority", grid, grid * grid)
             my_replay_memory = PriorityBuffer.PrioritizedReplayBuffer(MEMORY_SIZE, args.alpha,frame_dtype=np.float32,
-                                                                      state_shape=[2],
+                                                                      state_shape=[env.input_size],
                                                                       agent_history_length=1,
                                                                       agent=agent, batch_size=BS)
         else:
             print("Not Priority")
-            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[2],frame_dtype=np.float32,
+            my_replay_memory = PriorityBuffer.ReplayBuffer(MEMORY_SIZE, state_shape=[env.input_size],frame_dtype=np.float32,
                                                            agent_history_length=1, agent=agent, batch_size=BS)
         network_updater = utils.TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
         action_getter = utils.ActionGetter(env.n_actions,eps_annealing_frames=MEMORY_SIZE, eps_final=0.05,
@@ -386,8 +435,10 @@ def train(priority=True, agent='model', grid=10, seed=0):
 
         print("Agent: ", agent)
         regret_list = []
+        state_distribution = []
         max_eps = 500
         last_eval = 0
+        last_distribution = 0
         #my_replay_memory.load_expert_data(args.expert_dir+args.expert_file)
         # print("Beginning to pretrain")
         # train_step_dqfd(
@@ -412,18 +463,19 @@ def train(priority=True, agent='model', grid=10, seed=0):
         plt.legend()
         plt.savefig(fig)
         plt.close()
-        
+            
 
         build_initial_replay_buffer(sess, env, my_replay_memory, action_getter, MAX_EPISODE_LENGTH,
                                     REPLAY_MEMORY_START_SIZE, args)
 
         while frame_number < MAX_FRAMES:
-            eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio, _, _ = train_step_dqfd(
+            eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio, _, _, state_list = train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
                 MAX_EPISODE_LENGTH, learn, action_getter, grid, agent, pretrain=False)
             frame_number += eps_len
             eps_number += 1
             last_eval += eps_len
+            last_distribution += eps_len
             # print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed,'EPS Length: ',eps_len,
             #       "Level: ",env.level)
             tflogger.log_scalar("Episode/Reward", eps_rw, frame_number)
@@ -434,7 +486,32 @@ def train(priority=True, agent='model', grid=10, seed=0):
             tflogger.log_scalar("Episode/Loss/JEQ", eps_jeq_loss, frame_number)
             tflogger.log_scalar("Episode/Expert Ratio", exp_ratio, frame_number)
             tflogger.log_scalar("Episode/Exploration", action_getter.get_eps(frame_number), frame_number)
+            state_distribution.extend(state_list)
 
+            if last_distribution >= 1000000:
+                last_distribution = 0
+                computed_state_distribution = np.zeros((env.env_size))
+                count = 0
+                for i in range(len(state_distribution) - 1, -1, -1):
+                    visited_state = int(env.env_size - ((state_distribution[i] + 1)/2 * env.env_size) - 1)
+                    computed_state_distribution[visited_state] += 1
+                    count += 1
+                    if count == 1000000:
+                        fig = "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_lr_" + str(args.lr)+"_var_"+str(args.var) + "_seed_" + str(
+                        args.seed) + "_" + args.custom_id + "/" + tflogger.current_time + "/" + "last_1M_histogram_frame_" + str(int(frame_number)) + ".png"
+                        plt.bar(np.arange(env.env_size), computed_state_distribution)
+                        plt.xlabel("State Index")
+                        plt.ylabel("Frequency")
+                        plt.savefig(fig)
+                        plt.close()
+
+                fig = "./" + args.log_dir + "/" + agent + "_" + args.env_id + "_lr_" + str(args.lr)+"_var_"+str(args.var) + "_seed_" + str(
+                args.seed) + "_" + args.custom_id + "/" + tflogger.current_time + "/" + "all_histogram_frame_" + str(int(frame_number)) + ".png"
+                plt.bar(np.arange(env.env_size), computed_state_distribution)
+                plt.xlabel("State Index")
+                plt.ylabel("Frequency")
+                plt.savefig(fig)
+                plt.close()
 
             if last_eval > 20000:
                 last_eval=0
@@ -457,7 +534,8 @@ def train(priority=True, agent='model', grid=10, seed=0):
                 plt.close()
 
                 print("Eval Results", eval_reward, eval_length)
-
+                
+                
 
 def eval(env, action_getter, sess, MAIN_DQN, TARGET_DQN, frame_num, eps_length):
     rewards = 0
@@ -465,7 +543,7 @@ def eval(env, action_getter, sess, MAIN_DQN, TARGET_DQN, frame_num, eps_length):
     length = 0
     states = []
     next_frame = env.reset()
-    states.append(env.env_size - ((next_frame[0] + 1)/2 * env.env_size))
+    states.append(env.env_size - ((next_frame[0] + 1)/2 * env.env_size) - 1)
     reward_list.append(0)
     for _ in range(eps_length):
         action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True, temporal=False)
@@ -473,8 +551,8 @@ def eval(env, action_getter, sess, MAIN_DQN, TARGET_DQN, frame_num, eps_length):
         rewards += reward
         length += 1
 
-        states.append(env.env_size - ((next_frame[0] + 1)/2 * env.env_size))
-        print(length, env.current_position, ((next_frame[0] + 1)/2) * env.env_size, env.env_size - ((next_frame[0] + 1)/2 * env.env_size))
+        states.append(env.env_size - ((next_frame[0] + 1)/2 * env.env_size) - 1)
+        #print(length, env.current_position, reward)
         reward_list.append(reward)
         if terminal:
             break

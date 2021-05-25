@@ -44,6 +44,7 @@ def argsparser():
 
     parser.add_argument('--eps_max_frames', type=int, help='Max Episode Length', default=50000000)
     parser.add_argument('--old_mode', type=int, help='Max Episode Length', default=0)
+    parser.add_argument('--use_ezgreedy', type=int, help='Max Episode Length', default=0)
 
 
     parser.add_argument('--replay_mem_size', type=int, help='Max Episode Length', default=1000000)
@@ -164,7 +165,7 @@ class ActionGetter:
 
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01, min_eps=0.001,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
-                 replay_memory_start_size=50000, max_frames=25000000):
+                 replay_memory_start_size=50000, max_frames=25000000, mu=2):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -194,6 +195,7 @@ class ActionGetter:
         self.eps_annealing_frames = eps_annealing_frames
         self.replay_memory_start_size = replay_memory_start_size
         self.max_frames = max_frames
+        self.mu = mu
 
         # Slopes and intercepts for exploration decrease
         self.slope = -(self.eps_initial - self.eps_final) / self.eps_annealing_frames
@@ -262,24 +264,26 @@ class ActionGetter:
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
             #print("Was here .... 2")
             eps = self.slope_2 * frame_number + self.intercept_2
-        #print(eps)
         if building_replay:
             eps = max(building_replay_min_exploration, eps)
-        eps = max(eps, self.min_eps)
+        if not evaluation:
+            eps = max(eps, self.min_eps)
         if temporal:
             if self.duration_left > 0:
-                self.past_action, self.duration_left = self.ez_action_sampling(mu=2, n_actions=2, past_action=self.past_action,
+                self.past_action, self.duration_left = self.ez_action_sampling(mu=self.mu, n_actions=self.n_actions, past_action=self.past_action,
                                                                 duration_left=self.duration_left)
                 return self.past_action
             elif np.random.uniform(0, 1) < eps:
-                self.past_action, self.duration_left = self.ez_action_sampling(mu=2, n_actions=2, past_action=self.past_action,
+                self.past_action, self.duration_left = self.ez_action_sampling(mu=self.mu, n_actions=self.n_actions, past_action=self.past_action,
                                                                 duration_left=self.duration_left)
                 return self.past_action
         else:
             if np.random.uniform(0, 1) < eps:
                 return self.get_random_action()
-        #print("Was here .... ")
+        if len(state.shape) == 2:
+            state = np.expand_dims(state, axis=2)
         result, q_vals = session.run([main_dqn.best_action, main_dqn.q_values], feed_dict={main_dqn.input: [state]})
+        #print("Was here .... ", eps, result)
         # result = result[0]
         # print(result, q_vals)
         return result
@@ -564,12 +568,10 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
             else:
                 action = action_getter.get_action(sess, frame_num, atari.state, MAIN_DQN)
             # print("Action: ",action)
-            # (5�?
             next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
             frame_num += 1
             episode_reward_sum += reward
             episode_length += 1
-
             # Store transition in the replay memory
             replay_buffer.add(obs_t=current_state[:, :, 0], reward=reward, action=action, done=terminal_life_lost)
             if terminal_life_lost:
@@ -578,6 +580,7 @@ def train_step(sess, args, MAIN_DQN, TARGET_DQN, network_updater, action_getter,
                     next_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
                     episode_reward_sum += reward
                     episode_length += 1
+
             current_state = next_frame 
         if frame_num % UPDATE_FREQ == 0 or pretrain:
             if not priority:
