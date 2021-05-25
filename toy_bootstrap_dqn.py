@@ -784,23 +784,23 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
         else:
             tf_name = "model"
         while eps_number < max_eps:
-            if eps_number % 20 == 0:
-                episode_reward_sum = 0
-                next_frame = env.reset()
-                for _ in range(MAX_EPISODE_LENGTH):
-                    action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True)
-                    next_frame, reward, terminal = env.step(action)
-                    episode_reward_sum += reward
-                    if terminal:
-                        break
-                eps_eval_return_list.append(episode_reward_sum)
-                tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
-                #q_values = MAIN_DQN.get_q_value(sess)
+            #if eps_number % 20 == 0:
+            episode_reward_sum = 0
+            next_frame = env.reset()
+            for _ in range(MAX_EPISODE_LENGTH):
+                action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True)
+                next_frame, reward, terminal = env.step(action)
+                episode_reward_sum += reward
+                if terminal:
+                    break
+            eps_eval_return_list.append(episode_reward_sum)
+            tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
+                # q_values = MAIN_DQN.get_q_value(sess)
                 # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/a_0_" +  str(agent) + ".png")
+                # plt.savefig("figures/a_0_" +  str(agent) + "_mode_" + str(env_mode) + ".png")
                 # plt.close()
                 # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/a_1_"  +  str(agent) + ".png")
+                # plt.savefig("figures/a_1_" +  str(agent) + "_mode_" + str(env_mode) + ".png")
                 # plt.close()
 
                 # q_values = TARGET_DQN.get_q_value(sess)
@@ -828,7 +828,7 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
                     correct = grid -1 - np.sum(np.diag(pi)[:-1])
                 else:
                     correct = np.sum(pi[:,0])
-                print(grid , eps_number, correct,eps_rw)
+                print(grid , eps_number, frame_number, correct, eps_rw)
                 regret_list.append(correct)
                 eps_return_list.append(eps_rw)
                 eps_length_list.append(eps_len)

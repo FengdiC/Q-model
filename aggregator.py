@@ -222,6 +222,10 @@ def write_summary(dpath, all_per_key, op):
                 data_elem = data[event_id][0]
             else:
                 data_elem = data[event_id]
+            
+            if "egreedy" in key:
+                key = key.replace("egreedy", "model")
+
             summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=data_elem.value)])
             scalar_event = Event(wall_time=data_elem.wall_time, step=data_elem.step, summary=summary)
             writer.add_event(scalar_event)
