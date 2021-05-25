@@ -758,14 +758,14 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
             print("done pretraining ,test prioritized buffer, shaping")
             print("buffer expert size: ", my_replay_memory.expert_idx)
         else:
-            print("Beginning to pretrain")
-            train_step_dqfd(
-                sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
-                args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,
-                pretrain=True, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
-            print("done pretraining ,test prioritized buffer")
-            print("buffer expert size: ", my_replay_memory.expert_idx)
-
+            # print("Beginning to pretrain")
+            # train_step_dqfd(
+            #     sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
+            #     args.pretrain_bc_iter, learn, action_getter, grid, shaping, agent,
+            #     pretrain=True, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+            # print("done pretraining ,test prioritized buffer")
+            # print("buffer expert size: ", my_replay_memory.expert_idx)
+            print("No Pretraining ... ")
         # else:
         #     print("Expert data deleted .... ")
         #     my_replay_memory.delete_expert(MEMORY_SIZE)
@@ -784,6 +784,33 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
         else:
             tf_name = "egreedy"
         while eps_number < max_eps:
+            if eps_number % 20 == 0:
+                episode_reward_sum = 0
+                next_frame = env.reset()
+                for _ in range(MAX_EPISODE_LENGTH):
+                    action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True)
+                    next_frame, reward, terminal = env.step(action)
+                    episode_reward_sum += reward
+                    if terminal:
+                        break
+                eps_eval_return_list.append(episode_reward_sum)
+                tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
+                # q_values = MAIN_DQN.get_q_value(sess)
+                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/a_0_" +  str(agent) + ".png")
+                # plt.close()
+                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/a_1_"  +  str(agent) + ".png")
+                # plt.close()
+
+                # q_values = TARGET_DQN.get_q_value(sess)
+                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/t_a_0_" +  str(agent) + ".png")
+                # plt.close()
+                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
+                # plt.savefig("figures/t_a_1_" +  str(agent) + ".png")
+                # plt.close()
+
             eps_rw, eps_len, eps_loss, eps_dq_loss, eps_jeq_loss, eps_time, exp_ratio, _, _ = train_step_dqfd(
                 sess, args, env, MAIN_DQN, TARGET_DQN, network_updater, my_replay_memory, frame_number,
                 MAX_EPISODE_LENGTH, learn, action_getter, grid,shaping, agent,pretrain=False, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
@@ -818,33 +845,6 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
                 #print("GridSize", grid, "EPS: ", eps_number, "Mean Reward: ", eps_rw, "seed", args.seed) #possibly modify the criterion
                 #return eps_number #reward, regret, 
 
-            if eps_number % 20 == 0:
-                episode_reward_sum = 0
-                next_frame = env.reset()
-                for _ in range(MAX_EPISODE_LENGTH):
-                    action = action_getter.get_action(sess, 0, next_frame, MAIN_DQN, evaluation=True)
-                    next_frame, reward, terminal = env.step(action)
-                    episode_reward_sum += reward
-                    if terminal:
-                        break
-                eps_eval_return_list.append(episode_reward_sum)
-                tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
-
-                # q_values = MAIN_DQN.get_q_value(sess)
-                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/a_0" +  str(agent) + ".png")
-                # plt.close()
-                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/a_1.png")
-                # plt.close()
-
-                # q_values = TARGET_DQN.get_q_value(sess)
-                # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/t_a_0" +  str(agent) + ".png")
-                # plt.close()
-                # plt.imshow(q_values[:, :, 1], cmap='hot', interpolation='nearest')
-                # plt.savefig("figures/t_a_1" +  str(agent) + ".png")
-                # plt.close()
 
         return np.array(eps_return_list), np.array(eps_length_list), np.array(regret_list), np.array(eps_loss_list), np.array(eps_eval_return_list)
 # train_bootdqn(grid=20,agent='bootdqn')
