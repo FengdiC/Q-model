@@ -795,7 +795,7 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
                         break
                 eps_eval_return_list.append(episode_reward_sum)
                 tflogger.log_scalar("Evaluation/Reward_" + tf_name, episode_reward_sum, eps_number)
-                # q_values = MAIN_DQN.get_q_value(sess)
+                #q_values = MAIN_DQN.get_q_value(sess)
                 # plt.imshow(q_values[:, :, 0], cmap='hot', interpolation='nearest')
                 # plt.savefig("figures/a_0_" +  str(agent) + ".png")
                 # plt.close()
