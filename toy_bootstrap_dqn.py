@@ -780,9 +780,9 @@ def train(tflogger, priority=True, agent='model', grid=10, seed=0, max_len=600, 
         eps_loss_list = []
         eps_eval_return_list = []
         if temporal:
-            tf_name = "ezgreedy"
+            tf_name = "model"
         else:
-            tf_name = "egreedy"
+            tf_name = "model"
         while eps_number < max_eps:
             if eps_number % 20 == 0:
                 episode_reward_sum = 0
