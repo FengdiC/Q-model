@@ -853,14 +853,13 @@ import matplotlib.pyplot as plt
 idx = range(50,80,3)
 max_len = 600
 grid_size = 48
-final_mode = 0
 NETW_UPDATE_FREQ=256
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 args = utils.argsparser()
 tflogger = tensorflowboard_logger("logs/toy_chain_seed_" +  str(args.seed) + "/" + args.agent + "/", sess, None)
-train(tflogger, grid=grid_size,agent=args.agent,seed=args.seed, max_len=max_len, env_mode=final_mode, temporal=args.use_ezgreedy, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
+train(tflogger, grid=grid_size,agent=args.agent,seed=args.seed, max_len=max_len, env_mode=args.env_mode, temporal=args.use_ezgreedy, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
 #train(tflogger, grid=grid_size,agent="dqn",seed=1, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
 #train(tflogger, grid=grid_size,agent="dqn",seed=2, max_len=max_len, env_mode=final_mode, temporal=temporal, NETW_UPDATE_FREQ=NETW_UPDATE_FREQ)
 # dqn_eps_ret = (dqn_eps_ret1 + dqn_eps_ret2 + dqn_eps_ret3)
